@@ -617,30 +617,28 @@ AUDITOR     审计员，可选
 
 ### 第 2 阶段：C# 后端基础
 
-- 创建 `SteamPlatform.sln`。
-- 创建五层项目：
+- 状态：已完成 Group A 最小后端骨架，位置为 `backend/SteamPlatform.Backend.sln`；当前先采用单 API 项目控制复杂度，后续功能扩大时再按五层结构拆分。
+- [x] 创建 `SteamPlatform.Backend.sln`。
+- [x] 创建 ASP.NET Core Web API 项目：
   - `SteamPlatform.Api`
-  - `SteamPlatform.Application`
-  - `SteamPlatform.Domain`
-  - `SteamPlatform.Infrastructure`
-  - `SteamPlatform.Shared`
-- 配置 ASP.NET Core Web API。
-- 配置 Oracle 连接。
-- 配置 Oracle EF Core Provider。
-- 配置 Dapper / ODP.NET 复杂 SQL 支持。
-- 配置统一响应和统一异常。
-- 配置 Swagger / OpenAPI。
-- 配置 CORS。
-- 完成健康检查接口。
+- [x] 配置 ASP.NET Core Web API。
+- [x] 配置 Oracle 连接入口。
+- [x] 配置 Dapper / ODP.NET 复杂 SQL 支持。
+- [x] 配置统一异常。
+- [x] 配置 Swagger / OpenAPI。
+- [x] 完成健康检查接口。
+- [ ] 后续按模块需要再拆分 Application / Domain / Infrastructure / Shared。
+- [ ] 后续接入标准 ASP.NET Core Authentication / JWT。
 
 ### 第 3 阶段：认证与用户
 
-- 玩家注册。
-- 玩家登录。
-- JWT 签发与校验。
-- 管理员登录。
-- 开发商登录。
-- 基础角色权限。
+- [x] 玩家注册。
+- [x] 玩家登录。
+- [x] 演示 token 签发与校验。
+- [x] 管理员登录。
+- [x] 开发商登录。
+- [x] 基础角色权限。
+- [x] `GET /api/auth/me` 当前用户接口。
 
 ### 第 4 阶段：商店与游戏基础
 
@@ -1572,12 +1570,10 @@ README 写了什么，后续开发就尽量照着做。
 
 ## 24. 下一步
 
-下一步从第 2 阶段开始：
+下一步从 Group A 前端和接口联调开始：
 
-1. 在 `backend/` 创建 `SteamPlatform.sln`。
-2. 创建 ASP.NET Core 五层项目。
-3. 添加 Oracle EF Core、ODP.NET、Dapper 包。
-4. 配置统一响应和异常。
-5. 配置 Oracle 连接。
-6. 跑通 `/api/health`。
-7. 之后再创建 Vue 前端项目并连接 API。
+1. 创建 Vue 3 + Vite + TypeScript 前端项目。
+2. 实现 `/login`、`/register`、`/account`、`/admin/notices` 页面。
+3. 封装 Axios、token 存储和前端路由守卫。
+4. 用真实 API 联调 `POST /api/auth/login`、`GET /api/auth/me`、`GET /api/notices`、`POST /api/admin/notices`、`PUT /api/admin/notices/{noticeId}`。
+5. 后续再把后端按模块规模拆分 Application / Domain / Infrastructure / Shared。

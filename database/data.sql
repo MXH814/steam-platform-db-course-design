@@ -3,16 +3,16 @@ SET DEFINE OFF
 PROMPT Inserting Steam course seed data...
 
 INSERT INTO PLAYER (user_id, account, password_hash, nickname, credit_score, status, version, create_time, update_time)
-VALUES ('P001', 'alice', '$2a$10$demoHashAlice', 'Alice', 100, 'NORMAL', 0, TIMESTAMP '2026-07-05 09:00:00', TIMESTAMP '2026-07-05 09:00:00');
+VALUES ('P001', 'alice', 'PBKDF2$SHA256$100000$c2VlZC1hbGljZV9fX19fXw==$iTPCU6/lngHZz3zx/gYotoK0h7N0WJu8m0Vnre7/1NA=', 'Alice', 100, 'NORMAL', 0, TIMESTAMP '2026-07-05 09:00:00', TIMESTAMP '2026-07-05 09:00:00');
 
 INSERT INTO PLAYER (user_id, account, password_hash, nickname, credit_score, status, version, create_time, update_time)
-VALUES ('P002', 'bob', '$2a$10$demoHashBob', 'Bob', 96, 'NORMAL', 0, TIMESTAMP '2026-07-05 09:05:00', TIMESTAMP '2026-07-05 09:05:00');
+VALUES ('P002', 'bob', 'PBKDF2$SHA256$100000$c2VlZC1ib2JfX19fX19fXw==$2CvTcEyGV8IfmgB6hEZN+em2lyvIsaRLrQJ/5YgkipM=', 'Bob', 96, 'NORMAL', 0, TIMESTAMP '2026-07-05 09:05:00', TIMESTAMP '2026-07-05 09:05:00');
 
 INSERT INTO DEVELOPER (dev_id, company_name, tax_id, contact_email, status, join_time)
 VALUES ('DEV001', 'Night City Studio', 'TAX-DEMO-001', 'dev@example.com', 'APPROVED', TIMESTAMP '2026-07-05 09:10:00');
 
 INSERT INTO ADMIN_USER (admin_id, account, password_hash, role, create_time)
-VALUES ('ADM001', 'rootadmin', '$2a$10$demoHashAdmin', 'SUPER_ADMIN', TIMESTAMP '2026-07-05 09:15:00');
+VALUES ('ADM001', 'rootadmin', 'PBKDF2$SHA256$100000$c2VlZC1yb290YWRtaW5fXw==$yHE6M2jmsTpAplUmz5Vjp4o3zmV30sSQwdnx0jMVHpo=', 'SUPER_ADMIN', TIMESTAMP '2026-07-05 09:15:00');
 
 INSERT INTO WALLET_ACCOUNT (wallet_id, user_id, available_balance, frozen_balance, version)
 VALUES ('W001', 'P001', 355.00, 0.00, 1);
