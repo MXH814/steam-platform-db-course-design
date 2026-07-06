@@ -1,0 +1,80 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.temp
+*.log
+*.bak
+*.bkp
+~$*
+
+# IDE
+.idea/
+.vscode/
+.vs/
+*.suo
+*.user
+*.rsuser
+*.sln.docstates
+
+# .NET / ASP.NET Core
+backend/**/bin/
+backend/**/obj/
+backend/**/TestResults/
+backend/**/.vs/
+backend/**/*.user
+backend/**/*.rsuser
+backend/**/*.suo
+backend/**/*.nupkg
+backend/**/*.snupkg
+*.pdb
+*.cache
+
+# Historical Java/Maven tooling is not part of the project mainline
+backend/target/
+backend/.mvn/
+.m2/
+maven-repository/
+
+# Node / Vue
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.nuxt/
+frontend/coverage/
+frontend/.env.local
+frontend/.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local runtime config with secrets
+**/appsettings.Local.json
+**/appsettings.*.Local.json
+**/appsettings.Development.local.json
+**/appsettings.Production.local.json
+**/application-local.yml
+**/application-local.yaml
+**/application-dev.local.yml
+**/application-dev.local.yaml
+**/.env.local
+**/.env.*.local
+
+# Database generated logs / temporary verification output
+database/logs/
+database/*.lst
+database/*.log
+
+# Existing local tool bundles and installers
+draw.io/
+PDMaas-Pro/
+*.exe
+*.msi
+*.zip
+*.7z
+*.rar
+
+# Legacy experiments and generated binary outputs
+WindowsFormsApp1/
