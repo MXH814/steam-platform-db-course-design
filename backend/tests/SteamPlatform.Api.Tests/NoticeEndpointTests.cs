@@ -66,6 +66,55 @@ public sealed class NoticeEndpointTests(SteamPlatformApiFactory factory) : IClas
         Assert.Contains("Title and Content are required.", await response.Content.ReadAsStringAsync());
     }
 
+    [Fact]
+    public async Task Public_notice_write_endpoint_requires_authentication_before_input_validation()
+    {
+        using var response = await _client.PostAsJsonAsync("/api/notices", new
+        {
+            title = " ",
+            content = "content",
+            priority = 1,
+            expireTime = (DateTime?)null
+        });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Public_notice_write_endpoint_forbids_player_tokens_before_opening_database()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/notices")
+        {
+            Content = JsonContent.Create(new
+            {
+                title = "notice",
+                content = "content",
+                priority = 1,
+                expireTime = (DateTime?)null
+            })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("PLAYER", "P001", "alice"));
+
+        using var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_notice_update_requires_authentication_before_input_validation()
+    {
+        using var response = await _client.PutAsJsonAsync("/api/admin/notices/N001", new
+        {
+            title = " ",
+            content = "content",
+            priority = 1,
+            status = "PUBLISHED",
+            expireTime = (DateTime?)null
+        });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     private string CreateToken(string role, string principalId, string account)
     {
         using var scope = _factory.Services.CreateScope();
