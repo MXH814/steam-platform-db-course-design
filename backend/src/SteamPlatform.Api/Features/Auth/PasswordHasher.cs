@@ -40,13 +40,21 @@ public sealed class PasswordHasher : IPasswordHasher
             !parts[1].Equals("SHA256", StringComparison.OrdinalIgnoreCase) ||
             !int.TryParse(parts[2], out var iterations))
         {
-            return CryptographicOperations.FixedTimeEquals(
-                System.Text.Encoding.UTF8.GetBytes(password),
-                System.Text.Encoding.UTF8.GetBytes(storedHash));
+            return false;
         }
 
-        var salt = Convert.FromBase64String(parts[3]);
-        var expected = Convert.FromBase64String(parts[4]);
+        byte[] salt;
+        byte[] expected;
+        try
+        {
+            salt = Convert.FromBase64String(parts[3]);
+            expected = Convert.FromBase64String(parts[4]);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+
         var actual = Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, HashAlgorithmName.SHA256, expected.Length);
         needsRehash = iterations < Iterations;
         return CryptographicOperations.FixedTimeEquals(actual, expected);

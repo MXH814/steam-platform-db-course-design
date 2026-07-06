@@ -16,6 +16,17 @@ public sealed class AuthServiceTokenTests
         Assert.False(needsRehash);
     }
 
+    [Theory]
+    [InlineData("plain-password")]
+    [InlineData("PBKDF2$SHA256$100000$not-base64$also-not-base64")]
+    public void PasswordHasher_rejects_unrecognized_or_malformed_hashes(string storedHash)
+    {
+        var hasher = new PasswordHasher();
+
+        Assert.False(hasher.Verify("plain-password", storedHash, out var needsRehash));
+        Assert.False(needsRehash);
+    }
+
     [Fact]
     public void CreateToken_rejects_invalid_claims()
     {
@@ -36,6 +47,7 @@ public sealed class AuthServiceTokenTests
         var token = service.CreateToken(claims);
         var validated = service.ValidateToken("Bearer " + token);
 
+        Assert.Equal(3, token.Split('.').Length);
         Assert.NotNull(validated);
         Assert.Equal(claims.Role, validated.Role);
         Assert.Equal(claims.PrincipalId, validated.PrincipalId);
@@ -49,6 +61,17 @@ public sealed class AuthServiceTokenTests
         var token = service.CreateToken(new AuthClaims("PLAYER", "P001", "alice", DateTimeOffset.UtcNow.AddMinutes(5)));
 
         Assert.Null(service.ValidateToken(token + "x"));
+    }
+
+    [Fact]
+    public async Task Developer_login_is_disabled_until_schema_has_password_credentials()
+    {
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.LoginAsync(new LoginRequest("DEVELOPER", "dev@example.com", "TAX-DEMO-001"), CancellationToken.None));
+
+        Assert.Contains("Developer password login is not available", exception.Message);
     }
 
     private static AuthService CreateService() =>

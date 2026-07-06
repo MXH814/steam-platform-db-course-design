@@ -1,7 +1,7 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Dapper;
+using Microsoft.IdentityModel.Tokens;
 using SteamPlatform.Api.Data;
 using SteamPlatform.Api.Infrastructure;
 
@@ -15,6 +15,7 @@ public sealed class AuthService(
     private readonly IDbConnectionFactory _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
     private readonly byte[] _key = CopySigningKey(signingKeyProvider ?? throw new ArgumentNullException(nameof(signingKeyProvider)));
     private readonly IPasswordHasher _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
+    private readonly JwtSecurityTokenHandler _tokenHandler = new() { MapInboundClaims = false };
 
     public async Task<AuthResponse> RegisterPlayerAsync(RegisterPlayerRequest request, CancellationToken cancellationToken)
     {
@@ -61,6 +62,11 @@ public sealed class AuthService(
             throw new ArgumentException("Role must be PLAYER, DEVELOPER or ADMIN.");
         }
 
+        if (role == "DEVELOPER")
+        {
+            throw new UnauthorizedAccessException("Developer password login is not available until developer credentials are added to the schema.");
+        }
+
         await using var connection = _connectionFactory.CreateConnection();
         var account = request.Account.Trim();
         LoginRow? login = role switch
@@ -70,15 +76,6 @@ public sealed class AuthService(
                 select 'PLAYER' as role, user_id as principal_id, account, password_hash
                   from player
                  where account = :Account and status = 'NORMAL'
-                """,
-                new { Account = account },
-                cancellationToken: cancellationToken)),
-
-            "DEVELOPER" => await connection.QueryFirstOrDefaultAsync<LoginRow>(new CommandDefinition(
-                """
-                select 'DEVELOPER' as role, dev_id as principal_id, contact_email as account, tax_id as password_hash
-                  from developer
-                 where contact_email = :Account and status = 'APPROVED'
                 """,
                 new { Account = account },
                 cancellationToken: cancellationToken)),
@@ -95,7 +92,7 @@ public sealed class AuthService(
             _ => throw new ArgumentException("Role must be PLAYER, DEVELOPER or ADMIN.")
         };
 
-        if (login is null || !PasswordMatches(role, request.Password, login.PasswordHash))
+        if (login is null || !_passwordHasher.Verify(request.Password, login.PasswordHash, out _))
         {
             throw new UnauthorizedAccessException("Invalid role, account or password.");
         }
@@ -112,8 +109,30 @@ public sealed class AuthService(
             throw new ArgumentException("Claims must include a known role, principal id, account and future expiration.", nameof(claims));
         }
 
-        var payload = Base64UrlEncode(JsonSerializer.SerializeToUtf8Bytes(claims));
-        return payload + "." + Sign(payload);
+        var normalized = new AuthClaims(
+            claims.Role.Trim().ToUpperInvariant(),
+            claims.PrincipalId.Trim(),
+            claims.Account.Trim(),
+            claims.ExpiresAt);
+        var jwtClaims = new[]
+        {
+            new Claim(AuthTokenValidation.RoleClaim, normalized.Role),
+            new Claim(AuthTokenValidation.PrincipalIdClaim, normalized.PrincipalId),
+            new Claim(AuthTokenValidation.AccountClaim, normalized.Account),
+            new Claim(AuthTokenValidation.ExpiresAtClaim, normalized.ExpiresAt.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+            new Claim(JwtRegisteredClaimNames.Sub, normalized.PrincipalId),
+            new Claim(JwtRegisteredClaimNames.UniqueName, normalized.Account),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+        };
+
+        var token = new JwtSecurityToken(
+            claims: jwtClaims,
+            notBefore: DateTime.UtcNow,
+            expires: normalized.ExpiresAt.UtcDateTime,
+            signingCredentials: new SigningCredentials(new SymmetricSecurityKey(_key), SecurityAlgorithms.HmacSha256));
+
+        return _tokenHandler.WriteToken(token);
     }
 
     public AuthClaims? ValidateToken(string? token)
@@ -129,42 +148,29 @@ public sealed class AuthService(
             normalized = normalized["Bearer ".Length..].Trim();
         }
 
-        var parts = normalized.Split('.', 2);
-        if (parts.Length != 2 ||
-            !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(Sign(parts[0])), Encoding.UTF8.GetBytes(parts[1])))
-        {
-            return null;
-        }
-
         try
         {
-            var claims = JsonSerializer.Deserialize<AuthClaims>(Base64UrlDecode(parts[0]));
-            return claims is not null && HasValidClaims(claims) ? claims : null;
+            var principal = _tokenHandler.ValidateToken(
+                normalized,
+                AuthTokenValidation.CreateParameters(_key),
+                out var validatedToken);
+
+            if (validatedToken is not JwtSecurityToken jwtToken ||
+                !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            return EndpointGuards.TryReadClaims(principal, out var claims) ? claims : null;
         }
-        catch (JsonException)
+        catch (ArgumentException)
         {
             return null;
         }
-        catch (FormatException)
+        catch (SecurityTokenException)
         {
             return null;
         }
-    }
-
-    private bool PasswordMatches(string requestedRole, string password, string storedHash)
-    {
-        if (requestedRole.Equals("DEVELOPER", StringComparison.OrdinalIgnoreCase))
-        {
-            return string.Equals(password, storedHash, StringComparison.Ordinal);
-        }
-
-        return _passwordHasher.Verify(password, storedHash, out _);
-    }
-
-    private string Sign(string payload)
-    {
-        using var hmac = new HMACSHA256(_key);
-        return Base64UrlEncode(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload)));
     }
 
     private static bool HasValidClaims(AuthClaims claims) =>
@@ -189,16 +195,6 @@ public sealed class AuthService(
         return key is { Length: >= 32 }
             ? key.ToArray()
             : throw new InvalidOperationException("Auth signing key must be at least 32 bytes.");
-    }
-
-    private static string Base64UrlEncode(byte[] bytes) =>
-        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-
-    private static byte[] Base64UrlDecode(string value)
-    {
-        var padded = value.Replace('-', '+').Replace('_', '/');
-        padded = padded.PadRight(padded.Length + (4 - padded.Length % 4) % 4, '=');
-        return Convert.FromBase64String(padded);
     }
 
     private sealed class LoginRow

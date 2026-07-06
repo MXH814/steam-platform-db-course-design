@@ -1,4 +1,5 @@
 using Dapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Oracle.ManagedDataAccess.Client;
 using SteamPlatform.Api.Data;
 using SteamPlatform.Api.Features.Auth;
@@ -13,6 +14,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IDbConnectionFactory, OracleDbConnectionFactory>();
 builder.Services.AddSingleton<IAuthSigningKeyProvider, AuthSigningKeyProvider>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IAuthSigningKeyProvider>((options, signingKeyProvider) =>
+    {
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = AuthTokenValidation.CreateParameters(signingKeyProvider.Key);
+    });
+builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<INoticeRepository, NoticeRepository>();
@@ -26,6 +35,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseApiExceptionHandling();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new
 {

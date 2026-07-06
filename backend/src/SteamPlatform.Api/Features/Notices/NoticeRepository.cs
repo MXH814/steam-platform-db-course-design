@@ -88,7 +88,7 @@ public sealed class NoticeRepository(IDbConnectionFactory connectionFactory) : I
         var priority = NormalizePriority(request.Priority);
 
         await using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(new CommandDefinition(
+        var affected = await connection.ExecuteAsync(new CommandDefinition(
             """
             update sys_notice
                set title = :Title,
@@ -113,12 +113,17 @@ public sealed class NoticeRepository(IDbConnectionFactory connectionFactory) : I
             },
             cancellationToken: cancellationToken));
 
+        if (affected == 0)
+        {
+            throw new ResourceNotFoundException("Notice does not exist.");
+        }
+
         var notice = await connection.QueryFirstOrDefaultAsync<SysNotice>(new CommandDefinition(
             "select * from sys_notice where notice_id = :NoticeId",
             new { NoticeId = normalizedNoticeId },
             cancellationToken: cancellationToken));
 
-        return notice ?? throw new InvalidOperationException("Notice does not exist.");
+        return notice ?? throw new ResourceNotFoundException("Notice does not exist.");
     }
 
     private static string NormalizeStatus(string? value)

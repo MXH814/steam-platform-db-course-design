@@ -19,9 +19,9 @@ public static class AuthEndpointExtensions
             return Results.Ok(await authService.LoginAsync(request, cancellationToken));
         });
 
-        auth.MapGet("/me", (IAuthService authService, HttpRequest httpRequest) =>
+        auth.MapGet("/me", (HttpContext httpContext) =>
         {
-            if (EndpointGuards.DenyUnless(httpRequest, authService, out var claims, "PLAYER", "DEVELOPER", "ADMIN", "AUDITOR") is { } denied)
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "PLAYER", "DEVELOPER", "ADMIN", "AUDITOR") is { } denied)
             {
                 return denied;
             }

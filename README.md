@@ -137,8 +137,7 @@ GitHub 仓库已对 `main` 分支启用保护规则：
 | 前端状态 | Pinia | 登录状态、用户信息、钱包、购物车等 |
 | 前端路由 | Vue Router | 页面路由 |
 | 前端请求 | Axios | 调用 ASP.NET Core API |
-| UI 组件 | Naive UI | 暗色主题定制友好 |
-| CSS | Tailwind CSS + 自定义 Steam 主题 | 游戏商城、库存、市场等视觉效果 |
+| UI / CSS | Vue 单文件组件 + 项目内 CSS | 当前先控制复杂度，后续按页面规模评估组件库 |
 | Web Server | Nginx | 托管前端静态文件并反向代理 `/api` |
 | API 调试 | Apifox 或 Postman | 接口测试 |
 | 版本管理 | Git + GitHub | 代码提交、协作、考勤依据 |
@@ -584,7 +583,7 @@ AUDITOR     审计员，可选
 
 - 密码必须使用 BCrypt 或 ASP.NET Core PasswordHasher，不存明文。
 - 登录成功后使用 JWT。
-- 前端只保存 token，不保存密码。
+- 前端只保存 JWT，不保存密码。
 - 敏感接口必须后端鉴权。
 - 钱包、订单、市场、退款接口必须从 token 中获取当前用户，不信任前端传入的用户 ID。
 - Oracle 连接字符串、JWT 密钥、云服务器密码不得提交 Git。
@@ -628,15 +627,15 @@ AUDITOR     审计员，可选
 - [x] 配置 Swagger / OpenAPI。
 - [x] 完成健康检查接口。
 - [ ] 后续按模块需要再拆分 Application / Domain / Infrastructure / Shared。
-- [ ] 后续接入标准 ASP.NET Core Authentication / JWT。
+- [x] 接入标准 ASP.NET Core Authentication / JWT Bearer。
 
 ### 第 3 阶段：认证与用户
 
 - [x] 玩家注册。
 - [x] 玩家登录。
-- [x] 演示 token 签发与校验。
+- [x] JWT Bearer 签发与校验。
 - [x] 管理员登录。
-- [x] 开发商登录。
+- [ ] 开发商登录：当前 `DEVELOPER` 表没有密码哈希字段，暂不使用 `tax_id` 作为登录密码。
 - [x] 基础角色权限。
 - [x] `GET /api/auth/me` 当前用户接口。
 
@@ -695,8 +694,9 @@ AUDITOR     审计员，可选
 
 ### 第 10 阶段：Vue 前端与 Steam 风格
 
-- 创建 Vue 3 + Vite + TypeScript 项目。
-- 配置 Naive UI、Tailwind、Pinia、Vue Router、Axios。
+- [x] 创建 Vue 3 + Vite + TypeScript 项目。
+- [x] 配置 Pinia、Vue Router、Axios。
+- [x] 完成 Group A 登录、注册、账户中心、公告管理页面。
 - 商店首页。
 - 游戏详情。
 - 游戏库。
@@ -826,7 +826,7 @@ AUDITOR     审计员，可选
 - 玩家注册。
 - 玩家登录。
 - 管理员登录。
-- 开发商登录。
+- 开发商登录契约预留；待 `DEVELOPER` 表增加安全凭据字段后接入。
 - JWT 签发与校验。
 - 角色权限控制。
 - 个人资料基础接口。
@@ -1287,7 +1287,7 @@ Group D 必须优先保证的演示链路：
 - 样式变量和主题放在 `src/styles/`。
 - 组件名使用 `PascalCase`。
 - API 文件使用 `camelCase`，例如 `gameApi.ts`。
-- 不在组件里硬编码重复的颜色值，优先使用主题变量或 Tailwind 配置。
+- 不在组件里硬编码重复的颜色值，优先使用主题变量或公共样式。
 - 不提交无用 console 调试输出。
 
 ### 17.4 API 规范
@@ -1570,10 +1570,10 @@ README 写了什么，后续开发就尽量照着做。
 
 ## 24. 下一步
 
-下一步从 Group A 前端和接口联调开始：
+下一步从 Group A 真实环境联调和验收开始：
 
-1. 创建 Vue 3 + Vite + TypeScript 前端项目。
-2. 实现 `/login`、`/register`、`/account`、`/admin/notices` 页面。
-3. 封装 Axios、token 存储和前端路由守卫。
-4. 用真实 API 联调 `POST /api/auth/login`、`GET /api/auth/me`、`GET /api/notices`、`POST /api/admin/notices`、`PUT /api/admin/notices/{noticeId}`。
+1. 确认 Oracle 已加载 `schema.sql` 和 `data.sql`。
+2. 配置后端 `ConnectionStrings:Oracle` 与 `Auth:SigningKey`，启动 `backend/src/SteamPlatform.Api`。
+3. 在 `frontend/` 运行 `npm run dev`，通过 Vite 代理访问后端 API。
+4. 使用 `alice/alice`、`bob/bob`、`rootadmin/admin` 验证注册、登录、当前用户、公告发布和公告更新流程。
 5. 后续再把后端按模块规模拆分 Application / Domain / Infrastructure / Shared。

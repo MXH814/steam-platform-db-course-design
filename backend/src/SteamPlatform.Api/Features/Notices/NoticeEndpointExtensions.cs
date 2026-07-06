@@ -14,11 +14,10 @@ public static class NoticeEndpointExtensions
         notices.MapPost("", async (
             CreateNoticeRequest request,
             INoticeRepository repository,
-            IAuthService auth,
-            HttpRequest httpRequest,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            if (EndpointGuards.DenyUnless(httpRequest, auth, out var claims, "ADMIN", "DEVELOPER") is { } denied)
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "ADMIN", "DEVELOPER") is { } denied)
             {
                 return denied;
             }
@@ -43,11 +42,10 @@ public static class NoticeEndpointExtensions
         admin.MapPost("", async (
             CreateNoticeRequest request,
             INoticeRepository repository,
-            IAuthService auth,
-            HttpRequest httpRequest,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            if (EndpointGuards.DenyUnless(httpRequest, auth, out var claims, "ADMIN") is { } denied)
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "ADMIN") is { } denied)
             {
                 return denied;
             }
@@ -71,11 +69,10 @@ public static class NoticeEndpointExtensions
             string noticeId,
             UpdateNoticeRequest request,
             INoticeRepository repository,
-            IAuthService auth,
-            HttpRequest httpRequest,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            if (EndpointGuards.DenyUnless(httpRequest, auth, out _, "ADMIN") is { } denied)
+            if (EndpointGuards.DenyUnless(httpContext, out _, "ADMIN") is { } denied)
             {
                 return denied;
             }
