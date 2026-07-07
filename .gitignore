@@ -81,5 +81,12 @@ PDMaas-Pro/
 # Legacy experiments and generated binary outputs
 WindowsFormsApp1/
 
-# Local archive, not part of the submitted project
-_archive/
+# Local third-party tools and installers, not part of the submitted project
+_local_tools_archive/
+
+# Tracked project archive for old project files
+!_archive/
+!_archive/**
+_archive/**/.vs/
+_archive/**/bin/
+_archive/**/obj/

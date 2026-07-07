@@ -21,12 +21,13 @@
 
 GitHub 仓库已对 `main` 分支启用保护规则：
 
-- 禁止直接 push 到 `main`。
+- 普通组员禁止直接 push 到 `main`。
 - 禁止 force push。
 - 禁止删除 `main`。
 - 合并前必须通过 Pull Request。
 - Pull Request 至少需要 1 个 review。
 - Pull Request 中未解决的讨论必须先处理完。
+- 总负责人 / 仓库管理员可在 README、配置、紧急修复等维护场景下绕过保护规则；业务代码仍优先走 Pull Request。
 
 任何数据库表结构、公共接口、统一响应格式、技术路线、部署方案、团队分工和交付规范变更，都必须在 Pull Request 中同步更新 README。
 
@@ -95,15 +96,24 @@ GitHub 仓库已对 `main` 分支启用保护规则：
 - 根目录只保留当前正式方案需要的代码、脚本、文档、模板、图和新版模型文件。
 - 当前正式 E-R 图以 `E-R图（改）.drawio` 和 `图（改）/` 为准。
 - 当前正式数据库模型以 `“Steam-”数字游戏平台系统（改）.pdma` 为准。
-- 旧版图、旧版 PDMaas 模型、本地工具解压目录、安装包、历史实验工程、临时日志和备份文件统一放入本地归档目录。
+- 旧版图、旧版 PDMaas 模型、历史实验工程、临时日志、备份文件和旧压缩包统一放入项目归档目录。
+- 第三方工具解压目录和安装包不属于项目归档，不提交 GitHub。
 
-本地归档目录：
+项目归档目录：
 
 ```text
 _archive/legacy-files-2026-07-07/
 ```
 
-该目录只用于本机保留历史材料，不属于课程项目正式交付内容，已写入 `.gitignore`，不得提交到 GitHub。归档目录当前包含旧版 `图/`、旧版 `E-R图.drawio`、旧版 `pdmaas/`、`WindowsFormsApp1/`、Draw.io/PDMaas 本地工具和安装包、数据库验证日志、备份文件和旧压缩包。
+该目录用于保留我们自己做过的旧项目文件，需要提交到 GitHub，便于追溯设计演变。归档目录当前包含旧版 `图/`、旧版 `E-R图.drawio`、旧版 `pdmaas/`、`WindowsFormsApp1/` 源码、数据库验证日志、备份文件和旧压缩包。
+
+本机工具归档目录：
+
+```text
+_local_tools_archive/
+```
+
+该目录只用于本机保留第三方工具和安装包，例如 Draw.io、PDMaas-Pro 的安装包或解压目录，已写入 `.gitignore`，不得提交到 GitHub。
 
 云服务器 SSH 私钥不得放入 Git 仓库。`*.pem` 和 `*.key` 已写入 `.gitignore`，例如 `steam-course-ecs-key.pem` 只能作为本地私密文件保存，不能提交、不能发到群里、不能写进文档。
 
@@ -1413,7 +1423,8 @@ test(order): add duplicate purchase case
 - `appsettings.Local.json`。
 - `bin/`、`obj/`、`node_modules/`、`dist/`。
 - 大型安装包和个人工具目录。
-- 本地归档目录 `_archive/`。
+- 本机工具归档目录 `_local_tools_archive/`。
+- `_archive/` 里的旧项目资料需要提交，但不得包含密码、私钥、真实连接串、第三方工具安装目录和大型安装包。
 
 ## 18. 命名约定
 
@@ -1565,7 +1576,8 @@ Phase 1 database verification passed
 | 2026-07-06 | 数据访问采用 Oracle EF Core + Dapper / ODP.NET | 兼顾 ORM 规范性与复杂 SQL 可控性 |
 | 2026-07-06 | 确定 .NET 10 SDK 与 dotnet-ef 10.x 作为开发工具链基线 | 支持 ASP.NET Core / EF Core 10 开发 |
 | 2026-07-06 | 确定四组纵向功能分工，马祥珲担任唯一总负责人 | 每组同时交付前端、后端、测试和文档，降低前后端等待和集成风险 |
-| 2026-07-07 | 建立本地归档目录 `_archive/legacy-files-2026-07-07/` | 旧版文件和本地工具只在本机保留，不进入 GitHub 正式项目 |
+| 2026-07-07 | 建立项目归档目录 `_archive/legacy-files-2026-07-07/` | 我们自己做过的旧文件需要提交到 GitHub，第三方工具和安装包不提交 |
+| 2026-07-07 | 调整 `main` 分支保护为管理员可绕过 | 普通组员仍需 PR 和 review，总负责人可处理 README、配置和紧急修复 |
 
 ## 23. 变更维护规则
 
