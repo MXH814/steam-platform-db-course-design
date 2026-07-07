@@ -1,23 +1,24 @@
-﻿# Frontend
+# Frontend
 
-Vue 前端工程目录。
+Vue 3 + Vite + TypeScript 前端工程目录。
 
-本目录用于创建 Steam 风格 B/S 前端界面。课程提纲要求项目主体使用 C#，但前端界面可以继续使用 Web 前端技术；后端和数据访问层必须使用 C# / .NET。
+当前已落地 Group A 的基础页面和接口封装：
 
-计划技术：
+- `/`：公开公告列表。
+- `/login`：玩家/管理员登录。
+- `/register`：玩家注册。
+- `/account`：当前用户信息。
+- `/admin/notices`：管理员公告创建与更新。
 
-- Vue 3
-- Vite
-- TypeScript
-- Vue Router
-- Pinia
-- Axios
-- Naive UI
-- Tailwind CSS
+本地运行：
 
-目标：
+```powershell
+cd frontend
+npm install
+npm run dev
+npm run build
+```
 
-- 实现接近 Steam 的深色游戏商店界面。
-- 通过 HTTP/JSON 调用 ASP.NET Core Web API。
-- 不直接访问 Oracle。
+Vite 开发服务器会把 `/api` 和 `/health` 代理到 `http://localhost:5253`。如需连接其他 API 地址，可配置 `VITE_API_BASE_URL`。
 
+前端只保存 JWT，不保存密码；最终权限判断以后端为准。

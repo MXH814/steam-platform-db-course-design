@@ -15,4 +15,4 @@ Oracle 数据库脚本目录。
 - `PLAYER` 表不包含 `wallet_balance`。
 - 资金唯一真相是 `WALLET_ACCOUNT.available_balance` 与 `WALLET_ACCOUNT.frozen_balance`。
 - 总余额通过查询计算，不单独落库。
-
+- `data.sql` 中玩家和管理员演示账号使用 `PBKDF2$SHA256$...` 格式哈希，不提交明文密码。
