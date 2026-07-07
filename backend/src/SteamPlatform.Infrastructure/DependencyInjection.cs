@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<INoticeRepository, NoticeRepository>();
         services.AddScoped<IReviewRepository, ReviewRepository>();
+        services.AddScoped<IAchievementRepository, AchievementRepository>();
         services.AddScoped<IDatabaseHealthProbe, OracleDatabaseHealthProbe>();
 
         return services;

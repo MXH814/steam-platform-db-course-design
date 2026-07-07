@@ -32,6 +32,7 @@ public static class ApiExceptionHandlingExtensions
         {
             ArgumentException argumentException => NewProblem(StatusCodes.Status400BadRequest, "Invalid request", argumentException.Message),
             ResourceNotFoundException resourceNotFoundException => NewProblem(StatusCodes.Status404NotFound, "Not found", resourceNotFoundException.Message),
+            ForbiddenException forbiddenException => NewProblem(StatusCodes.Status403Forbidden, "Forbidden", forbiddenException.Message),
             InvalidOperationException => NewProblem(StatusCodes.Status500InternalServerError, "Server configuration error", "The server is not configured correctly."),
             UnauthorizedAccessException unauthorizedAccessException => NewProblem(StatusCodes.Status401Unauthorized, "Unauthorized", unauthorizedAccessException.Message),
             _ => NewProblem(StatusCodes.Status500InternalServerError, "Unexpected server error", "The server could not complete the request.")
