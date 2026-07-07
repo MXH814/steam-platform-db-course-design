@@ -1,0 +1,378 @@
+Creating local phase 1 verification user...
+
+会话已更改。
+
+
+PL/SQL 过程已成功完成。
+
+
+用户已创建。
+
+
+授权成功。
+
+
+用户已更改。
+
+Local phase 1 verification user created.
+Running full phase 1 verification in FREEPDB1 as STEAM_COURSE schema...
+
+会话已更改。
+
+
+会话已更改。
+
+Creating Steam course database schema...
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+表已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+
+索引已创建。
+
+Steam course database schema created.
+Inserting Steam course seed data...
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+已创建 1 行。
+
+
+提交完成。
+
+Steam course seed data inserted.
+Verifying phase 1 database deliverables...
+PASS: core table count = 27                                                     
+PASS: PLAYER.wallet_balance column count = 0                                    
+PASS: primary key constraint count = 27                                         
+PASS: foreign key constraint count = 40                                         
+PASS: unique constraint count = 13                                              
+PASS: check constraint count = 222                                              
+PASS: active sell item unique index count = 1                                   
+PASS: seed rows in PLAYER count = 2                                             
+PASS: seed rows in WALLET_ACCOUNT count = 2                                     
+PASS: seed rows in WALLET_TRANSACTION count = 3                                 
+PASS: seed rows in DEVELOPER count = 1                                          
+PASS: seed rows in ADMIN_USER count = 1                                         
+PASS: seed rows in SYS_NOTICE count = 1                                         
+PASS: seed rows in GAME count = 2                                               
+PASS: seed rows in GAME_ORDER count = 1                                         
+PASS: seed rows in ORDER_DETAIL count = 1                                       
+PASS: seed rows in ORDER_STATUS_LOG count = 2                                   
+PASS: seed rows in PAYMENT_TRANSACTION count = 1                                
+PASS: seed rows in REFUND_TICKET count = 1                                      
+PASS: seed rows in REFUND_DETAIL count = 1                                      
+PASS: seed rows in REFUND_AUDIT_LOG count = 1                                   
+PASS: seed rows in PLAYER_LIBRARY count = 2                                     
+PASS: seed rows in CDKEY_BATCH count = 1                                        
+PASS: seed rows in CDKEY count = 1                                              
+PASS: seed rows in CDKEY_REDEEM_LOG count = 1                                   
+PASS: seed rows in GAME_REVIEW count = 1                                        
+PASS: seed rows in REVIEW_VERSION count = 1                                     
+PASS: seed rows in ACHIEVEMENT count = 1                                        
+PASS: seed rows in PLAYER_ACHIEVEMENT count = 1                                 
+PASS: seed rows in ITEM_TEMPLATE count = 2                                      
+PASS: seed rows in INVENTORY_ITEM count = 2                                     
+PASS: seed rows in MARKET_ORDER count = 4                                       
+PASS: seed rows in MARKET_TRADE count = 1                                       
+PASS: seed rows in ITEM_TRANSFER_LEDGER count = 3                               
+PASS: computed total balance query = 1                                          
+PASS: duplicate player account raised expected SQLCODE -1                       
+PASS: negative wallet balance check raised expected SQLCODE -2290               
+PASS: invalid order player foreign key raised expected SQLCODE -2291            
+PASS: duplicate library ownership raised expected SQLCODE -1                    
+PASS: duplicate achievement unlock raised expected SQLCODE -1                   
+PASS: duplicate active sell order for same item raised expected SQLCODE -1      
+
+PL/SQL 过程已成功完成。
+
+
+回退已完成。
+
+Phase 1 database verification passed.
+Full phase 1 verification completed.

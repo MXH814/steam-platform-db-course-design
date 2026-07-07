@@ -51,6 +51,8 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Local runtime config with secrets
+*.pem
+*.key
 **/appsettings.Local.json
 **/appsettings.*.Local.json
 **/appsettings.Development.local.json
@@ -78,3 +80,13 @@ PDMaas-Pro/
 
 # Legacy experiments and generated binary outputs
 WindowsFormsApp1/
+
+# Local third-party tools and installers, not part of the submitted project
+_local_tools_archive/
+
+# Tracked project archive for old project files
+!_archive/
+!_archive/**
+_archive/**/.vs/
+_archive/**/bin/
+_archive/**/obj/
