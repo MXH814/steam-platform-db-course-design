@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using SteamPlatform.Api.Features.Auth;
 using SteamPlatform.Api.Features.CoreTransactions;
+using SteamPlatform.Api.Features.Inventory;
 using SteamPlatform.Api.Features.Notices;
 using SteamPlatform.Api.Infrastructure;
 using SteamPlatform.Application.Auth;
@@ -44,6 +45,7 @@ app.MapGet("/health/database", async (IDatabaseHealthProbe probe, CancellationTo
     Results.Ok(await probe.CheckAsync(cancellationToken)));
 
 app.MapAuthEndpoints();
+app.MapInventoryEndpoints();
 app.MapNoticeEndpoints();
 app.MapCoreTransactionEndpoints();
 
