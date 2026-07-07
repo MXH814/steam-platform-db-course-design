@@ -138,14 +138,14 @@ BEGIN
   expect_error(
     'duplicate library ownership',
     q'[INSERT INTO player_library (lib_id, user_id, game_id, acquire_way, status, play_minutes)
-       VALUES ('LIB_DUP', 'P001', 'G001', 'BUY', 'NORMAL', 0)]',
+       VALUES ('LIB_DUP', 'P001', 'GAME_DST', 'BUY', 'NORMAL', 0)]',
     -1
   );
 
   expect_error(
     'duplicate achievement unlock',
     q'[INSERT INTO player_achievement (unlock_id, user_id, ach_id, unlock_time)
-       VALUES ('PA_DUP', 'P001', 'ACH001', SYSTIMESTAMP)]',
+       VALUES ('PA_DUP', 'P001', 'ACH_DST_SURVIVE_001', SYSTIMESTAMP)]',
     -1
   );
 
