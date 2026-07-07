@@ -90,6 +90,23 @@ GitHub 仓库已对 `main` 分支启用保护规则：
 - `图（改）/数据库关系图/`
 - `“Steam-”数字游戏平台系统（改）.pdma`
 
+当前项目目录保留原则：
+
+- 根目录只保留当前正式方案需要的代码、脚本、文档、模板、图和新版模型文件。
+- 当前正式 E-R 图以 `E-R图（改）.drawio` 和 `图（改）/` 为准。
+- 当前正式数据库模型以 `“Steam-”数字游戏平台系统（改）.pdma` 为准。
+- 旧版图、旧版 PDMaas 模型、本地工具解压目录、安装包、历史实验工程、临时日志和备份文件统一放入本地归档目录。
+
+本地归档目录：
+
+```text
+_archive/legacy-files-2026-07-07/
+```
+
+该目录只用于本机保留历史材料，不属于课程项目正式交付内容，已写入 `.gitignore`，不得提交到 GitHub。归档目录当前包含旧版 `图/`、旧版 `E-R图.drawio`、旧版 `pdmaas/`、`WindowsFormsApp1/`、Draw.io/PDMaas 本地工具和安装包、数据库验证日志、备份文件和旧压缩包。
+
+云服务器 SSH 私钥不得放入 Git 仓库。`*.pem` 和 `*.key` 已写入 `.gitignore`，例如 `steam-course-ecs-key.pem` 只能作为本地私密文件保存，不能提交、不能发到群里、不能写进文档。
+
 ## 3. 最终架构选择
 
 选择：B/S 架构。
@@ -1391,10 +1408,12 @@ test(order): add duplicate purchase case
 - 数据库密码。
 - JWT 密钥。
 - 云服务器密码。
+- 云服务器 SSH 私钥，例如 `*.pem`、`*.key`。
 - `.env.local`。
 - `appsettings.Local.json`。
 - `bin/`、`obj/`、`node_modules/`、`dist/`。
 - 大型安装包和个人工具目录。
+- 本地归档目录 `_archive/`。
 
 ## 18. 命名约定
 
@@ -1546,6 +1565,7 @@ Phase 1 database verification passed
 | 2026-07-06 | 数据访问采用 Oracle EF Core + Dapper / ODP.NET | 兼顾 ORM 规范性与复杂 SQL 可控性 |
 | 2026-07-06 | 确定 .NET 10 SDK 与 dotnet-ef 10.x 作为开发工具链基线 | 支持 ASP.NET Core / EF Core 10 开发 |
 | 2026-07-06 | 确定四组纵向功能分工，马祥珲担任唯一总负责人 | 每组同时交付前端、后端、测试和文档，降低前后端等待和集成风险 |
+| 2026-07-07 | 建立本地归档目录 `_archive/legacy-files-2026-07-07/` | 旧版文件和本地工具只在本机保留，不进入 GitHub 正式项目 |
 
 ## 23. 变更维护规则
 
