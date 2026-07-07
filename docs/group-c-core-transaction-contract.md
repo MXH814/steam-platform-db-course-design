@@ -132,7 +132,13 @@ POST /api/admin/refunds/{refundId}/reject
 
 ### DST CDKey 兑换
 
-接口：
+批次创建接口：
+
+```text
+POST /api/developer/cdkey-batches
+```
+
+玩家兑换接口：
 
 ```text
 POST /api/cdkeys/redeem
@@ -141,12 +147,14 @@ POST /api/cdkeys/redeem
 必须满足：
 
 - 首期主线只为 `GAME_DST` 准备 CDKey 演示。
+- 批次创建只允许 `DEVELOPER` 或管理员角色调用；当前单次生成数量限制为 1-100。
+- 批次创建返回的明文 CDKey 只在本次响应中展示一次，后续数据库和日志只保存哈希。
 - 提交的明文 CDKey 只在服务层短暂存在，入库和日志使用哈希。
 - 成功和失败都写 `CDKEY_REDEEM_LOG`。
 - 成功兑换时必须把 `CDKEY.status` 改为 `REDEEMED`。
 - 成功兑换时写 `PLAYER_LIBRARY.acquire_way = REDEEM`。
 - 同一玩家已拥有 `GAME_DST` 时，不能再次兑换成功。
-- 已兑换、过期、撤销、无效 CDKey 都必须返回可解释的业务错误。
+- 已兑换、过期、撤销、无效 CDKey 都必须返回可解释的业务结果，并写入兑换日志。
 
 ## 服务分层建议
 

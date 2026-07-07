@@ -149,6 +149,125 @@ public static class CoreTransactionEndpointExtensions
             return Results.Ok(await service.AddPlaytimeAsync(claims!, gameId, request, cancellationToken));
         });
 
+        var refunds = app.MapGroup("/api/refunds").WithTags("Refunds");
+
+        refunds.MapPost("", async (
+            CreateRefundRequest request,
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "PLAYER") is { } denied)
+            {
+                return denied;
+            }
+
+            if (InputGuards.IsBlank(request.OrderId, request.Reason))
+            {
+                return Results.BadRequest("OrderId and Reason are required.");
+            }
+
+            return Results.Created("/api/refunds", await service.CreateRefundAsync(claims!, request, cancellationToken));
+        });
+
+        refunds.MapGet("", async (
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "PLAYER") is { } denied)
+            {
+                return denied;
+            }
+
+            return Results.Ok(await service.ListRefundsAsync(claims!, cancellationToken));
+        });
+
+        var adminRefunds = app.MapGroup("/api/admin/refunds").WithTags("Admin Refunds");
+
+        adminRefunds.MapPost("{refundId}/approve", async (
+            string refundId,
+            AuditRefundRequest request,
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "ADMIN") is { } denied)
+            {
+                return denied;
+            }
+
+            if (InputGuards.IsBlank(refundId))
+            {
+                return Results.BadRequest("RefundId is required.");
+            }
+
+            return Results.Ok(await service.ApproveRefundAsync(claims!, refundId, request, cancellationToken));
+        });
+
+        adminRefunds.MapPost("{refundId}/reject", async (
+            string refundId,
+            AuditRefundRequest request,
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "ADMIN") is { } denied)
+            {
+                return denied;
+            }
+
+            if (InputGuards.IsBlank(refundId))
+            {
+                return Results.BadRequest("RefundId is required.");
+            }
+
+            return Results.Ok(await service.RejectRefundAsync(claims!, refundId, request, cancellationToken));
+        });
+
+        app.MapPost("/api/developer/cdkey-batches", async (
+            CreateCdkeyBatchRequest request,
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "ADMIN", "DEVELOPER") is { } denied)
+            {
+                return denied;
+            }
+
+            if (InputGuards.IsBlank(request.GameId, request.BatchNo))
+            {
+                return Results.BadRequest("GameId and BatchNo are required.");
+            }
+
+            if (request.Quantity <= 0)
+            {
+                return Results.BadRequest("Quantity must be greater than 0.");
+            }
+
+            return Results.Created("/api/developer/cdkey-batches", await service.CreateCdkeyBatchAsync(claims!, request, cancellationToken));
+        }).WithTags("Developer CDKeys");
+
+        app.MapPost("/api/cdkeys/redeem", async (
+            RedeemCdkeyRequest request,
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "PLAYER") is { } denied)
+            {
+                return denied;
+            }
+
+            if (InputGuards.IsBlank(request.Cdkey))
+            {
+                return Results.BadRequest("Cdkey is required.");
+            }
+
+            return Results.Ok(await service.RedeemCdkeyAsync(claims!, request, cancellationToken));
+        }).WithTags("CDKeys");
+
         return app;
     }
 }
