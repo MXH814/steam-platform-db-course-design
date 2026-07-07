@@ -31,6 +31,7 @@ public static class ApiExceptionHandlingExtensions
         return exception switch
         {
             ArgumentException argumentException => NewProblem(StatusCodes.Status400BadRequest, "Invalid request", argumentException.Message),
+            BusinessRuleException businessRuleException => NewProblem(StatusCodes.Status409Conflict, businessRuleException.Code, businessRuleException.Message),
             ResourceNotFoundException resourceNotFoundException => NewProblem(StatusCodes.Status404NotFound, "Not found", resourceNotFoundException.Message),
             InvalidOperationException => NewProblem(StatusCodes.Status500InternalServerError, "Server configuration error", "The server is not configured correctly."),
             UnauthorizedAccessException unauthorizedAccessException => NewProblem(StatusCodes.Status401Unauthorized, "Unauthorized", unauthorizedAccessException.Message),
