@@ -17,5 +17,8 @@
 - 普通组员不能直接 push `main`。
 - 组员应从功能分支发 PR。
 - `main` 禁止 force push 和删除。
+- 技术路线、系统架构、团队分工、模块边界、交付规范不能由组员 PR 自行变更。
+- 只有马祥珲明确指示后，才允许修改技术路线和分工相关内容。
+- 任何 PR 如果擅自把 README 中的 .NET/C#/Oracle/B/S、五层结构、前端技术方向、组别职责或总负责人规则改掉，Codex 必须 request changes。
 - `_archive/` 保存我们自己做过的旧项目文件，需要提交到 GitHub。
 - `_local_tools_archive/`、`*.pem`、`*.key` 不能提交。
