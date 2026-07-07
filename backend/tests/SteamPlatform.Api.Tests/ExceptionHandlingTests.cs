@@ -1,4 +1,5 @@
 using SteamPlatform.Api.Infrastructure;
+using SteamPlatform.Shared;
 
 namespace SteamPlatform.Api.Tests;
 

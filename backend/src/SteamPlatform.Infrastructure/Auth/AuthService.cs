@@ -2,10 +2,12 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Dapper;
 using Microsoft.IdentityModel.Tokens;
-using SteamPlatform.Api.Data;
-using SteamPlatform.Api.Infrastructure;
+using SteamPlatform.Application.Auth;
+using SteamPlatform.Application.Common;
+using SteamPlatform.Infrastructure.Data;
+using SteamPlatform.Shared;
 
-namespace SteamPlatform.Api.Features.Auth;
+namespace SteamPlatform.Infrastructure.Auth;
 
 public sealed class AuthService(
     IDbConnectionFactory connectionFactory,
@@ -20,7 +22,7 @@ public sealed class AuthService(
     public async Task<AuthResponse> RegisterPlayerAsync(RegisterPlayerRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (EndpointGuards.IsBlank(request.Account, request.Password, request.Nickname))
+        if (InputGuards.IsBlank(request.Account, request.Password, request.Nickname))
         {
             throw new ArgumentException("Account, Password and Nickname are required.");
         }
@@ -51,7 +53,7 @@ public sealed class AuthService(
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (EndpointGuards.IsBlank(request.Role, request.Account, request.Password))
+        if (InputGuards.IsBlank(request.Role, request.Account, request.Password))
         {
             throw new ArgumentException("Role, Account and Password are required.");
         }
@@ -161,7 +163,7 @@ public sealed class AuthService(
                 return null;
             }
 
-            return EndpointGuards.TryReadClaims(principal, out var claims) ? claims : null;
+            return AuthClaimReader.TryReadClaims(principal, out var claims) ? claims : null;
         }
         catch (ArgumentException)
         {
@@ -174,20 +176,10 @@ public sealed class AuthService(
     }
 
     private static bool HasValidClaims(AuthClaims claims) =>
-        IsKnownRole(claims.Role) &&
+        AuthRoles.IsKnownRole(claims.Role) &&
         !string.IsNullOrWhiteSpace(claims.PrincipalId) &&
         !string.IsNullOrWhiteSpace(claims.Account) &&
         claims.ExpiresAt > DateTimeOffset.UtcNow;
-
-    private static bool IsKnownRole(string? role) =>
-        !string.IsNullOrWhiteSpace(role) && (
-            role.Equals("PLAYER", StringComparison.OrdinalIgnoreCase) ||
-            role.Equals("DEVELOPER", StringComparison.OrdinalIgnoreCase) ||
-            role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase) ||
-            role.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase) ||
-            role.Equals("AUDITOR", StringComparison.OrdinalIgnoreCase) ||
-            role.Equals("RISK_ADMIN", StringComparison.OrdinalIgnoreCase) ||
-            role.Equals("CUSTOMER_SERVICE", StringComparison.OrdinalIgnoreCase));
 
     private static byte[] CopySigningKey(IAuthSigningKeyProvider signingKeyProvider)
     {

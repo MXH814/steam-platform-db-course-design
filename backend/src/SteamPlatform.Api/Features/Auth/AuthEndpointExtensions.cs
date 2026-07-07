@@ -1,3 +1,6 @@
+using SteamPlatform.Application.Auth;
+using SteamPlatform.Application.Common;
+
 namespace SteamPlatform.Api.Features.Auth;
 
 public static class AuthEndpointExtensions
@@ -11,7 +14,7 @@ public static class AuthEndpointExtensions
 
         auth.MapPost("/login", async (LoginRequest request, IAuthService authService, CancellationToken cancellationToken) =>
         {
-            if (EndpointGuards.IsBlank(request.Role, request.Account, request.Password))
+            if (InputGuards.IsBlank(request.Role, request.Account, request.Password))
             {
                 return Results.BadRequest("Role, Account and Password are required.");
             }
@@ -37,7 +40,7 @@ public static class AuthEndpointExtensions
         IAuthService authService,
         CancellationToken cancellationToken)
     {
-        if (EndpointGuards.IsBlank(request.Account, request.Password, request.Nickname))
+        if (InputGuards.IsBlank(request.Account, request.Password, request.Nickname))
         {
             return Results.BadRequest("Account, Password and Nickname are required.");
         }

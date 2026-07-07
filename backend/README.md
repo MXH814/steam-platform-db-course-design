@@ -2,15 +2,21 @@
 
 ASP.NET Core C# 后端工程目录。
 
-当前已落地 Group A 的最小后端闭环：健康检查、玩家注册、登录、当前用户查询、公告公开查询、管理员公告发布和公告更新。
+本目录用于创建课程项目的 B/S 应用服务器，必须遵守课程提纲中的 VS.NET、C#、Oracle 18c+、Oracle 数据访问组件或 ORM 框架要求。
+
+当前已落地 Group A 后端与联调基础闭环：健康检查、玩家注册、玩家登录、管理员登录、当前用户查询、公告公开查询、管理员公告发布和公告更新。
 
 当前结构：
 
 ```text
 backend/
-  SteamPlatform.Backend.sln
+  SteamPlatform.sln
   src/
     SteamPlatform.Api/
+    SteamPlatform.Application/
+    SteamPlatform.Domain/
+    SteamPlatform.Infrastructure/
+    SteamPlatform.Shared/
   tests/
     SteamPlatform.Api.Tests/
 ```
@@ -18,8 +24,9 @@ backend/
 当前技术：
 
 - C#
-- .NET 8
+- .NET 10 LTS
 - ASP.NET Core Web API
+- Oracle.EntityFrameworkCore
 - Oracle.ManagedDataAccess.Core
 - Dapper
 - ASP.NET Core Authentication + JWT Bearer
@@ -43,9 +50,9 @@ PUT    /api/admin/notices/{noticeId}
 运行命令：
 
 ```powershell
-dotnet restore backend\SteamPlatform.Backend.sln
-dotnet build backend\SteamPlatform.Backend.sln
-dotnet test backend\SteamPlatform.Backend.sln
+dotnet restore backend\SteamPlatform.sln
+dotnet build backend\SteamPlatform.sln
+dotnet test backend\SteamPlatform.sln
 dotnet run --project backend\src\SteamPlatform.Api
 ```
 

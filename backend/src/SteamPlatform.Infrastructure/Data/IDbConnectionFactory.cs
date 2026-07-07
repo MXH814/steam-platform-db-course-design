@@ -1,6 +1,6 @@
 using System.Data.Common;
 
-namespace SteamPlatform.Api.Data;
+namespace SteamPlatform.Infrastructure.Data;
 
 public interface IDbConnectionFactory
 {

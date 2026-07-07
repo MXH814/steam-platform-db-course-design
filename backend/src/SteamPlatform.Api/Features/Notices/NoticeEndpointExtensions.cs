@@ -1,4 +1,6 @@
 using SteamPlatform.Api.Features.Auth;
+using SteamPlatform.Application.Common;
+using SteamPlatform.Application.Notices;
 
 namespace SteamPlatform.Api.Features.Notices;
 
@@ -22,7 +24,7 @@ public static class NoticeEndpointExtensions
                 return denied;
             }
 
-            if (EndpointGuards.IsBlank(request.Title, request.Content))
+            if (InputGuards.IsBlank(request.Title, request.Content))
             {
                 return Results.BadRequest("Title and Content are required.");
             }
@@ -50,7 +52,7 @@ public static class NoticeEndpointExtensions
                 return denied;
             }
 
-            if (EndpointGuards.IsBlank(request.Title, request.Content))
+            if (InputGuards.IsBlank(request.Title, request.Content))
             {
                 return Results.BadRequest("Title and Content are required.");
             }
@@ -77,7 +79,7 @@ public static class NoticeEndpointExtensions
                 return denied;
             }
 
-            if (EndpointGuards.IsBlank(noticeId, request.Title, request.Content, request.Status))
+            if (InputGuards.IsBlank(noticeId, request.Title, request.Content, request.Status))
             {
                 return Results.BadRequest("NoticeId, Title, Content and Status are required.");
             }

@@ -1,20 +1,18 @@
 using System.Text;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using SteamPlatform.Application.Auth;
 
-namespace SteamPlatform.Api.Features.Auth;
+namespace SteamPlatform.Infrastructure.Auth;
 
-public interface IAuthSigningKeyProvider
-{
-    byte[] Key { get; }
-}
-
-public sealed class AuthSigningKeyProvider(IConfiguration configuration, IWebHostEnvironment environment) : IAuthSigningKeyProvider
+public sealed class AuthSigningKeyProvider(IConfiguration configuration, IHostEnvironment environment) : IAuthSigningKeyProvider
 {
     private static readonly byte[] DevelopmentFallbackKey = Encoding.UTF8.GetBytes("steam-platform-dev-signing-key-000001");
     private readonly byte[] _key = ResolveKey(configuration, environment);
 
     public byte[] Key => _key.ToArray();
 
-    private static byte[] ResolveKey(IConfiguration configuration, IWebHostEnvironment environment)
+    private static byte[] ResolveKey(IConfiguration configuration, IHostEnvironment environment)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(environment);

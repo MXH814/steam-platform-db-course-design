@@ -1,12 +1,7 @@
 using System.Security.Cryptography;
+using SteamPlatform.Application.Auth;
 
-namespace SteamPlatform.Api.Features.Auth;
-
-public interface IPasswordHasher
-{
-    string Hash(string password);
-    bool Verify(string password, string storedHash, out bool needsRehash);
-}
+namespace SteamPlatform.Infrastructure.Auth;
 
 public sealed class PasswordHasher : IPasswordHasher
 {

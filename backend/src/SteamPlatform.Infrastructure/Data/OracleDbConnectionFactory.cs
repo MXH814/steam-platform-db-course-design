@@ -1,7 +1,8 @@
 using System.Data.Common;
+using Microsoft.Extensions.Configuration;
 using Oracle.ManagedDataAccess.Client;
 
-namespace SteamPlatform.Api.Data;
+namespace SteamPlatform.Infrastructure.Data;
 
 public sealed class OracleDbConnectionFactory(IConfiguration configuration) : IDbConnectionFactory
 {

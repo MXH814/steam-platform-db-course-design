@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace SteamPlatform.Api.Infrastructure;
+namespace SteamPlatform.Shared;
 
 public static class IdGenerator
 {

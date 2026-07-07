@@ -1,4 +1,4 @@
-namespace SteamPlatform.Api.Features.Auth;
+namespace SteamPlatform.Application.Auth;
 
 public sealed record RegisterPlayerRequest(string Account, string Password, string Nickname);
 
@@ -14,4 +14,15 @@ public interface IAuthService
     Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
     string CreateToken(AuthClaims claims);
     AuthClaims? ValidateToken(string? token);
+}
+
+public interface IAuthSigningKeyProvider
+{
+    byte[] Key { get; }
+}
+
+public interface IPasswordHasher
+{
+    string Hash(string password);
+    bool Verify(string password, string storedHash, out bool needsRehash);
 }

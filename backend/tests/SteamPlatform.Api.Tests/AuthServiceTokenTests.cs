@@ -1,7 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
-using SteamPlatform.Api.Features.Auth;
+using SteamPlatform.Application.Auth;
+using SteamPlatform.Infrastructure.Auth;
 
 namespace SteamPlatform.Api.Tests;
 

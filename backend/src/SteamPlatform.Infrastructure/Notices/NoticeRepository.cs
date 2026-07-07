@@ -1,8 +1,10 @@
 using Dapper;
-using SteamPlatform.Api.Data;
-using SteamPlatform.Api.Infrastructure;
+using SteamPlatform.Application.Notices;
+using SteamPlatform.Domain.Notices;
+using SteamPlatform.Infrastructure.Data;
+using SteamPlatform.Shared;
 
-namespace SteamPlatform.Api.Features.Notices;
+namespace SteamPlatform.Infrastructure.Notices;
 
 public sealed class NoticeRepository(IDbConnectionFactory connectionFactory) : INoticeRepository
 {

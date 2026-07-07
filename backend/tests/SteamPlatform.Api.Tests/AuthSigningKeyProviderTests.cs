@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
-using SteamPlatform.Api.Features.Auth;
+using Microsoft.Extensions.Hosting;
+using SteamPlatform.Infrastructure.Auth;
 
 namespace SteamPlatform.Api.Tests;
 
@@ -60,15 +60,13 @@ public sealed class AuthSigningKeyProviderTests
             })
             .Build();
 
-    private static IWebHostEnvironment Environment(string environmentName) =>
-        new StubWebHostEnvironment { EnvironmentName = environmentName };
+    private static IHostEnvironment Environment(string environmentName) =>
+        new StubHostEnvironment { EnvironmentName = environmentName };
 
-    private sealed class StubWebHostEnvironment : IWebHostEnvironment
+    private sealed class StubHostEnvironment : IHostEnvironment
     {
         public string EnvironmentName { get; set; } = "";
         public string ApplicationName { get; set; } = "SteamPlatform.Api.Tests";
-        public string WebRootPath { get; set; } = "";
-        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
         public string ContentRootPath { get; set; } = "";
         public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }

@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
-using SteamPlatform.Api.Features.Auth;
+using SteamPlatform.Application.Auth;
 
 namespace SteamPlatform.Api.Tests;
 

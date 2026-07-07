@@ -1,4 +1,5 @@
-using SteamPlatform.Api.Features.Notices;
+using SteamPlatform.Application.Notices;
+using SteamPlatform.Infrastructure.Notices;
 
 namespace SteamPlatform.Api.Tests;
 

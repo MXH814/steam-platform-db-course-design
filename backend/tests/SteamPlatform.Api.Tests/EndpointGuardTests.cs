@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using SteamPlatform.Application.Auth;
 using Microsoft.AspNetCore.Http;
 using SteamPlatform.Api.Features.Auth;
 

@@ -3,8 +3,8 @@ using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
-using SteamPlatform.Api.Data;
-using SteamPlatform.Api.Features.Auth;
+using SteamPlatform.Application.Auth;
+using SteamPlatform.Infrastructure.Data;
 
 namespace SteamPlatform.Api.Tests;
 

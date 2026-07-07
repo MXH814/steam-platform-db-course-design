@@ -1,6 +1,6 @@
 using Microsoft.IdentityModel.Tokens;
 
-namespace SteamPlatform.Api.Features.Auth;
+namespace SteamPlatform.Application.Auth;
 
 public static class AuthTokenValidation
 {
