@@ -77,7 +77,7 @@ public interface IGameService
     Task<ReviewSummaryResponse> GetReviewSummaryAsync(string gameId, CancellationToken cancellationToken);
     Task<AchievementSummaryResponse> GetAchievementSummaryAsync(string gameId, CancellationToken cancellationToken);
     Task<GameDetailResponse> CreateAsync(CreateGameRequest request, CancellationToken cancellationToken);
-    Task<GameDetailResponse> UpdateAsync(string gameId, UpdateGameRequest request, CancellationToken cancellationToken);
+    Task<GameDetailResponse> UpdateAsync(string gameId, string developerId, UpdateGameRequest request, CancellationToken cancellationToken);
     Task<GameDetailResponse> SetStatusAsync(string gameId, string status, CancellationToken cancellationToken);
 }
 
@@ -89,6 +89,6 @@ public interface IGameRepository
     Task<AchievementSummaryResponse> GetAchievementSummaryAsync(string gameId, CancellationToken cancellationToken);
     Task<bool> DeveloperExistsAsync(string developerId, CancellationToken cancellationToken);
     Task<GameDetailResponse> CreateAsync(string gameId, CreateGameRequest request, CancellationToken cancellationToken);
-    Task<bool> UpdateAsync(string gameId, UpdateGameRequest request, CancellationToken cancellationToken);
+    Task<bool> UpdateAsync(string gameId, string developerId, UpdateGameRequest request, CancellationToken cancellationToken);
     Task<bool> SetStatusAsync(string gameId, string status, CancellationToken cancellationToken);
 }

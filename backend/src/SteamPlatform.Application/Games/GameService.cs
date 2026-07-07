@@ -86,13 +86,20 @@ public sealed class GameService(IGameRepository repository) : IGameService
         return await _repository.CreateAsync(gameId, normalized, cancellationToken);
     }
 
-    public async Task<GameDetailResponse> UpdateAsync(string gameId, UpdateGameRequest request, CancellationToken cancellationToken)
+    public async Task<GameDetailResponse> UpdateAsync(string gameId, string developerId, UpdateGameRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         var normalizedGameId = NormalizeRequired(gameId, nameof(gameId));
+        var normalizedDeveloperId = NormalizeRequired(developerId, nameof(developerId));
         var normalized = NormalizeUpdateRequest(request);
+        var existing = await GetDetailAsync(normalizedGameId, cancellationToken);
 
-        var affected = await _repository.UpdateAsync(normalizedGameId, normalized, cancellationToken);
+        if (!string.Equals(existing.DeveloperId, normalizedDeveloperId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BusinessRuleException("GAME_DEVELOPER_MISMATCH", "Developer can only update games owned by itself.");
+        }
+
+        var affected = await _repository.UpdateAsync(normalizedGameId, normalizedDeveloperId, normalized, cancellationToken);
         if (!affected)
         {
             throw new ResourceNotFoundException("Game does not exist.");

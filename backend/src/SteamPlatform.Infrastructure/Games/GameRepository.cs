@@ -215,7 +215,7 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
             ?? throw new ResourceNotFoundException("Game does not exist.");
     }
 
-    public async Task<bool> UpdateAsync(string gameId, UpdateGameRequest request, CancellationToken cancellationToken)
+    public async Task<bool> UpdateAsync(string gameId, string developerId, UpdateGameRequest request, CancellationToken cancellationToken)
     {
         await using var connection = _connectionFactory.CreateConnection();
         var affected = await connection.ExecuteAsync(new CommandDefinition(
@@ -228,10 +228,12 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
                    reputation = :Reputation,
                    status = :Status
              where game_id = :GameId
+               and dev_id = :DeveloperId
             """,
             new
             {
                 GameId = gameId,
+                DeveloperId = developerId,
                 request.GameName,
                 request.BasePrice,
                 request.DiscountRate,

@@ -92,12 +92,12 @@ public static class GameEndpointExtensions
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            if (EndpointGuards.DenyUnless(httpContext, out _, "DEVELOPER") is { } denied)
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "DEVELOPER") is { } denied)
             {
                 return denied;
             }
 
-            var result = await service.UpdateAsync(gameId, request, cancellationToken);
+            var result = await service.UpdateAsync(gameId, claims!.PrincipalId, request, cancellationToken);
             return Results.Ok(ApiResponse<GameDetailResponse>.Success(result));
         });
 

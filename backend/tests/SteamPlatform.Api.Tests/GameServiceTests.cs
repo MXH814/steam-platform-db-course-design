@@ -47,14 +47,28 @@ public sealed class GameServiceTests
         var service = new GameService(repository);
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.UpdateAsync("G001", new UpdateGameRequest("Game", 10m, 1.5m, DateTime.Today, null, "ONLINE"), CancellationToken.None));
+            service.UpdateAsync("G001", "DEV001", new UpdateGameRequest("Game", 10m, 1.5m, DateTime.Today, null, "ONLINE"), CancellationToken.None));
 
+        Assert.False(repository.UpdateCalled);
+    }
+
+    [Fact]
+    public async Task Update_rejects_games_owned_by_other_developer_before_repository_write()
+    {
+        var repository = new RecordingGameRepository { ExistingDeveloperId = "DEV002" };
+        var service = new GameService(repository);
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.UpdateAsync("G001", "DEV001", new UpdateGameRequest("Game", 10m, 1m, DateTime.Today, null, "ONLINE"), CancellationToken.None));
+
+        Assert.Equal("GAME_DEVELOPER_MISMATCH", exception.Code);
         Assert.False(repository.UpdateCalled);
     }
 
     private sealed class RecordingGameRepository : IGameRepository
     {
         public bool DeveloperExists { get; init; } = true;
+        public string ExistingDeveloperId { get; init; } = "DEV001";
         public bool UpdateCalled { get; private set; }
         public GameListQuery? LastListQuery { get; private set; }
 
@@ -65,7 +79,7 @@ public sealed class GameServiceTests
         }
 
         public Task<GameDetailResponse?> GetDetailAsync(string gameId, CancellationToken cancellationToken) =>
-            Task.FromResult<GameDetailResponse?>(NewGame(gameId));
+            Task.FromResult<GameDetailResponse?>(NewGame(gameId, ExistingDeveloperId));
 
         public Task<ReviewSummaryResponse> GetReviewSummaryAsync(string gameId, CancellationToken cancellationToken) =>
             Task.FromResult(new ReviewSummaryResponse(0, 0, 0, null));
@@ -79,7 +93,7 @@ public sealed class GameServiceTests
         public Task<GameDetailResponse> CreateAsync(string gameId, CreateGameRequest request, CancellationToken cancellationToken) =>
             Task.FromResult(NewGame(gameId));
 
-        public Task<bool> UpdateAsync(string gameId, UpdateGameRequest request, CancellationToken cancellationToken)
+        public Task<bool> UpdateAsync(string gameId, string developerId, UpdateGameRequest request, CancellationToken cancellationToken)
         {
             UpdateCalled = true;
             return Task.FromResult(true);
@@ -88,7 +102,7 @@ public sealed class GameServiceTests
         public Task<bool> SetStatusAsync(string gameId, string status, CancellationToken cancellationToken) =>
             Task.FromResult(true);
 
-        private static GameDetailResponse NewGame(string gameId) =>
-            new(gameId, "Game", "DEV001", "Developer", 10m, 1m, 10m, DateTime.Today, null, "ONLINE");
+        private static GameDetailResponse NewGame(string gameId, string developerId = "DEV001") =>
+            new(gameId, "Game", developerId, "Developer", 10m, 1m, 10m, DateTime.Today, null, "ONLINE");
     }
 }
