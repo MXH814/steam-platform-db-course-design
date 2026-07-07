@@ -28,6 +28,9 @@ backend/**/*.rsuser
 backend/**/*.suo
 backend/**/*.nupkg
 backend/**/*.snupkg
+tests/**/bin/
+tests/**/obj/
+tests/**/TestResults/
 *.pdb
 *.cache
 
