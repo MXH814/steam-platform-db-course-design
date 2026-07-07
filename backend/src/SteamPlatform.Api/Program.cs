@@ -19,7 +19,7 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
         options.TokenValidationParameters = AuthTokenValidation.CreateParameters(signingKeyProvider.Key);
     });
 builder.Services.AddAuthorization();
-builder.Services.AddSteamPlatformInfrastructure();
+builder.Services.AddSteamPlatformInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 

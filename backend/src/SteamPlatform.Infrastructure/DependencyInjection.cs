@@ -1,4 +1,5 @@
 using Dapper;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SteamPlatform.Application.Auth;
 using SteamPlatform.Application.CoreTransactions;
@@ -13,17 +14,31 @@ namespace SteamPlatform.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddSteamPlatformInfrastructure(this IServiceCollection services)
+    public static IServiceCollection AddSteamPlatformInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
-        services.AddSingleton<IDbConnectionFactory, OracleDbConnectionFactory>();
+        var useInMemory = configuration.GetValue<bool>("UseInMemoryDatabase");
+
         services.AddSingleton<IAuthSigningKeyProvider, AuthSigningKeyProvider>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<ICoreTransactionService, CoreTransactionService>();
-        services.AddScoped<INoticeRepository, NoticeRepository>();
-        services.AddScoped<IDatabaseHealthProbe, OracleDatabaseHealthProbe>();
+
+        if (useInMemory)
+        {
+            // In-memory implementations for local development and tests
+            services.AddSingleton<IDbConnectionFactory, ThrowingConnectionFactory>();
+            services.AddSingleton<ICoreTransactionService, CoreTransactions.InMemoryCoreTransactionService>();
+            services.AddScoped<INoticeRepository, NoticeRepository>();
+            services.AddScoped<IDatabaseHealthProbe, OracleDatabaseHealthProbe>();
+        }
+        else
+        {
+            services.AddSingleton<IDbConnectionFactory, OracleDbConnectionFactory>();
+            services.AddScoped<ICoreTransactionService, CoreTransactions.CoreTransactionService>();
+            services.AddScoped<INoticeRepository, NoticeRepository>();
+            services.AddScoped<IDatabaseHealthProbe, OracleDatabaseHealthProbe>();
+        }
 
         return services;
     }
