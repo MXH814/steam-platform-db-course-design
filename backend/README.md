@@ -41,11 +41,28 @@ POST   /api/auth/register
 POST   /api/auth/register/player
 POST   /api/auth/login
 GET    /api/auth/me
+GET    /api/wallet
+POST   /api/wallet/recharge
+GET    /api/wallet/transactions?page=1&pageSize=20
+POST   /api/orders
+POST   /api/games/{gameId}/free-claim
+GET    /api/orders
+GET    /api/orders/{orderId}
+GET    /api/library
+POST   /api/library/{gameId}/playtime
+POST   /api/refunds
+GET    /api/refunds
+POST   /api/admin/refunds/{refundId}/approve
+POST   /api/admin/refunds/{refundId}/reject
+POST   /api/developer/cdkey-batches
+POST   /api/cdkeys/redeem
 GET    /api/notices
 POST   /api/notices
 POST   /api/admin/notices
 PUT    /api/admin/notices/{noticeId}
 ```
+
+钱包充值为课程演示用模拟充值，不接入第三方支付。`POST /api/wallet/recharge` 必须传入 `amount` 和 `idempotencyKey`，金额范围为 `0.01` 到 `99999.99` 且最多两位小数；同一幂等键重复提交不能重复加钱。
 
 运行命令：
 

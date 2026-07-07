@@ -14,6 +14,8 @@ namespace SteamPlatform.Infrastructure.CoreTransactions;
 public sealed class CoreTransactionService(IDbConnectionFactory connectionFactory) : ICoreTransactionService
 {
     private const string FreeClaimGameId = "GAME_CS2";
+    private const decimal RechargeMinAmount = 0.01m;
+    private const decimal RechargeMaxAmount = 99999.99m;
     private readonly IDbConnectionFactory _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
 
     public async Task<WalletSummary> GetWalletAsync(AuthClaims claims, CancellationToken cancellationToken)
@@ -33,34 +35,146 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         return row?.ToSummary() ?? throw new ResourceNotFoundException("Wallet does not exist.");
     }
 
-    public async Task<IReadOnlyList<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int limit, CancellationToken cancellationToken)
+    public async Task<RechargeWalletResult> RechargeWalletAsync(AuthClaims claims, RechargeWalletRequest request, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         var userId = NormalizePrincipal(claims);
+        var amount = NormalizeRechargeAmount(request.Amount);
+        var idempotencyKey = NormalizeIdempotencyKey(request.IdempotencyKey);
 
         await using var connection = _connectionFactory.CreateConnection();
-        var rows = await connection.QueryAsync<WalletTransactionRow>(new CommandDefinition(
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        try
+        {
+            var wallet = await LoadWalletForUpdateAsync(connection, transaction, userId, cancellationToken);
+            var existing = await FindWalletTransactionByIdempotencyAsync(connection, transaction, idempotencyKey, cancellationToken);
+            if (existing is not null)
+            {
+                if (!IsSameRecharge(existing, wallet.WalletId))
+                {
+                    throw new BusinessRuleException("IDEMPOTENCY_CONFLICT", "IdempotencyKey is already used by another wallet transaction.");
+                }
+
+                await transaction.CommitAsync(cancellationToken);
+                return new RechargeWalletResult(
+                    wallet.WalletId,
+                    existing.TxnId,
+                    wallet.AvailableBalance,
+                    wallet.FrozenBalance,
+                    wallet.AvailableBalance + wallet.FrozenBalance);
+            }
+
+            var transactionId = IdGenerator.NewId("WT");
+            var balanceBefore = wallet.AvailableBalance;
+            var balanceAfter = balanceBefore + amount;
+
+            await connection.ExecuteAsync(new CommandDefinition(
+                """
+                update wallet_account
+                   set available_balance = :BalanceAfter,
+                       version = version + 1
+                 where wallet_id = :WalletId
+                """,
+                new { wallet.WalletId, BalanceAfter = balanceAfter },
+                transaction,
+                cancellationToken: cancellationToken));
+
+            await connection.ExecuteAsync(new CommandDefinition(
+                """
+                insert into wallet_transaction
+                  (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, create_time)
+                values
+                  (:TxnId, :WalletId, 'RECHARGE', :BizRefId, 'CREDIT', :Amount, :Before, :After, :IdempotencyKey, SYSTIMESTAMP)
+                """,
+                new
+                {
+                    TxnId = transactionId,
+                    wallet.WalletId,
+                    BizRefId = transactionId,
+                    Amount = amount,
+                    Before = balanceBefore,
+                    After = balanceAfter,
+                    IdempotencyKey = idempotencyKey
+                },
+                transaction,
+                cancellationToken: cancellationToken));
+
+            await transaction.CommitAsync(cancellationToken);
+            return new RechargeWalletResult(
+                wallet.WalletId,
+                transactionId,
+                balanceAfter,
+                wallet.FrozenBalance,
+                balanceAfter + wallet.FrozenBalance);
+        }
+        catch (Exception exception) when (IsOracleUniqueConstraintViolation(exception))
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw new BusinessRuleException("IDEMPOTENCY_CONFLICT", "IdempotencyKey is already used by another wallet transaction.");
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var userId = NormalizePrincipal(claims);
+        var normalizedPage = Math.Max(page, 1);
+        var normalizedPageSize = Math.Clamp(pageSize, 1, 100);
+        var offset = (normalizedPage - 1) * normalizedPageSize;
+
+        await using var connection = _connectionFactory.CreateConnection();
+        var walletId = await connection.QueryFirstOrDefaultAsync<string>(new CommandDefinition(
             """
-            select *
-            from (
-              select wt.txn_id,
-                     wt.biz_type,
-                     wt.biz_ref_id,
-                     wt.funds_direction,
-                     wt.amount,
-                     wt.avail_bal_before,
-                     wt.avail_bal_after,
-                     wt.create_time
-                from wallet_transaction wt
-                join wallet_account wa on wa.wallet_id = wt.wallet_id
-               where wa.user_id = :UserId
-               order by wt.create_time desc, wt.txn_id desc
-            )
-            where rownum <= :Limit
+            select wallet_id
+              from wallet_account
+             where user_id = :UserId
             """,
-            new { UserId = userId, Limit = Math.Clamp(limit, 1, 100) },
+            new { UserId = userId },
             cancellationToken: cancellationToken));
 
-        return rows.Select(row => row.ToEntry()).ToArray();
+        if (walletId is null)
+        {
+            throw new ResourceNotFoundException("Wallet does not exist.");
+        }
+
+        var total = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+            """
+            select count(*)
+              from wallet_transaction
+             where wallet_id = :WalletId
+            """,
+            new { WalletId = walletId },
+            cancellationToken: cancellationToken));
+
+        var rows = await connection.QueryAsync<WalletTransactionRow>(new CommandDefinition(
+            """
+            select wt.txn_id,
+                   wt.biz_type,
+                   wt.biz_ref_id,
+                   wt.funds_direction,
+                   wt.amount,
+                   wt.avail_bal_before,
+                   wt.avail_bal_after,
+                   wt.idempotency_key,
+                   wt.create_time
+              from wallet_transaction wt
+             where wt.wallet_id = :WalletId
+             order by wt.create_time desc, wt.txn_id desc
+             offset :Offset rows fetch next :PageSize rows only
+            """,
+            new { WalletId = walletId, Offset = offset, PageSize = normalizedPageSize },
+            cancellationToken: cancellationToken));
+
+        return new PagedResult<WalletTransactionEntry>(
+            rows.Select(row => row.ToEntry()).ToArray(),
+            normalizedPage,
+            normalizedPageSize,
+            total);
     }
 
     public async Task<OrderSummary> BuyGameAsync(AuthClaims claims, CreateOrderRequest request, CancellationToken cancellationToken)
@@ -930,6 +1044,32 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             : await QueryOrderAsync(connection, userId, orderId, null, cancellationToken);
     }
 
+    private static async Task<WalletTransactionRow?> FindWalletTransactionByIdempotencyAsync(
+        DbConnection connection,
+        DbTransaction transaction,
+        string idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        return await connection.QueryFirstOrDefaultAsync<WalletTransactionRow>(new CommandDefinition(
+            """
+            select wallet_id,
+                   txn_id,
+                   biz_type,
+                   biz_ref_id,
+                   funds_direction,
+                   amount,
+                   avail_bal_before,
+                   avail_bal_after,
+                   idempotency_key,
+                   create_time
+              from wallet_transaction
+             where idempotency_key = :IdempotencyKey
+            """,
+            new { IdempotencyKey = idempotencyKey },
+            transaction,
+            cancellationToken: cancellationToken));
+    }
+
     private static async Task<OrderSummary?> QueryOrderAsync(
         DbConnection connection,
         string userId,
@@ -1224,6 +1364,59 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             : normalized;
     }
 
+    private static string NormalizeIdempotencyKey(string? value)
+    {
+        var normalized = value?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            throw new BusinessRuleException("IDEMPOTENCY_KEY_REQUIRED", "IdempotencyKey is required.");
+        }
+
+        return normalized.Length <= 64
+            ? normalized
+            : throw new BusinessRuleException("IDEMPOTENCY_CONFLICT", "IdempotencyKey must be 64 characters or fewer.");
+    }
+
+    private static decimal NormalizeRechargeAmount(decimal amount)
+    {
+        if (amount < RechargeMinAmount || amount > RechargeMaxAmount)
+        {
+            throw new BusinessRuleException("INVALID_AMOUNT", "Recharge amount must be between 0.01 and 99999.99.");
+        }
+
+        if (decimal.Round(amount, 2, MidpointRounding.AwayFromZero) != amount)
+        {
+            throw new BusinessRuleException("INVALID_AMOUNT", "Recharge amount can have at most two decimal places.");
+        }
+
+        return amount;
+    }
+
+    private static bool IsSameRecharge(WalletTransactionRow row, string walletId) =>
+        string.Equals(row.WalletId, walletId, StringComparison.Ordinal) &&
+        string.Equals(row.BizType, "RECHARGE", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsOracleUniqueConstraintViolation(Exception exception) =>
+        TryGetOracleErrorNumber(exception, out var oracleNumber) && oracleNumber == 1;
+
+    private static bool TryGetOracleErrorNumber(Exception exception, out int number)
+    {
+        number = 0;
+        if (exception.GetType().FullName != "Oracle.ManagedDataAccess.Client.OracleException")
+        {
+            return false;
+        }
+
+        var value = exception.GetType().GetProperty("Number")?.GetValue(exception);
+        if (value is not int oracleNumber)
+        {
+            return false;
+        }
+
+        number = oracleNumber;
+        return true;
+    }
+
     private static string? NormalizeOptional(string? value)
     {
         var normalized = value?.Trim();
@@ -1289,11 +1482,12 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         public decimal FrozenBalance { get; set; }
         public long Version { get; set; }
 
-        public WalletSummary ToSummary() => new(WalletId, UserId, AvailableBalance, FrozenBalance, Version);
+        public WalletSummary ToSummary() => new(WalletId, UserId, AvailableBalance, FrozenBalance, AvailableBalance + FrozenBalance, Version);
     }
 
     private sealed class WalletTransactionRow
     {
+        public string WalletId { get; set; } = "";
         public string TxnId { get; set; } = "";
         public string BizType { get; set; } = "";
         public string BizRefId { get; set; } = "";
@@ -1301,9 +1495,10 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         public decimal Amount { get; set; }
         public decimal AvailBalBefore { get; set; }
         public decimal AvailBalAfter { get; set; }
+        public string? IdempotencyKey { get; set; }
         public DateTime CreateTime { get; set; }
 
-        public WalletTransactionEntry ToEntry() => new(TxnId, BizType, BizRefId, FundsDirection, Amount, AvailBalBefore, AvailBalAfter, CreateTime);
+        public WalletTransactionEntry ToEntry() => new(TxnId, BizType, BizRefId, FundsDirection, Amount, AvailBalBefore, AvailBalAfter, IdempotencyKey, CreateTime);
     }
 
     private sealed class GameRow

@@ -170,4 +170,44 @@ public sealed class CoreTransactionServiceGuardTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.GetWalletAsync(AdminClaims, CancellationToken.None));
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(100000)]
+    [InlineData(1.001)]
+    public async Task Recharge_rejects_invalid_amount_before_opening_database(decimal amount)
+    {
+        var service = new CoreTransactionService(new ThrowingConnectionFactory());
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.RechargeWalletAsync(PlayerClaims, new RechargeWalletRequest(amount, "recharge-idem"), CancellationToken.None));
+
+        Assert.Equal("INVALID_AMOUNT", exception.Code);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public async Task Recharge_requires_idempotency_key_before_opening_database(string idempotencyKey)
+    {
+        var service = new CoreTransactionService(new ThrowingConnectionFactory());
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.RechargeWalletAsync(PlayerClaims, new RechargeWalletRequest(10, idempotencyKey), CancellationToken.None));
+
+        Assert.Equal("IDEMPOTENCY_KEY_REQUIRED", exception.Code);
+    }
+
+    [Fact]
+    public async Task Recharge_rejects_long_idempotency_key_before_opening_database()
+    {
+        var service = new CoreTransactionService(new ThrowingConnectionFactory());
+        var idempotencyKey = new string('x', 65);
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.RechargeWalletAsync(PlayerClaims, new RechargeWalletRequest(10, idempotencyKey), CancellationToken.None));
+
+        Assert.Equal("IDEMPOTENCY_CONFLICT", exception.Code);
+    }
 }

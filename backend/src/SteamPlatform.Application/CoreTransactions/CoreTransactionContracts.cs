@@ -14,7 +14,18 @@ public sealed record CreateCdkeyBatchRequest(string GameId, string BatchNo, Date
 
 public sealed record RedeemCdkeyRequest(string Cdkey);
 
-public sealed record WalletSummary(string WalletId, string UserId, decimal AvailableBalance, decimal FrozenBalance, long Version);
+public sealed record RechargeWalletRequest(decimal Amount, string IdempotencyKey);
+
+public sealed record WalletSummary(string WalletId, string UserId, decimal AvailableBalance, decimal FrozenBalance, decimal TotalBalance, long Version);
+
+public sealed record RechargeWalletResult(
+    string WalletId,
+    string TransactionId,
+    decimal AvailableBalance,
+    decimal FrozenBalance,
+    decimal TotalBalance);
+
+public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int Total);
 
 public sealed record WalletTransactionEntry(
     string TxnId,
@@ -24,6 +35,7 @@ public sealed record WalletTransactionEntry(
     decimal Amount,
     decimal AvailBalBefore,
     decimal AvailBalAfter,
+    string? IdempotencyKey,
     DateTime CreateTime);
 
 public sealed record OrderDetailEntry(
@@ -78,7 +90,8 @@ public sealed record CdkeyRedeemResult(string Result, string? GameId, string? Li
 public interface ICoreTransactionService
 {
     Task<WalletSummary> GetWalletAsync(AuthClaims claims, CancellationToken cancellationToken);
-    Task<IReadOnlyList<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int limit, CancellationToken cancellationToken);
+    Task<RechargeWalletResult> RechargeWalletAsync(AuthClaims claims, RechargeWalletRequest request, CancellationToken cancellationToken);
+    Task<PagedResult<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken);
     Task<OrderSummary> BuyGameAsync(AuthClaims claims, CreateOrderRequest request, CancellationToken cancellationToken);
     Task<OrderSummary> ClaimFreeGameAsync(AuthClaims claims, string gameId, CancellationToken cancellationToken);
     Task<IReadOnlyList<OrderSummary>> ListOrdersAsync(AuthClaims claims, CancellationToken cancellationToken);

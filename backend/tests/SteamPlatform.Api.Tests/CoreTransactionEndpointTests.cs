@@ -2,7 +2,12 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using SteamPlatform.Application.Auth;
+using SteamPlatform.Application.CoreTransactions;
+using SteamPlatform.Shared;
 
 namespace SteamPlatform.Api.Tests;
 
@@ -72,6 +77,129 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
         });
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Recharge_wallet_requires_authentication()
+    {
+        using var response = await _client.PostAsJsonAsync("/api/wallet/recharge", new
+        {
+            amount = 10,
+            idempotencyKey = "recharge-test"
+        });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Recharge_wallet_requires_player_role()
+    {
+        AuthorizeAs("ADMIN");
+
+        using var response = await _client.PostAsJsonAsync("/api/wallet/recharge", new
+        {
+            amount = 10,
+            idempotencyKey = "recharge-test"
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Recharge_wallet_validates_idempotency_key_before_opening_database()
+    {
+        AuthorizeAsPlayer();
+
+        using var response = await _client.PostAsJsonAsync("/api/wallet/recharge", new
+        {
+            amount = 10,
+            idempotencyKey = ""
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"code\":\"IDEMPOTENCY_KEY_REQUIRED\"", body);
+        Assert.Contains("\"message\":\"IdempotencyKey is required.\"", body);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(100000)]
+    [InlineData(1.001)]
+    public async Task Recharge_wallet_validates_amount_before_opening_database(decimal amount)
+    {
+        AuthorizeAsPlayer();
+
+        using var response = await _client.PostAsJsonAsync("/api/wallet/recharge", new
+        {
+            amount,
+            idempotencyKey = "recharge-test"
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"code\":\"INVALID_AMOUNT\"", body);
+        Assert.DoesNotContain("INVALID_AMOUNT:", body);
+    }
+
+    [Fact]
+    public async Task Wallet_summary_returns_wallet_not_found_api_response()
+    {
+        using var customFactory = CreateFactoryWithCoreTransactionService(new StubCoreTransactionService
+        {
+            GetWallet = (_, _) => throw new ResourceNotFoundException("Wallet does not exist.")
+        });
+        using var client = customFactory.CreateClient();
+        AuthorizeAsPlayer(client);
+
+        using var response = await client.GetAsync("/api/wallet");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"code\":\"WALLET_NOT_FOUND\"", body);
+        Assert.Contains("\"data\":null", body);
+    }
+
+    [Fact]
+    public async Task Wallet_transactions_returns_wallet_not_found_api_response()
+    {
+        using var customFactory = CreateFactoryWithCoreTransactionService(new StubCoreTransactionService
+        {
+            ListWalletTransactions = (_, _, _, _) => throw new ResourceNotFoundException("Wallet does not exist.")
+        });
+        using var client = customFactory.CreateClient();
+        AuthorizeAsPlayer(client);
+
+        using var response = await client.GetAsync("/api/wallet/transactions?page=1&pageSize=20");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"code\":\"WALLET_NOT_FOUND\"", body);
+        Assert.Contains("\"data\":null", body);
+    }
+
+    [Fact]
+    public async Task Recharge_wallet_returns_business_error_code_without_prefixing_message()
+    {
+        using var customFactory = CreateFactoryWithCoreTransactionService(new StubCoreTransactionService
+        {
+            RechargeWallet = (_, _, _) => throw new BusinessRuleException("IDEMPOTENCY_CONFLICT", "IdempotencyKey is already used by another wallet transaction.")
+        });
+        using var client = customFactory.CreateClient();
+        AuthorizeAsPlayer(client);
+
+        using var response = await client.PostAsJsonAsync("/api/wallet/recharge", new
+        {
+            amount = 10,
+            idempotencyKey = "recharge-conflict"
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"code\":\"IDEMPOTENCY_CONFLICT\"", body);
+        Assert.Contains("\"message\":\"IdempotencyKey is already used by another wallet transaction.\"", body);
+        Assert.DoesNotContain("IDEMPOTENCY_CONFLICT:", body);
     }
 
     [Fact]
@@ -163,22 +291,76 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
 
     private void AuthorizeAsPlayer()
     {
-        AuthorizeAs("PLAYER");
+        AuthorizeAs(_client, "PLAYER");
+    }
+
+    private void AuthorizeAsPlayer(HttpClient client)
+    {
+        AuthorizeAs(client, "PLAYER");
     }
 
     private void AuthorizeAs(string role)
     {
+        AuthorizeAs(_client, role);
+    }
+
+    private void AuthorizeAs(HttpClient client, string role)
+    {
         using var scope = _factory.Services.CreateScope();
         var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
-        var principalId = role.Equals("PLAYER", StringComparison.OrdinalIgnoreCase) ? "P001" : "DEV001";
+        var principalId = role.ToUpperInvariant() switch
+        {
+            "PLAYER" => "P001",
+            "ADMIN" => "ADM001",
+            _ => "DEV001"
+        };
         var token = auth.CreateToken(new AuthClaims(role, principalId, "tester", DateTimeOffset.UtcNow.AddMinutes(10)));
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
+
+    private WebApplicationFactory<Program> CreateFactoryWithCoreTransactionService(ICoreTransactionService service) =>
+        _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<ICoreTransactionService>();
+                services.AddSingleton(service);
+            });
+        });
 
     public enum HttpMethodName
     {
         Get
     }
+}
+
+internal sealed class StubCoreTransactionService : ICoreTransactionService
+{
+    public Func<AuthClaims, CancellationToken, Task<WalletSummary>>? GetWallet { get; init; }
+    public Func<AuthClaims, RechargeWalletRequest, CancellationToken, Task<RechargeWalletResult>>? RechargeWallet { get; init; }
+    public Func<AuthClaims, int, int, CancellationToken, Task<PagedResult<WalletTransactionEntry>>>? ListWalletTransactions { get; init; }
+
+    public Task<WalletSummary> GetWalletAsync(AuthClaims claims, CancellationToken cancellationToken) =>
+        GetWallet?.Invoke(claims, cancellationToken) ?? throw new NotImplementedException();
+
+    public Task<RechargeWalletResult> RechargeWalletAsync(AuthClaims claims, RechargeWalletRequest request, CancellationToken cancellationToken) =>
+        RechargeWallet?.Invoke(claims, request, cancellationToken) ?? throw new NotImplementedException();
+
+    public Task<PagedResult<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken) =>
+        ListWalletTransactions?.Invoke(claims, page, pageSize, cancellationToken) ?? throw new NotImplementedException();
+
+    public Task<OrderSummary> BuyGameAsync(AuthClaims claims, CreateOrderRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<OrderSummary> ClaimFreeGameAsync(AuthClaims claims, string gameId, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<IReadOnlyList<OrderSummary>> ListOrdersAsync(AuthClaims claims, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<OrderSummary> GetOrderAsync(AuthClaims claims, string orderId, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<IReadOnlyList<LibraryEntry>> ListLibraryAsync(AuthClaims claims, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<LibraryEntry> AddPlaytimeAsync(AuthClaims claims, string gameId, UpdatePlaytimeRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<RefundSummary> CreateRefundAsync(AuthClaims claims, CreateRefundRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<IReadOnlyList<RefundSummary>> ListRefundsAsync(AuthClaims claims, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<RefundSummary> ApproveRefundAsync(AuthClaims claims, string refundId, AuditRefundRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<RefundSummary> RejectRefundAsync(AuthClaims claims, string refundId, AuditRefundRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<CdkeyBatchSummary> CreateCdkeyBatchAsync(AuthClaims claims, CreateCdkeyBatchRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<CdkeyRedeemResult> RedeemCdkeyAsync(AuthClaims claims, RedeemCdkeyRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();
 }
 
 internal static class HttpMethodNameExtensions

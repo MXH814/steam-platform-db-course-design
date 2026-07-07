@@ -61,6 +61,15 @@ public sealed class SchemaContractTests
         }
     }
 
+    [Fact]
+    public void Game_reputation_column_can_store_longest_documented_value()
+    {
+        var block = Normalize(TableBlock("GAME"));
+
+        Assert.Contains("reputation VARCHAR2(30)", block, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'OVERWHELMINGLY_POSITIVE'", block, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static string TableBlock(string tableName)
     {
         var match = Regex.Match(

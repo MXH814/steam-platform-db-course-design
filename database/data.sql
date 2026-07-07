@@ -30,7 +30,7 @@ INSERT INTO GAME (game_id, dev_id, game_name, base_price, discount_rate, release
 VALUES ('GAME_CS2', 'DEV_VALVE', 'Counter-Strike 2', 0.00, 1.00, DATE '2023-09-27', 'VERY_POSITIVE', 'ONLINE');
 
 INSERT INTO GAME (game_id, dev_id, game_name, base_price, discount_rate, release_date, reputation, status)
-VALUES ('GAME_DST', 'DEV_KLEI', 'Don''t Starve Together / 饥荒联机版', 48.00, 0.50, DATE '2016-04-21', 'OVERWHELMINGLY_POSITIVE', 'ONLINE');
+VALUES ('GAME_DST', 'DEV_KLEI', 'Don''t Starve Together / ' || UNISTR('\9965\8352\8054\673A\7248'), 48.00, 0.50, DATE '2016-04-21', 'OVERWHELMINGLY_POSITIVE', 'ONLINE');
 
 INSERT INTO GAME_ORDER (order_id, user_id, total_amount, order_type, order_status, payment_status, idempotency_key, expire_time, create_time)
 VALUES ('O_DST_001', 'P001', 24.00, 'BUY_GAME', 'COMPLETED', 'PAID', 'idem-order-dst-001', TIMESTAMP '2026-07-05 10:30:00', TIMESTAMP '2026-07-05 10:00:00');

@@ -1,6 +1,7 @@
 using SteamPlatform.Api.Features.Auth;
 using SteamPlatform.Application.Common;
 using SteamPlatform.Application.CoreTransactions;
+using SteamPlatform.Shared;
 
 namespace SteamPlatform.Api.Features.CoreTransactions;
 
@@ -20,11 +21,18 @@ public static class CoreTransactionEndpointExtensions
                 return denied;
             }
 
-            return Results.Ok(await service.GetWalletAsync(claims!, cancellationToken));
+            try
+            {
+                return Results.Ok(ApiResponse<WalletSummary>.Success(await service.GetWalletAsync(claims!, cancellationToken)));
+            }
+            catch (ResourceNotFoundException exception)
+            {
+                return WalletNotFound(exception);
+            }
         });
 
-        wallet.MapGet("/transactions", async (
-            int? limit,
+        wallet.MapPost("/recharge", async (
+            RechargeWalletRequest request,
             ICoreTransactionService service,
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
@@ -34,7 +42,47 @@ public static class CoreTransactionEndpointExtensions
                 return denied;
             }
 
-            return Results.Ok(await service.ListWalletTransactionsAsync(claims!, limit ?? 50, cancellationToken));
+            if (InputGuards.IsBlank(request.IdempotencyKey))
+            {
+                return Results.BadRequest(ApiResponse<object>.Failure("IDEMPOTENCY_KEY_REQUIRED", "IdempotencyKey is required."));
+            }
+
+            try
+            {
+                var result = await service.RechargeWalletAsync(claims!, request, cancellationToken);
+                return Results.Ok(ApiResponse<RechargeWalletResult>.Success(result));
+            }
+            catch (BusinessRuleException exception)
+            {
+                return WalletBusinessFailure(exception);
+            }
+            catch (ResourceNotFoundException exception)
+            {
+                return WalletNotFound(exception);
+            }
+        });
+
+        wallet.MapGet("/transactions", async (
+            int? page,
+            int? pageSize,
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "PLAYER") is { } denied)
+            {
+                return denied;
+            }
+
+            try
+            {
+                var result = await service.ListWalletTransactionsAsync(claims!, page ?? 1, pageSize ?? 20, cancellationToken);
+                return Results.Ok(ApiResponse<PagedResult<WalletTransactionEntry>>.Success(result));
+            }
+            catch (ResourceNotFoundException exception)
+            {
+                return WalletNotFound(exception);
+            }
         });
 
         var orders = app.MapGroup("/api/orders").WithTags("Orders");
@@ -270,4 +318,10 @@ public static class CoreTransactionEndpointExtensions
 
         return app;
     }
+
+    private static IResult WalletBusinessFailure(BusinessRuleException exception) =>
+        Results.Conflict(ApiResponse<object>.Failure(exception.Code, exception.Message));
+
+    private static IResult WalletNotFound(ResourceNotFoundException exception) =>
+        Results.NotFound(ApiResponse<object>.Failure("WALLET_NOT_FOUND", exception.Message));
 }

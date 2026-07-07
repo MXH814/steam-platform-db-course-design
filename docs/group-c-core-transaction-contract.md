@@ -25,6 +25,44 @@ Group C 只围绕两款最终样板游戏做主链路：
 
 ## 事务边界
 
+### 钱包查询、充值与流水
+
+接口：
+
+```text
+GET  /api/wallet
+POST /api/wallet/recharge
+GET  /api/wallet/transactions?page=1&pageSize=20
+```
+
+`GET /api/wallet` 必须从 JWT 中读取当前玩家，返回 `availableBalance`、`frozenBalance`、`totalBalance` 和 `version`。`totalBalance` 只允许查询时计算，不能恢复 `PLAYER.wallet_balance`。
+
+`POST /api/wallet/recharge` 是课程演示用模拟充值，不接入第三方支付。请求字段：
+
+```json
+{
+  "amount": 100.00,
+  "idempotencyKey": "client-generated-key"
+}
+```
+
+必须在一个数据库事务中完成：
+
+```text
+校验 PLAYER 身份
+  -> 校验 amount 在 0.01 到 99999.99 之间且最多两位小数
+  -> 校验 idempotencyKey 非空且不超过 64 字符
+  -> 锁定 WALLET_ACCOUNT
+  -> 若同一 idempotencyKey 的 RECHARGE 流水已存在，直接返回已有充值结果
+  -> 增加 WALLET_ACCOUNT.available_balance
+  -> 增加 WALLET_ACCOUNT.version
+  -> 写 WALLET_TRANSACTION，biz_type = RECHARGE，funds_direction = CREDIT
+  -> 记录 avail_bal_before / avail_bal_after
+  -> 提交事务
+```
+
+`GET /api/wallet/transactions` 返回分页响应，默认 `page = 1`、`pageSize = 20`，最大 `pageSize = 100`，按 `create_time desc, txn_id desc` 排序。流水项必须包含 `idempotencyKey`，便于排查重复提交。
+
 ### DST 买断制购买
 
 接口：
