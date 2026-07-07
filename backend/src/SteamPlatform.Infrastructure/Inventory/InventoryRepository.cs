@@ -79,6 +79,23 @@ public sealed class InventoryRepository(IDbConnectionFactory connectionFactory) 
         await connection.OpenAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
+        var ownedGameCount = await connection.QuerySingleAsync<int>(new CommandDefinition(
+            """
+            select count(1)
+              from player_library
+             where user_id = :UserId
+               and game_id = :GameId
+               and status = 'NORMAL'
+            """,
+            new { UserId = normalizedUserId, GameId = normalizedGameId },
+            transaction,
+            cancellationToken: cancellationToken));
+
+        if (ownedGameCount == 0)
+        {
+            throw new BusinessRuleException("GAME_NOT_OWNED", "Current player does not own this game.");
+        }
+
         var template = await connection.QueryFirstOrDefaultAsync<ItemTemplateDropRow>(new CommandDefinition(
             """
             select *
