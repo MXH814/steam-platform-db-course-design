@@ -1182,6 +1182,12 @@ Group C 与其他组的边界：
 - `DST` 退款成功后必须处理订单状态、退款日志、钱包流水和游戏库状态。
 - CDKey 优先给 `DST` 准备兑换样例，`CS2` 不作为 CDKey 主演示对象。
 
+Group C 详细交易契约见：
+
+```text
+docs/group-c-core-transaction-contract.md
+```
+
 ### 15.4 Group D：社区互动、成就、饰品库存、市场交易
 
 成员：
