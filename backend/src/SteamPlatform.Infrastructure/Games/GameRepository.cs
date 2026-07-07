@@ -207,7 +207,7 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
                 request.DiscountRate,
                 request.ReleaseDate,
                 request.Reputation,
-                request.Status
+                Status = "OFFLINE"
             },
             cancellationToken: cancellationToken));
 
@@ -225,8 +225,7 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
                    base_price = :BasePrice,
                    discount_rate = :DiscountRate,
                    release_date = :ReleaseDate,
-                   reputation = :Reputation,
-                   status = :Status
+                   reputation = :Reputation
              where game_id = :GameId
                and dev_id = :DeveloperId
             """,
@@ -238,8 +237,7 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
                 request.BasePrice,
                 request.DiscountRate,
                 request.ReleaseDate,
-                request.Reputation,
-                request.Status
+                request.Reputation
             },
             cancellationToken: cancellationToken));
 

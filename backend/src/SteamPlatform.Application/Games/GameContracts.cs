@@ -59,16 +59,14 @@ public sealed record CreateGameRequest(
     decimal BasePrice,
     decimal DiscountRate,
     DateTime ReleaseDate,
-    string? Reputation,
-    string Status);
+    string? Reputation);
 
 public sealed record UpdateGameRequest(
     string GameName,
     decimal BasePrice,
     decimal DiscountRate,
     DateTime ReleaseDate,
-    string? Reputation,
-    string Status);
+    string? Reputation);
 
 public interface IGameService
 {

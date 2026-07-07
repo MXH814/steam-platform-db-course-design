@@ -134,7 +134,6 @@ public sealed class GameService(IGameRepository repository) : IGameService
         {
             DevId = developerId,
             GameName = NormalizeRequired(request.GameName, nameof(request.GameName)),
-            Status = NormalizeStatus(request.Status),
             Reputation = NormalizeReputation(request.Reputation),
             BasePrice = NormalizeBasePrice(request.BasePrice),
             DiscountRate = NormalizeDiscountRate(request.DiscountRate),
@@ -146,7 +145,6 @@ public sealed class GameService(IGameRepository repository) : IGameService
         request with
         {
             GameName = NormalizeRequired(request.GameName, nameof(request.GameName)),
-            Status = NormalizeStatus(request.Status),
             Reputation = NormalizeReputation(request.Reputation),
             BasePrice = NormalizeBasePrice(request.BasePrice),
             DiscountRate = NormalizeDiscountRate(request.DiscountRate),
