@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Data;
 using System.Security.Claims;
 using Dapper;
 using Microsoft.IdentityModel.Tokens;
@@ -30,21 +31,46 @@ public sealed class AuthService(
         var player = new
         {
             UserId = IdGenerator.NewId("P"),
+            WalletId = IdGenerator.NewId("W"),
             Account = request.Account.Trim(),
             PasswordHash = _passwordHasher.Hash(request.Password),
             Nickname = request.Nickname.Trim()
         };
 
         await using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(new CommandDefinition(
-            """
-            insert into player
-              (user_id, account, password_hash, nickname, credit_score, status, version, create_time, update_time)
-            values
-              (:UserId, :Account, :PasswordHash, :Nickname, 100, 'NORMAL', 0, SYSTIMESTAMP, SYSTIMESTAMP)
-            """,
-            player,
-            cancellationToken: cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        try
+        {
+            await connection.ExecuteAsync(new CommandDefinition(
+                """
+                insert into player
+                  (user_id, account, password_hash, nickname, credit_score, status, version, create_time, update_time)
+                values
+                  (:UserId, :Account, :PasswordHash, :Nickname, 100, 'NORMAL', 0, SYSTIMESTAMP, SYSTIMESTAMP)
+                """,
+                player,
+                transaction,
+                cancellationToken: cancellationToken));
+
+            await connection.ExecuteAsync(new CommandDefinition(
+                """
+                insert into wallet_account
+                  (wallet_id, user_id, available_balance, frozen_balance, version)
+                values
+                  (:WalletId, :UserId, 0, 0, 0)
+                """,
+                player,
+                transaction,
+                cancellationToken: cancellationToken));
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
 
         var claims = new AuthClaims("PLAYER", player.UserId, player.Account, DateTimeOffset.UtcNow.AddHours(8));
         return new AuthResponse(CreateToken(claims), claims);

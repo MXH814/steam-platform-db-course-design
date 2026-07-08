@@ -610,7 +610,7 @@ GET    /api/games/{gameId}
 POST   /api/orders
 GET    /api/orders/{orderId}
 POST   /api/wallet/recharge
-GET    /api/wallet/transactions
+GET    /api/wallet/transactions?page=1&pageSize=20
 POST   /api/cdkeys/redeem
 POST   /api/reviews
 PUT    /api/reviews/{reviewId}
@@ -1123,7 +1123,7 @@ ADMIN_USER
 ```text
 GET    /api/wallet
 POST   /api/wallet/recharge
-GET    /api/wallet/transactions
+GET    /api/wallet/transactions?page=1&pageSize=20
 POST   /api/orders
 POST   /api/games/{gameId}/free-claim
 GET    /api/orders
@@ -1174,6 +1174,16 @@ Group C 必须优先保证的演示链路：
   -> 退款流水
   -> 免费入库 Counter-Strike 2
 ```
+
+Group C 钱包接口规则：
+
+- `GET /api/wallet` 返回 `availableBalance`、`frozenBalance`、查询计算的 `totalBalance` 和 `version`。
+- `POST /api/wallet/recharge` 是演示充值接口，请求字段为 `amount` 和 `idempotencyKey`。
+- 充值金额必须在 `0.01` 到 `99999.99` 之间，最多两位小数。
+- 充值必须在同一事务中更新 `WALLET_ACCOUNT.available_balance`、增加 `version` 并写 `WALLET_TRANSACTION`。
+- 充值流水固定使用 `biz_type = RECHARGE`、`funds_direction = CREDIT`，并记录 `avail_bal_before` / `avail_bal_after`。
+- 同一 `idempotencyKey` 重复提交不能重复加钱，应返回已有充值结果。
+- `GET /api/wallet/transactions` 使用分页参数 `page`、`pageSize`，默认 `1`、`20`，最大 `pageSize = 100`。
 
 Group C 与其他组的边界：
 

@@ -16,6 +16,7 @@ namespace SteamPlatform.Infrastructure.CoreTransactions;
 public sealed class InMemoryCoreTransactionService : ICoreTransactionService
 {
     private readonly Dictionary<string, decimal> _wallets = new();
+    private readonly List<WalletTransactionRecord> _walletTransactions = new();
     private readonly HashSet<(string userId, string gameId)> _library = new();
     private readonly Dictionary<string, OrderRecord> _orders = new();
     private readonly Dictionary<string, RefundRecord> _refunds = new();
@@ -56,13 +57,80 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         EnsurePlayer(claims);
         var userId = claims.PrincipalId;
         if (!_wallets.TryGetValue(userId, out var bal)) throw new ResourceNotFoundException("Wallet does not exist.");
-        return Task.FromResult(new WalletSummary($"W-{userId}", userId, bal, 0m, 1));
+        return Task.FromResult(new WalletSummary($"W-{userId}", userId, bal, 0m, bal, 1));
     }
 
-    public Task<IReadOnlyList<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int limit, CancellationToken cancellationToken)
+    public Task<RechargeWalletResult> RechargeWalletAsync(AuthClaims claims, RechargeWalletRequest request, CancellationToken cancellationToken)
     {
         EnsurePlayer(claims);
-        return Task.FromResult((IReadOnlyList<WalletTransactionEntry>)Array.Empty<WalletTransactionEntry>());
+        ArgumentNullException.ThrowIfNull(request);
+
+        var userId = claims.PrincipalId;
+        var walletId = $"W-{userId}";
+        var amount = NormalizeRechargeAmount(request.Amount);
+        var idempotencyKey = NormalizeRechargeIdempotencyKey(request.IdempotencyKey);
+
+        var existing = _walletTransactions.FirstOrDefault(t =>
+            string.Equals(t.Entry.IdempotencyKey, idempotencyKey, StringComparison.Ordinal));
+        if (existing is not null)
+        {
+            if (!string.Equals(existing.WalletId, walletId, StringComparison.Ordinal)
+                || !string.Equals(existing.Entry.BizType, "RECHARGE", StringComparison.OrdinalIgnoreCase)
+                || existing.Entry.Amount != amount)
+            {
+                throw new BusinessRuleException("IDEMPOTENCY_CONFLICT", "IdempotencyKey is already used by another wallet transaction.");
+            }
+
+            return Task.FromResult(new RechargeWalletResult(
+                walletId,
+                existing.Entry.TxnId,
+                existing.Entry.AvailBalAfter,
+                0m,
+                existing.Entry.AvailBalAfter));
+        }
+
+        if (!_wallets.TryGetValue(userId, out var before)) throw new ResourceNotFoundException("Wallet does not exist.");
+
+        var after = before + amount;
+        _wallets[userId] = after;
+
+        var txnId = "WTN" + Guid.NewGuid().ToString("N")[..8];
+        var entry = new WalletTransactionEntry(
+            txnId,
+            "RECHARGE",
+            txnId,
+            "CREDIT",
+            amount,
+            before,
+            after,
+            idempotencyKey,
+            DateTime.UtcNow);
+        _walletTransactions.Add(new WalletTransactionRecord(walletId, entry));
+
+        return Task.FromResult(new RechargeWalletResult(walletId, txnId, after, 0m, after));
+    }
+
+    public Task<PagedResponse<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        EnsurePlayer(claims);
+        var userId = claims.PrincipalId;
+        var walletId = $"W-{userId}";
+        if (!_wallets.ContainsKey(userId)) throw new ResourceNotFoundException("Wallet does not exist.");
+
+        var normalizedPage = Math.Max(page, 1);
+        var normalizedPageSize = Math.Clamp(pageSize, 1, 100);
+        var transactions = _walletTransactions
+            .Where(t => string.Equals(t.WalletId, walletId, StringComparison.Ordinal))
+            .Select(t => t.Entry)
+            .OrderByDescending(t => t.CreateTime)
+            .ThenByDescending(t => t.TxnId)
+            .ToArray();
+        var items = transactions
+            .Skip((normalizedPage - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
+            .ToArray();
+
+        return Task.FromResult(new PagedResponse<WalletTransactionEntry>(items, normalizedPage, normalizedPageSize, transactions.Length));
     }
 
     public Task<OrderSummary> BuyGameAsync(AuthClaims claims, CreateOrderRequest request, CancellationToken cancellationToken)
@@ -307,6 +375,34 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         return string.IsNullOrWhiteSpace(normalized) ? throw new ArgumentException($"{fieldName} is required.") : normalized!;
     }
 
+    private static string NormalizeRechargeIdempotencyKey(string? value)
+    {
+        var normalized = value?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            throw new BusinessRuleException("IDEMPOTENCY_KEY_REQUIRED", "IdempotencyKey is required.");
+        }
+
+        return normalized.Length <= 64
+            ? normalized
+            : throw new BusinessRuleException("IDEMPOTENCY_CONFLICT", "IdempotencyKey must be 64 characters or fewer.");
+    }
+
+    private static decimal NormalizeRechargeAmount(decimal amount)
+    {
+        if (amount is < 0.01m or > 99999.99m)
+        {
+            throw new BusinessRuleException("INVALID_AMOUNT", "Recharge amount must be between 0.01 and 99999.99.");
+        }
+
+        if (decimal.Round(amount, 2, MidpointRounding.AwayFromZero) != amount)
+        {
+            throw new BusinessRuleException("INVALID_AMOUNT", "Recharge amount can have at most two decimal places.");
+        }
+
+        return amount;
+    }
+
     private static string? NormalizeOptional(string? value)
     {
         var normalized = value?.Trim();
@@ -390,4 +486,6 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         public DateTime ValidFrom;
         public DateTime ExpireTime;
     }
+
+    private sealed record WalletTransactionRecord(string WalletId, WalletTransactionEntry Entry);
 }
