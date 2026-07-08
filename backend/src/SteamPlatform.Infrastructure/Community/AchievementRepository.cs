@@ -46,15 +46,37 @@ public sealed class AchievementRepository(IDbConnectionFactory connectionFactory
         await connection.OpenAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
-        var lockedAchievementId = await connection.QueryFirstOrDefaultAsync<string?>(new CommandDefinition(
-            "select ach_id from achievement where ach_id = :AchId for update",
+        var achievementGameId = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
+            """
+            select game_id
+              from achievement
+             where ach_id = :AchId
+             for update
+            """,
             new { AchId = normalizedAchId },
             transaction,
             cancellationToken: cancellationToken));
 
-        if (lockedAchievementId is null)
+        if (achievementGameId is null)
         {
             throw new ResourceNotFoundException("Achievement does not exist.");
+        }
+
+        var ownsGame = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+            """
+            select count(1)
+              from player_library
+             where user_id = :UserId
+               and game_id = :GameId
+               and status = 'NORMAL'
+            """,
+            new { UserId = normalizedUserId, GameId = achievementGameId },
+            transaction,
+            cancellationToken: cancellationToken));
+
+        if (ownsGame == 0)
+        {
+            throw new BusinessRuleException("GAME_NOT_OWNED", "The player does not own this game.");
         }
 
         var existing = await connection.QueryFirstOrDefaultAsync<UnlockRow>(new CommandDefinition(

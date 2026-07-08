@@ -46,6 +46,23 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
             throw new ResourceNotFoundException("Game does not exist.");
         }
 
+        var ownsGame = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+            """
+            select count(1)
+              from player_library
+             where user_id = :UserId
+               and game_id = :GameId
+               and status = 'NORMAL'
+            """,
+            new { UserId = normalizedUserId, GameId = normalizedGameId },
+            transaction,
+            cancellationToken: cancellationToken));
+
+        if (ownsGame == 0)
+        {
+            throw new BusinessRuleException("GAME_NOT_OWNED", "The player does not own this game.");
+        }
+
         var existingReviewId = await connection.QueryFirstOrDefaultAsync<string?>(new CommandDefinition(
             "select review_id from game_review where user_id = :UserId and game_id = :GameId",
             new { UserId = normalizedUserId, GameId = normalizedGameId },
