@@ -1725,6 +1725,7 @@ Phase 1 database verification passed
 
 - 已在腾讯云服务器 Oracle 环境完成数据库部署和基础验收。
 - 已从公网访问 API，确认应用服务器可连接云端 Oracle。
+- 2026-07-08 已执行 `database/migrations/20260708_developer_login_backend_completion.sql`，并将后端补全版本部署到云端。
 
 ## 22. 当前决策记录
 
