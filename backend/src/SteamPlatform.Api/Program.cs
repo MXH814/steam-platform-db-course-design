@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using SteamPlatform.Api.Features.Auth;
+using SteamPlatform.Api.Features.Community;
 using SteamPlatform.Api.Features.CoreTransactions;
 using SteamPlatform.Api.Features.Inventory;
 using SteamPlatform.Api.Features.Notices;
@@ -48,6 +49,7 @@ app.MapAuthEndpoints();
 app.MapInventoryEndpoints();
 app.MapNoticeEndpoints();
 app.MapCoreTransactionEndpoints();
+app.MapCommunityEndpoints();
 
 app.Run();
 

@@ -46,3 +46,50 @@ export interface CreateNoticeRequest {
 export interface UpdateNoticeRequest extends CreateNoticeRequest {
   status: 'DRAFT' | 'PUBLISHED' | 'EXPIRED' | 'REVOKED';
 }
+export interface CreateReviewRequest {
+  isRecommend: boolean;
+  content: string;
+}
+
+export interface UpdateReviewRequest extends CreateReviewRequest {}
+
+export interface ReviewListItem {
+  reviewId: string;
+  userId: string;
+  nickname: string;
+  gameId: string;
+  thumbsUp: number;
+  status: string;
+  createTime: string;
+  versionNo: number;
+  isRecommend: boolean;
+  content: string;
+  versionCreateTime: string;
+}
+
+export interface ReviewVersionItem {
+  versionId: string;
+  reviewId: string;
+  versionNo: number;
+  isRecommend: boolean;
+  content: string;
+  createTime: string;
+}
+
+export interface AchievementListItem {
+  achId: string;
+  gameId: string;
+  achName: string;
+  description: string | null;
+  globalRate: number | null;
+  isUnlocked: boolean;
+  unlockTime: string | null;
+}
+
+export interface UnlockAchievementResult {
+  unlockId: string;
+  userId: string;
+  achId: string;
+  alreadyUnlocked: boolean;
+  unlockTime: string;
+}

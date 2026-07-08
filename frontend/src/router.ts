@@ -3,6 +3,7 @@ import { useAuthStore } from './stores/auth';
 import AccountView from './views/AccountView.vue';
 import AdminNoticesView from './views/AdminNoticesView.vue';
 import HomeView from './views/HomeView.vue';
+import GameCommunityView from './views/GameCommunityView.vue';
 import LoginView from './views/LoginView.vue';
 import RegisterView from './views/RegisterView.vue';
 
@@ -10,6 +11,7 @@ export const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'home', component: HomeView },
+    { path: '/games/:gameId/community', name: 'game-community', component: GameCommunityView },
     { path: '/login', name: 'login', component: LoginView },
     { path: '/register', name: 'register', component: RegisterView },
     { path: '/account', name: 'account', component: AccountView, meta: { requiresAuth: true } },
