@@ -136,11 +136,13 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
             new { GameId = gameId },
             cancellationToken: cancellationToken));
 
-        var recommendRate = aggregate.ReviewCount == 0
+        var reviewCount = aggregate.ReviewCountAsInt();
+        var recommendCount = aggregate.RecommendCountAsInt();
+        var recommendRate = reviewCount == 0
             ? 0
-            : decimal.Round(aggregate.RecommendCount * 100m / aggregate.ReviewCount, 2);
+            : decimal.Round(recommendCount * 100m / reviewCount, 2);
 
-        return new ReviewSummaryResponse(aggregate.ReviewCount, aggregate.RecommendCount, recommendRate, latestContent);
+        return new ReviewSummaryResponse(reviewCount, recommendCount, recommendRate, latestContent);
     }
 
     public async Task<AchievementSummaryResponse> GetAchievementSummaryAsync(string gameId, CancellationToken cancellationToken)
@@ -174,7 +176,7 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
             cancellationToken: cancellationToken));
 
         return new AchievementSummaryResponse(
-            aggregate.AchievementCount,
+            aggregate.AchievementCountAsInt(),
             aggregate.AverageGlobalRate is null ? null : decimal.Round(aggregate.AverageGlobalRate.Value, 2),
             achievements.Select(achievement => achievement.ToResponse()).ToList());
     }
@@ -266,9 +268,23 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
             .Replace("%", @"\%", StringComparison.Ordinal)
             .Replace("_", @"\_", StringComparison.Ordinal);
 
-    private sealed record ReviewSummaryAggregate(int ReviewCount, int RecommendCount);
+    private sealed class ReviewSummaryAggregate
+    {
+        public decimal ReviewCount { get; init; }
+        public decimal RecommendCount { get; init; }
 
-    private sealed record AchievementSummaryAggregate(int AchievementCount, decimal? AverageGlobalRate);
+        public int ReviewCountAsInt() => decimal.ToInt32(ReviewCount);
+
+        public int RecommendCountAsInt() => decimal.ToInt32(RecommendCount);
+    }
+
+    private sealed class AchievementSummaryAggregate
+    {
+        public decimal AchievementCount { get; init; }
+        public decimal? AverageGlobalRate { get; init; }
+
+        public int AchievementCountAsInt() => decimal.ToInt32(AchievementCount);
+    }
 
     private sealed class GameRow
     {
