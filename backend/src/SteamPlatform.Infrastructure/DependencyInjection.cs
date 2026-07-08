@@ -1,12 +1,14 @@
 using Dapper;
 using Microsoft.Extensions.DependencyInjection;
 using SteamPlatform.Application.Auth;
+using SteamPlatform.Application.Community;
 using SteamPlatform.Application.CoreTransactions;
 using SteamPlatform.Application.Diagnostics;
 using SteamPlatform.Application.Games;
 using SteamPlatform.Application.Inventory;
 using SteamPlatform.Application.Notices;
 using SteamPlatform.Infrastructure.Auth;
+using SteamPlatform.Infrastructure.Community;
 using SteamPlatform.Infrastructure.CoreTransactions;
 using SteamPlatform.Infrastructure.Data;
 using SteamPlatform.Infrastructure.Games;
@@ -30,6 +32,8 @@ public static class DependencyInjection
         services.AddScoped<INoticeRepository, NoticeRepository>();
         services.AddScoped<IGameService, GameService>();
         services.AddScoped<IGameRepository, GameRepository>();
+        services.AddScoped<IReviewRepository, ReviewRepository>();
+        services.AddScoped<IAchievementRepository, AchievementRepository>();
         services.AddScoped<IDatabaseHealthProbe, OracleDatabaseHealthProbe>();
 
         return services;
