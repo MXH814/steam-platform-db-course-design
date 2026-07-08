@@ -3,12 +3,8 @@ using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
-<<<<<<< HEAD
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-=======
 using Microsoft.Extensions.Logging;
->>>>>>> 94c69591a6157d35e14fb13bc8b9bad43b5137db
 using SteamPlatform.Application.Auth;
 using SteamPlatform.Infrastructure.Data;
 using SteamPlatform.Application.CoreTransactions;

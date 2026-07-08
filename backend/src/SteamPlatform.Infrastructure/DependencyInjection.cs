@@ -24,19 +24,17 @@ public static class DependencyInjection
         // Keep Dapper mapping consistent across the project
         Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
-        // Register core infrastructure services. Production and development default to Oracle-backed implementations.
+        // Core infra
         services.AddSingleton<IAuthSigningKeyProvider, AuthSigningKeyProvider>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IAuthService, AuthService>();
-<<<<<<< HEAD
 
         // Default (deployable) registrations: Oracle-backed implementations.
         services.AddSingleton<IDbConnectionFactory, OracleDbConnectionFactory>();
-        services.AddScoped<ICoreTransactionService, CoreTransactions.CoreTransactionService>();
-=======
         services.AddScoped<ICoreTransactionService, CoreTransactionService>();
+
+        // Repositories and other infrastructure
         services.AddScoped<IInventoryRepository, InventoryRepository>();
->>>>>>> 94c69591a6157d35e14fb13bc8b9bad43b5137db
         services.AddScoped<INoticeRepository, NoticeRepository>();
         services.AddScoped<IGameService, GameService>();
         services.AddScoped<IGameRepository, GameRepository>();
