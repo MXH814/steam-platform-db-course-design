@@ -16,7 +16,7 @@ public sealed class InventoryRepository(IDbConnectionFactory connectionFactory) 
         var normalizedGameId = NormalizeOptional(gameId);
 
         await using var connection = _connectionFactory.CreateConnection();
-        var templates = await connection.QueryAsync<ItemTemplateResponse>(new CommandDefinition(
+        var templates = await connection.QueryAsync<ItemTemplateRow>(new CommandDefinition(
             """
             select template_id as TemplateId,
                    game_id as GameId,
@@ -30,7 +30,7 @@ public sealed class InventoryRepository(IDbConnectionFactory connectionFactory) 
             new { GameId = normalizedGameId },
             cancellationToken: cancellationToken));
 
-        return templates.AsList();
+        return templates.Select(template => template.ToResponse()).ToList();
     }
 
     public async Task<IReadOnlyList<InventoryItemResponse>> ListAsync(
@@ -42,7 +42,7 @@ public sealed class InventoryRepository(IDbConnectionFactory connectionFactory) 
         var normalizedGameId = NormalizeOptional(gameId);
 
         await using var connection = _connectionFactory.CreateConnection();
-        var items = await connection.QueryAsync<InventoryItemResponse>(new CommandDefinition(
+        var items = await connection.QueryAsync<InventoryItemRow>(new CommandDefinition(
             """
             select i.item_id as ItemId,
                    t.template_id as TemplateId,
@@ -62,7 +62,7 @@ public sealed class InventoryRepository(IDbConnectionFactory connectionFactory) 
             new { UserId = normalizedUserId, GameId = normalizedGameId },
             cancellationToken: cancellationToken));
 
-        return items.AsList();
+        return items.Select(item => item.ToResponse()).ToList();
     }
 
     public async Task<InventoryItemResponse> DropAsync(
@@ -183,7 +183,7 @@ public sealed class InventoryRepository(IDbConnectionFactory connectionFactory) 
         var normalizedItemId = NormalizeRequired(itemId, nameof(itemId));
 
         await using var connection = _connectionFactory.CreateConnection();
-        var transfers = await connection.QueryAsync<ItemTransferResponse>(new CommandDefinition(
+        var transfers = await connection.QueryAsync<ItemTransferRow>(new CommandDefinition(
             """
             select l.transfer_id as TransferId,
                    l.item_id as ItemId,
@@ -212,7 +212,7 @@ public sealed class InventoryRepository(IDbConnectionFactory connectionFactory) 
             new { UserId = normalizedUserId, ItemId = normalizedItemId },
             cancellationToken: cancellationToken));
 
-        return transfers.AsList();
+        return transfers.Select(transfer => transfer.ToResponse()).ToList();
     }
 
     private static string NormalizeRequired(string? value, string fieldName)
@@ -240,5 +240,52 @@ public sealed class InventoryRepository(IDbConnectionFactory connectionFactory) 
         public string Rarity { get; init; } = "";
 
         public string? ImageUrl { get; init; }
+    }
+
+    private sealed class ItemTemplateRow
+    {
+        public string TemplateId { get; init; } = "";
+        public string GameId { get; init; } = "";
+        public string ItemName { get; init; } = "";
+        public string Rarity { get; init; } = "";
+        public string? ImageUrl { get; init; }
+
+        public ItemTemplateResponse ToResponse() => new(TemplateId, GameId, ItemName, Rarity, ImageUrl);
+    }
+
+    private sealed class InventoryItemRow
+    {
+        public string ItemId { get; init; } = "";
+        public string TemplateId { get; init; } = "";
+        public string GameId { get; init; } = "";
+        public string ItemName { get; init; } = "";
+        public string Rarity { get; init; } = "";
+        public string? ImageUrl { get; init; }
+        public decimal? WearRating { get; init; }
+        public string Status { get; init; } = "";
+        public DateTime AcquireTime { get; init; }
+
+        public InventoryItemResponse ToResponse() => new(
+            ItemId,
+            TemplateId,
+            GameId,
+            ItemName,
+            Rarity,
+            ImageUrl,
+            WearRating,
+            Status,
+            AcquireTime);
+    }
+
+    private sealed class ItemTransferRow
+    {
+        public string TransferId { get; init; } = "";
+        public string ItemId { get; init; } = "";
+        public string? FromUserId { get; init; }
+        public string ToUserId { get; init; } = "";
+        public string TransferType { get; init; } = "";
+        public DateTime TransferTime { get; init; }
+
+        public ItemTransferResponse ToResponse() => new(TransferId, ItemId, FromUserId, ToUserId, TransferType, TransferTime);
     }
 }
