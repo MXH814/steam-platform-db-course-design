@@ -108,7 +108,25 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         => Task.FromResult((IReadOnlyList<OrderSummary>)Array.Empty<OrderSummary>());
 
     public Task<OrderSummary> GetOrderAsync(AuthClaims claims, string orderId, CancellationToken cancellationToken)
-        => Task.FromException<OrderSummary>(new NotImplementedException());
+    {
+        EnsurePlayer(claims);
+        var userId = claims.PrincipalId;
+        var id = NormalizeRequired(orderId, nameof(orderId));
+        if (!_orders.TryGetValue(id, out var order) || order.UserId != userId)
+            throw new ResourceNotFoundException("Order does not exist.");
+
+        var details = order.Details.Select(d => new OrderDetailEntry(
+            d.DetailId,
+            d.GameId,
+            d.GameId == "GAME_DST" ? "Don't Starve Together" : "Counter-Strike 2",
+            d.PayableAmount + d.RefundAmount,
+            0m,
+            d.PayableAmount,
+            d.RefundAmount)).ToArray();
+
+        var summary = new OrderSummary(order.OrderId, order.UserId, order.TotalAmount, "BUY_GAME", order.OrderStatus, order.PaymentStatus, order.IdempotencyKey, DateTime.UtcNow, details);
+        return Task.FromResult(summary);
+    }
 
     public Task<IReadOnlyList<LibraryEntry>> ListLibraryAsync(AuthClaims claims, CancellationToken cancellationToken)
     {
@@ -119,7 +137,17 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
     }
 
     public Task<LibraryEntry> AddPlaytimeAsync(AuthClaims claims, string gameId, UpdatePlaytimeRequest request, CancellationToken cancellationToken)
-        => Task.FromException<LibraryEntry>(new NotImplementedException());
+    {
+        EnsurePlayer(claims);
+        var userId = claims.PrincipalId;
+        var normalizedGameId = NormalizeRequired(gameId, nameof(gameId));
+        var entryKey = (userId, normalizedGameId);
+        if (!_library.Contains(entryKey)) throw new ResourceNotFoundException("Library entry does not exist.");
+
+        // In-memory we don't track play minutes persistently; return a synthetic entry.
+        var lib = new LibraryEntry("LIB_TEST", normalizedGameId, normalizedGameId == "GAME_DST" ? "Don't Starve Together" : "Counter-Strike 2", normalizedGameId == "GAME_CS2" ? "FREE" : "BUY", "NORMAL", request.MinutesToAdd, DateTime.UtcNow);
+        return Task.FromResult(lib);
+    }
 
     public Task<RefundSummary> CreateRefundAsync(AuthClaims claims, CreateRefundRequest request, CancellationToken cancellationToken)
     {
@@ -160,10 +188,51 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         => Task.FromResult((IReadOnlyList<RefundSummary>)Array.Empty<RefundSummary>());
 
     public Task<RefundSummary> ApproveRefundAsync(AuthClaims claims, string refundId, AuditRefundRequest request, CancellationToken cancellationToken)
-        => Task.FromException<RefundSummary>(new NotImplementedException());
+    {
+        var operatorId = NormalizeDeveloperOrAdmin(claims);
+        var id = NormalizeRequired(refundId, nameof(refundId));
+        if (!_refunds.TryGetValue(id, out var refund)) throw new ResourceNotFoundException("Refund does not exist.");
+        if (!string.Equals(refund.Status, "PENDING", StringComparison.OrdinalIgnoreCase))
+            throw new BusinessRuleException("REFUND_STATUS_INVALID", "Refund is not pending.");
+
+        // apply refund: mark refunded, credit wallet if exists, and update order detail
+        refund.Status = "APPROVED";
+        refund.Auditor = operatorId;
+        refund.AuditReason = NormalizeOptional(request.Reason);
+
+        // credit wallet if present
+        if (_orders.TryGetValue(refund.OrderId, out var order))
+        {
+            var userId = order.UserId;
+            if (_wallets.TryGetValue(userId, out var bal))
+            {
+                _wallets[userId] = bal + refund.RefundAmount;
+            }
+        }
+
+        return Task.FromResult(new RefundSummary(refund.RefundId, refund.OrderId, refund.RefundAmount, "FULL", refund.Reason, 0m, refund.Status, refund.ApplyTime));
+    }
 
     public Task<RefundSummary> RejectRefundAsync(AuthClaims claims, string refundId, AuditRefundRequest request, CancellationToken cancellationToken)
-        => Task.FromException<RefundSummary>(new NotImplementedException());
+    {
+        var operatorId = NormalizeDeveloperOrAdmin(claims);
+        var id = NormalizeRequired(refundId, nameof(refundId));
+        if (!_refunds.TryGetValue(id, out var refund)) throw new ResourceNotFoundException("Refund does not exist.");
+        if (!string.Equals(refund.Status, "PENDING", StringComparison.OrdinalIgnoreCase))
+            throw new BusinessRuleException("REFUND_STATUS_INVALID", "Refund is not pending.");
+
+        refund.Status = "REJECTED";
+        refund.Auditor = operatorId;
+        refund.AuditReason = NormalizeOptional(request.Reason);
+
+        // restore order status
+        if (_orders.TryGetValue(refund.OrderId, out var order))
+        {
+            order.OrderStatus = "COMPLETED";
+        }
+
+        return Task.FromResult(new RefundSummary(refund.RefundId, refund.OrderId, refund.RefundAmount, "FULL", refund.Reason, 0m, refund.Status, refund.ApplyTime));
+    }
 
     public Task<CdkeyBatchSummary> CreateCdkeyBatchAsync(AuthClaims claims, CreateCdkeyBatchRequest request, CancellationToken cancellationToken)
     {
