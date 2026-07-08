@@ -3,8 +3,12 @@ using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+<<<<<<< HEAD
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+=======
+using Microsoft.Extensions.Logging;
+>>>>>>> 94c69591a6157d35e14fb13bc8b9bad43b5137db
 using SteamPlatform.Application.Auth;
 using SteamPlatform.Infrastructure.Data;
 using SteamPlatform.Application.CoreTransactions;
@@ -18,6 +22,7 @@ public sealed class SteamPlatformApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
+        builder.ConfigureLogging(logging => logging.ClearProviders());
         builder.ConfigureAppConfiguration((_, configuration) =>
         {
             // Remove existing file-based configuration sources to avoid parsing appsettings files during tests
