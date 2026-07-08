@@ -57,6 +57,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Local runtime config with secrets
+.deploy/
 *.pem
 *.key
 **/appsettings.Local.json

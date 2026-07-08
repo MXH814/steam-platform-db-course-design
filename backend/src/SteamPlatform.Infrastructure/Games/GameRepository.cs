@@ -46,7 +46,7 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
             parameters,
             cancellationToken: cancellationToken));
 
-        var games = await connection.QueryAsync<GameListItemResponse>(new CommandDefinition(
+        var games = await connection.QueryAsync<GameRow>(new CommandDefinition(
             $"""
             select
                    g.game_id as GameId,
@@ -68,13 +68,13 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
             parameters,
             cancellationToken: cancellationToken));
 
-        return new PagedResponse<GameListItemResponse>(games.AsList(), query.Page, query.PageSize, total);
+        return new PagedResponse<GameListItemResponse>(games.Select(game => game.ToListItem()).ToList(), query.Page, query.PageSize, total);
     }
 
     public async Task<GameDetailResponse?> GetDetailAsync(string gameId, CancellationToken cancellationToken)
     {
         await using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<GameDetailResponse>(new CommandDefinition(
+        var game = await connection.QueryFirstOrDefaultAsync<GameRow>(new CommandDefinition(
             """
             select
                    g.game_id as GameId,
@@ -93,6 +93,8 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
             """,
             new { GameId = gameId },
             cancellationToken: cancellationToken));
+
+        return game?.ToDetail();
     }
 
     public async Task<ReviewSummaryResponse> GetReviewSummaryAsync(string gameId, CancellationToken cancellationToken)
@@ -154,7 +156,7 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
             new { GameId = gameId },
             cancellationToken: cancellationToken));
 
-        var achievements = await connection.QueryAsync<AchievementSummaryItemResponse>(new CommandDefinition(
+        var achievements = await connection.QueryAsync<AchievementSummaryItemRow>(new CommandDefinition(
             """
             select *
               from (
@@ -174,7 +176,7 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
         return new AchievementSummaryResponse(
             aggregate.AchievementCount,
             aggregate.AverageGlobalRate is null ? null : decimal.Round(aggregate.AverageGlobalRate.Value, 2),
-            achievements.AsList());
+            achievements.Select(achievement => achievement.ToResponse()).ToList());
     }
 
     public async Task<bool> DeveloperExistsAsync(string developerId, CancellationToken cancellationToken)
@@ -267,4 +269,52 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
     private sealed record ReviewSummaryAggregate(int ReviewCount, int RecommendCount);
 
     private sealed record AchievementSummaryAggregate(int AchievementCount, decimal? AverageGlobalRate);
+
+    private sealed class GameRow
+    {
+        public string GameId { get; init; } = "";
+        public string GameName { get; init; } = "";
+        public string DeveloperId { get; init; } = "";
+        public string DeveloperName { get; init; } = "";
+        public decimal BasePrice { get; init; }
+        public decimal DiscountRate { get; init; }
+        public decimal FinalPrice { get; init; }
+        public DateTime ReleaseDate { get; init; }
+        public string? Reputation { get; init; }
+        public string Status { get; init; } = "";
+
+        public GameListItemResponse ToListItem() => new(
+            GameId,
+            GameName,
+            DeveloperId,
+            DeveloperName,
+            BasePrice,
+            DiscountRate,
+            FinalPrice,
+            ReleaseDate,
+            Reputation,
+            Status);
+
+        public GameDetailResponse ToDetail() => new(
+            GameId,
+            GameName,
+            DeveloperId,
+            DeveloperName,
+            BasePrice,
+            DiscountRate,
+            FinalPrice,
+            ReleaseDate,
+            Reputation,
+            Status);
+    }
+
+    private sealed class AchievementSummaryItemRow
+    {
+        public string AchievementId { get; init; } = "";
+        public string AchievementName { get; init; } = "";
+        public string? Description { get; init; }
+        public decimal? GlobalRate { get; init; }
+
+        public AchievementSummaryItemResponse ToResponse() => new(AchievementId, AchievementName, Description, GlobalRate);
+    }
 }

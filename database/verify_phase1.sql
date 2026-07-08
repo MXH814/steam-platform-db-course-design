@@ -108,9 +108,9 @@ BEGIN
     FROM player p
     JOIN wallet_account w ON w.user_id = p.user_id
     WHERE p.user_id = 'P002'
-      AND w.available_balance = 345.00
+      AND w.available_balance = 242.75
       AND w.frozen_balance = 50.00
-      AND w.available_balance + w.frozen_balance = 395.00
+      AND w.available_balance + w.frozen_balance = 292.75
   );
   assert_eq('computed total balance query', v_count, 1);
 
@@ -152,7 +152,7 @@ BEGIN
   expect_error(
     'duplicate active sell order for same item',
     q'[INSERT INTO market_order (market_order_id, user_id, template_id, item_id, order_type, target_price, frozen_amount, status, create_time)
-       VALUES ('MO_SELL_DUP', 'P001', 'ITPL001', 'ITEM001', 'SELL', 49, 0, 'MATCHING', SYSTIMESTAMP)]',
+       VALUES ('MO_SELL_DUP', 'P001', 'ITPL_CS2_AK_REDLINE', 'ITEM_CS2_001', 'SELL', 49, 0, 'MATCHING', SYSTIMESTAMP)]',
     -1
   );
 END;
