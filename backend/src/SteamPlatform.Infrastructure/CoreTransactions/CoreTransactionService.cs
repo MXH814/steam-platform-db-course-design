@@ -120,7 +120,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         }
     }
 
-    public async Task<PagedResult<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken)
+    public async Task<PagedResponse<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken)
     {
         var userId = NormalizePrincipal(claims);
         var normalizedPage = Math.Max(page, 1);
@@ -170,7 +170,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             new { WalletId = walletId, Offset = offset, PageSize = normalizedPageSize },
             cancellationToken: cancellationToken));
 
-        return new PagedResult<WalletTransactionEntry>(
+        return new PagedResponse<WalletTransactionEntry>(
             rows.Select(row => row.ToEntry()).ToArray(),
             normalizedPage,
             normalizedPageSize,

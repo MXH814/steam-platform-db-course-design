@@ -19,6 +19,8 @@ desktop.ini
 *.sln.docstates
 
 # .NET / ASP.NET Core
+.dotnet_cli_home/
+.nuget_packages/
 backend/**/bin/
 backend/**/obj/
 backend/**/TestResults/
@@ -39,6 +41,7 @@ backend/target/
 backend/.mvn/
 .m2/
 maven-repository/
+.dotnet-home/
 
 # Node / Vue
 frontend/node_modules/
@@ -54,6 +57,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Local runtime config with secrets
+.deploy/
 *.pem
 *.key
 **/appsettings.Local.json

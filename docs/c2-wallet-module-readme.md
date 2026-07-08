@@ -136,18 +136,18 @@ GET /api/wallet/transactions?page=1&pageSize=20
 
 ```json
 {
-  "code": "INVALID_AMOUNT",
-  "message": "Recharge amount must be between 0.01 and 99999.99.",
+  "code": 40901,
+  "message": "INVALID_AMOUNT: Recharge amount must be between 0.01 and 99999.99.",
   "data": null
 }
 ```
 
 当前钱包模块错误码：
 
-- `WALLET_NOT_FOUND`：当前玩家钱包不存在。
-- `INVALID_AMOUNT`：充值金额不符合范围或小数位规则。
-- `IDEMPOTENCY_KEY_REQUIRED`：幂等键为空。
-- `IDEMPOTENCY_CONFLICT`：幂等键超过长度，或已被其他钱包/业务流水占用。
+- `40001 / IDEMPOTENCY_KEY_REQUIRED`：幂等键为空。
+- `40401 / WALLET_NOT_FOUND`：当前玩家钱包不存在。
+- `40901 / INVALID_AMOUNT`：充值金额不符合范围或小数位规则。
+- `40902 / IDEMPOTENCY_CONFLICT`：幂等键超过长度，或已被其他钱包/业务流水占用。
 
 鉴权错误仍由统一认证守卫返回 `401` 或 `403`。
 
@@ -171,6 +171,20 @@ dotnet test backend\SteamPlatform.sln
 
 ```powershell
 dotnet test tests\SteamPlatform.Database.Tests\SteamPlatform.Database.Tests.csproj
+```
+
+真实 Oracle 连接不是本机默认测试的硬性前置。需要真实数据库 smoke test 时，先在本机私下配置连接串，不要提交到 Git：
+
+```powershell
+$env:STEAM_ORACLE_TEST_CONNECTION="User Id=steam_app;Password=***;Data Source=服务器地址:1521/FREEPDB1"
+dotnet test tests\SteamPlatform.Database.Tests\SteamPlatform.Database.Tests.csproj
+```
+
+本地启动 API 并访问真实 Oracle 时，使用 User Secrets 配置：
+
+```powershell
+dotnet user-secrets set --project backend\src\SteamPlatform.Api "ConnectionStrings:Oracle" "User Id=steam_app;Password=***;Data Source=服务器地址:1521/FREEPDB1"
+dotnet user-secrets set --project backend\src\SteamPlatform.Api "Auth:SigningKey" "至少32字节的JWT密钥"
 ```
 
 建议本地 API smoke test：

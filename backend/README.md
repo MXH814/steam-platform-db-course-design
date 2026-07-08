@@ -73,7 +73,19 @@ dotnet test backend\SteamPlatform.sln
 dotnet run --project backend\src\SteamPlatform.Api
 ```
 
-本地 Oracle 连接通过 `backend/src/SteamPlatform.Api/appsettings.json` 的 `ConnectionStrings:Oracle` 或 User Secrets 配置。`Auth:SigningKey` 至少 32 字节；Development 未配置时使用进程内演示 key。
+本地 Oracle 连接通过 `backend/src/SteamPlatform.Api/appsettings.json` 的 `ConnectionStrings:Oracle` 或 User Secrets 配置。`Auth:SigningKey` 至少 32 字节；Development 未配置时使用进程内演示 key。真实连接串、数据库密码和 JWT 密钥不得提交到 Git。
+
+```powershell
+dotnet user-secrets set --project backend\src\SteamPlatform.Api "ConnectionStrings:Oracle" "User Id=steam_app;Password=***;Data Source=服务器地址:1521/FREEPDB1"
+dotnet user-secrets set --project backend\src\SteamPlatform.Api "Auth:SigningKey" "至少32字节的JWT密钥"
+```
+
+数据库测试默认做静态契约验证；如需真实 Oracle smoke test，使用本机环境变量：
+
+```powershell
+$env:STEAM_ORACLE_TEST_CONNECTION="User Id=steam_app;Password=***;Data Source=服务器地址:1521/FREEPDB1"
+dotnet test tests\SteamPlatform.Database.Tests\SteamPlatform.Database.Tests.csproj
+```
 
 当前不允许使用 `DEVELOPER.tax_id` 作为登录密码。开发商登录需要等 `DEVELOPER` 表补充安全密码哈希字段后再接入。
 

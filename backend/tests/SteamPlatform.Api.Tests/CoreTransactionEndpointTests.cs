@@ -118,8 +118,8 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("\"code\":\"IDEMPOTENCY_KEY_REQUIRED\"", body);
-        Assert.Contains("\"message\":\"IdempotencyKey is required.\"", body);
+        Assert.Contains("\"code\":40001", body);
+        Assert.Contains("IDEMPOTENCY_KEY_REQUIRED", body);
     }
 
     [Theory]
@@ -139,8 +139,8 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("\"code\":\"INVALID_AMOUNT\"", body);
-        Assert.DoesNotContain("INVALID_AMOUNT:", body);
+        Assert.Contains("\"code\":40901", body);
+        Assert.Contains("INVALID_AMOUNT", body);
     }
 
     [Fact]
@@ -157,7 +157,8 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("\"code\":\"WALLET_NOT_FOUND\"", body);
+        Assert.Contains("\"code\":40401", body);
+        Assert.Contains("WALLET_NOT_FOUND", body);
         Assert.Contains("\"data\":null", body);
     }
 
@@ -175,12 +176,13 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("\"code\":\"WALLET_NOT_FOUND\"", body);
+        Assert.Contains("\"code\":40401", body);
+        Assert.Contains("WALLET_NOT_FOUND", body);
         Assert.Contains("\"data\":null", body);
     }
 
     [Fact]
-    public async Task Recharge_wallet_returns_business_error_code_without_prefixing_message()
+    public async Task Recharge_wallet_returns_numeric_business_error_code()
     {
         using var customFactory = CreateFactoryWithCoreTransactionService(new StubCoreTransactionService
         {
@@ -197,9 +199,9 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("\"code\":\"IDEMPOTENCY_CONFLICT\"", body);
-        Assert.Contains("\"message\":\"IdempotencyKey is already used by another wallet transaction.\"", body);
-        Assert.DoesNotContain("IDEMPOTENCY_CONFLICT:", body);
+        Assert.Contains("\"code\":40902", body);
+        Assert.Contains("IDEMPOTENCY_CONFLICT", body);
+        Assert.Contains("IdempotencyKey is already used by another wallet transaction.", body);
     }
 
     [Fact]
@@ -338,7 +340,7 @@ internal sealed class StubCoreTransactionService : ICoreTransactionService
 {
     public Func<AuthClaims, CancellationToken, Task<WalletSummary>>? GetWallet { get; init; }
     public Func<AuthClaims, RechargeWalletRequest, CancellationToken, Task<RechargeWalletResult>>? RechargeWallet { get; init; }
-    public Func<AuthClaims, int, int, CancellationToken, Task<PagedResult<WalletTransactionEntry>>>? ListWalletTransactions { get; init; }
+    public Func<AuthClaims, int, int, CancellationToken, Task<PagedResponse<WalletTransactionEntry>>>? ListWalletTransactions { get; init; }
 
     public Task<WalletSummary> GetWalletAsync(AuthClaims claims, CancellationToken cancellationToken) =>
         GetWallet?.Invoke(claims, cancellationToken) ?? throw new NotImplementedException();
@@ -346,7 +348,7 @@ internal sealed class StubCoreTransactionService : ICoreTransactionService
     public Task<RechargeWalletResult> RechargeWalletAsync(AuthClaims claims, RechargeWalletRequest request, CancellationToken cancellationToken) =>
         RechargeWallet?.Invoke(claims, request, cancellationToken) ?? throw new NotImplementedException();
 
-    public Task<PagedResult<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken) =>
+    public Task<PagedResponse<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken) =>
         ListWalletTransactions?.Invoke(claims, page, pageSize, cancellationToken) ?? throw new NotImplementedException();
 
     public Task<OrderSummary> BuyGameAsync(AuthClaims claims, CreateOrderRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();

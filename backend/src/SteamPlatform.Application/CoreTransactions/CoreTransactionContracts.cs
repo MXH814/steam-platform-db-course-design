@@ -1,4 +1,5 @@
 using SteamPlatform.Application.Auth;
+using SteamPlatform.Shared;
 
 namespace SteamPlatform.Application.CoreTransactions;
 
@@ -24,8 +25,6 @@ public sealed record RechargeWalletResult(
     decimal AvailableBalance,
     decimal FrozenBalance,
     decimal TotalBalance);
-
-public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int Total);
 
 public sealed record WalletTransactionEntry(
     string TxnId,
@@ -91,7 +90,7 @@ public interface ICoreTransactionService
 {
     Task<WalletSummary> GetWalletAsync(AuthClaims claims, CancellationToken cancellationToken);
     Task<RechargeWalletResult> RechargeWalletAsync(AuthClaims claims, RechargeWalletRequest request, CancellationToken cancellationToken);
-    Task<PagedResult<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken);
+    Task<PagedResponse<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken);
     Task<OrderSummary> BuyGameAsync(AuthClaims claims, CreateOrderRequest request, CancellationToken cancellationToken);
     Task<OrderSummary> ClaimFreeGameAsync(AuthClaims claims, string gameId, CancellationToken cancellationToken);
     Task<IReadOnlyList<OrderSummary>> ListOrdersAsync(AuthClaims claims, CancellationToken cancellationToken);

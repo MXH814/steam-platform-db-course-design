@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>steam-platform-api</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

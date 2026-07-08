@@ -7,6 +7,11 @@ namespace SteamPlatform.Api.Features.CoreTransactions;
 
 public static class CoreTransactionEndpointExtensions
 {
+    private const int WalletIdempotencyKeyRequiredCode = 40001;
+    private const int WalletNotFoundCode = 40401;
+    private const int WalletInvalidAmountCode = 40901;
+    private const int WalletIdempotencyConflictCode = 40902;
+
     public static IEndpointRouteBuilder MapCoreTransactionEndpoints(this IEndpointRouteBuilder app)
     {
         var wallet = app.MapGroup("/api/wallet").WithTags("Wallet");
@@ -44,7 +49,7 @@ public static class CoreTransactionEndpointExtensions
 
             if (InputGuards.IsBlank(request.IdempotencyKey))
             {
-                return Results.BadRequest(ApiResponse<object>.Failure("IDEMPOTENCY_KEY_REQUIRED", "IdempotencyKey is required."));
+                return Results.BadRequest(ApiResponse<object>.Failure(WalletIdempotencyKeyRequiredCode, "IDEMPOTENCY_KEY_REQUIRED: IdempotencyKey is required."));
             }
 
             try
@@ -77,7 +82,7 @@ public static class CoreTransactionEndpointExtensions
             try
             {
                 var result = await service.ListWalletTransactionsAsync(claims!, page ?? 1, pageSize ?? 20, cancellationToken);
-                return Results.Ok(ApiResponse<PagedResult<WalletTransactionEntry>>.Success(result));
+                return Results.Ok(ApiResponse<PagedResponse<WalletTransactionEntry>>.Success(result));
             }
             catch (ResourceNotFoundException exception)
             {
@@ -320,8 +325,13 @@ public static class CoreTransactionEndpointExtensions
     }
 
     private static IResult WalletBusinessFailure(BusinessRuleException exception) =>
-        Results.Conflict(ApiResponse<object>.Failure(exception.Code, exception.Message));
+        Results.Conflict(ApiResponse<object>.Failure(WalletBusinessCode(exception.Code), $"{exception.Code}: {exception.Message}"));
 
     private static IResult WalletNotFound(ResourceNotFoundException exception) =>
-        Results.NotFound(ApiResponse<object>.Failure("WALLET_NOT_FOUND", exception.Message));
+        Results.NotFound(ApiResponse<object>.Failure(WalletNotFoundCode, $"WALLET_NOT_FOUND: {exception.Message}"));
+
+    private static int WalletBusinessCode(string code) =>
+        code.Equals("INVALID_AMOUNT", StringComparison.OrdinalIgnoreCase)
+            ? WalletInvalidAmountCode
+            : WalletIdempotencyConflictCode;
 }
