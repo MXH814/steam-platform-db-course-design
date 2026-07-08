@@ -4,6 +4,7 @@ using SteamPlatform.Api.Features.Community;
 using SteamPlatform.Api.Features.CoreTransactions;
 using SteamPlatform.Api.Features.Games;
 using SteamPlatform.Api.Features.Inventory;
+using SteamPlatform.Api.Features.Market;
 using SteamPlatform.Api.Features.Notices;
 using SteamPlatform.Api.Infrastructure;
 using SteamPlatform.Application.Auth;
@@ -59,6 +60,7 @@ app.MapGameEndpoints();
 app.MapNoticeEndpoints();
 app.MapCoreTransactionEndpoints();
 app.MapCommunityEndpoints();
+app.MapMarketEndpoints();
 
 app.Run();
 

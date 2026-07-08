@@ -1,0 +1,72 @@
+@api = http://localhost:5294/api
+@playerToken = paste-player-jwt-here
+
+### 市场行情
+GET {{api}}/market?gameId=GAME_CS2
+
+### 当前玩家挂单
+GET {{api}}/market/orders
+Authorization: Bearer {{playerToken}}
+
+### 创建买单
+POST {{api}}/market/orders
+Content-Type: application/json
+Authorization: Bearer {{playerToken}}
+
+{
+  "orderType": "BUY",
+  "templateId": "ITPL_CS2_AK_REDLINE",
+  "itemId": null,
+  "targetPrice": 60.00
+}
+
+### 创建卖单
+POST {{api}}/market/orders
+Content-Type: application/json
+Authorization: Bearer {{playerToken}}
+
+{
+  "orderType": "SELL",
+  "templateId": "ITPL_CS2_AK_REDLINE",
+  "itemId": "ITEM_CS2_002",
+  "targetPrice": 55.00
+}
+
+### 撮合成交
+POST {{api}}/market/match
+Content-Type: application/json
+Authorization: Bearer {{playerToken}}
+
+{
+  "templateId": "ITPL_CS2_AK_REDLINE"
+}
+
+### 成交记录
+GET {{api}}/market/trades
+
+### 饰品流转账本
+GET {{api}}/market/items/ITEM_CS2_001/transfers
+
+### 失败流程：余额不足创建买单
+POST {{api}}/market/orders
+Content-Type: application/json
+Authorization: Bearer {{playerToken}}
+
+{
+  "orderType": "BUY",
+  "templateId": "ITPL_CS2_AK_REDLINE",
+  "itemId": null,
+  "targetPrice": 99999.00
+}
+
+### 失败流程：非持有人上架饰品
+POST {{api}}/market/orders
+Content-Type: application/json
+Authorization: Bearer {{playerToken}}
+
+{
+  "orderType": "SELL",
+  "templateId": "ITPL_CS2_AK_REDLINE",
+  "itemId": "ITEM_CS2_002",
+  "targetPrice": 55.00
+}
