@@ -41,6 +41,7 @@ backend/target/
 backend/.mvn/
 .m2/
 maven-repository/
+.dotnet-home/
 
 # Node / Vue
 frontend/node_modules/
