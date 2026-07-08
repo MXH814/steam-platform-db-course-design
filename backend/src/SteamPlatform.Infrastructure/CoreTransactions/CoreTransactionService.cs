@@ -51,7 +51,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             var existing = await FindWalletTransactionByIdempotencyAsync(connection, transaction, idempotencyKey, cancellationToken);
             if (existing is not null)
             {
-                if (!IsSameRecharge(existing, wallet.WalletId))
+                if (!IsSameRecharge(existing, wallet.WalletId) || existing.Amount != amount)
                 {
                     throw new BusinessRuleException("IDEMPOTENCY_CONFLICT", "IdempotencyKey is already used by another wallet transaction.");
                 }
@@ -60,9 +60,9 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                 return new RechargeWalletResult(
                     wallet.WalletId,
                     existing.TxnId,
-                    wallet.AvailableBalance,
+                    existing.AvailBalAfter,
                     wallet.FrozenBalance,
-                    wallet.AvailableBalance + wallet.FrozenBalance);
+                    existing.AvailBalAfter + wallet.FrozenBalance);
             }
 
             var transactionId = IdGenerator.NewId("WT");
