@@ -21,13 +21,19 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddSteamPlatformInfrastructure(this IServiceCollection services)
     {
+        // Keep Dapper mapping consistent across the project
         Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
-        services.AddSingleton<IDbConnectionFactory, OracleDbConnectionFactory>();
+        // Core infra
         services.AddSingleton<IAuthSigningKeyProvider, AuthSigningKeyProvider>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IAuthService, AuthService>();
+
+        // Default (deployable) registrations: Oracle-backed implementations.
+        services.AddSingleton<IDbConnectionFactory, OracleDbConnectionFactory>();
         services.AddScoped<ICoreTransactionService, CoreTransactionService>();
+
+        // Repositories and other infrastructure
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<INoticeRepository, NoticeRepository>();
         services.AddScoped<IGameService, GameService>();
