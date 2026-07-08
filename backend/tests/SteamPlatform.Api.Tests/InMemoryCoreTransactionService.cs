@@ -107,6 +107,14 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
     public Task<IReadOnlyList<OrderSummary>> ListOrdersAsync(AuthClaims claims, CancellationToken cancellationToken)
         => Task.FromResult((IReadOnlyList<OrderSummary>)Array.Empty<OrderSummary>());
 
+    public Task<IReadOnlyList<LibraryEntry>> ListLibraryAsync(AuthClaims claims, CancellationToken cancellationToken)
+    {
+        EnsurePlayer(claims);
+        var userId = claims.PrincipalId;
+        var list = _library.Where(l => l.userId == userId).Select(l => new LibraryEntry("LIB_TEST", l.gameId, l.gameId == "GAME_DST" ? "Don't Starve Together" : "Counter-Strike 2", l.gameId == "GAME_CS2" ? "FREE" : "BUY", "NORMAL", 0, null)).ToArray();
+        return Task.FromResult((IReadOnlyList<LibraryEntry>)list);
+    }
+
     public Task<OrderSummary> GetOrderAsync(AuthClaims claims, string orderId, CancellationToken cancellationToken)
     {
         EnsurePlayer(claims);
@@ -126,14 +134,6 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
 
         var summary = new OrderSummary(order.OrderId, order.UserId, order.TotalAmount, "BUY_GAME", order.OrderStatus, order.PaymentStatus, order.IdempotencyKey, DateTime.UtcNow, details);
         return Task.FromResult(summary);
-    }
-
-    public Task<IReadOnlyList<LibraryEntry>> ListLibraryAsync(AuthClaims claims, CancellationToken cancellationToken)
-    {
-        EnsurePlayer(claims);
-        var userId = claims.PrincipalId;
-        var list = _library.Where(l => l.userId == userId).Select(l => new LibraryEntry("LIB_TEST", l.gameId, l.gameId == "GAME_DST" ? "Don't Starve Together" : "Counter-Strike 2", l.gameId == "GAME_CS2" ? "FREE" : "BUY", "NORMAL", 0, null)).ToArray();
-        return Task.FromResult((IReadOnlyList<LibraryEntry>)list);
     }
 
     public Task<LibraryEntry> AddPlaytimeAsync(AuthClaims claims, string gameId, UpdatePlaytimeRequest request, CancellationToken cancellationToken)
@@ -391,4 +391,3 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         public DateTime ExpireTime;
     }
 }
-
