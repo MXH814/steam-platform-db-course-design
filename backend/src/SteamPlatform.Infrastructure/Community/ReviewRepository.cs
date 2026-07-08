@@ -71,7 +71,7 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
 
         if (existingReviewId is not null)
         {
-            throw new ArgumentException("Player already reviewed this game.");
+            throw new BusinessRuleException("REVIEW_ALREADY_EXISTS", "The player already reviewed this game.");
         }
 
         var reviewId = IdGenerator.NewId("REV");
