@@ -45,12 +45,11 @@ public static class MarketEndpointExtensions
             }
 
             var normalized = NormalizeCreateOrder(request);
-
             var order = normalized.OrderType switch
             {
                 "BUY" => await repository.CreateBuyOrderAsync(claims!.PrincipalId, normalized, cancellationToken),
                 "SELL" => await repository.CreateSellOrderAsync(claims!.PrincipalId, normalized, cancellationToken),
-                _ => throw new ArgumentException("挂单类型只能是 BUY 或 SELL。")
+                _ => throw new ArgumentException("OrderType must be BUY or SELL.")
             };
 
             return Results.Ok(ApiResponse<MarketOrderDto>.Success(order));
@@ -69,7 +68,7 @@ public static class MarketEndpointExtensions
 
             if (string.IsNullOrWhiteSpace(marketOrderId))
             {
-                throw new ArgumentException("市场挂单编号不能为空。");
+                throw new ArgumentException("MarketOrderId is required.");
             }
 
             await repository.CancelOrderAsync(claims!.PrincipalId, marketOrderId.Trim(), cancellationToken);
@@ -100,6 +99,20 @@ public static class MarketEndpointExtensions
             return Results.Ok(ApiResponse<IReadOnlyList<MarketTradeDto>>.Success(trades));
         });
 
+        market.MapGet("/market/templates/{templateId}/price-history", async (
+            string templateId,
+            IMarketRepository repository,
+            CancellationToken cancellationToken) =>
+        {
+            if (string.IsNullOrWhiteSpace(templateId))
+            {
+                throw new ArgumentException("TemplateId is required.");
+            }
+
+            var history = await repository.GetPriceHistoryAsync(templateId.Trim().ToUpperInvariant(), cancellationToken);
+            return Results.Ok(ApiResponse<IReadOnlyList<MarketPricePointDto>>.Success(history));
+        });
+
         market.MapGet("/market/items/{itemId}/transfers", async (
             string itemId,
             IMarketRepository repository,
@@ -107,7 +120,7 @@ public static class MarketEndpointExtensions
         {
             if (string.IsNullOrWhiteSpace(itemId))
             {
-                throw new ArgumentException("饰品编号不能为空。");
+                throw new ArgumentException("ItemId is required.");
             }
 
             var transfers = await repository.GetItemTransfersAsync(itemId.Trim(), cancellationToken);
@@ -119,14 +132,19 @@ public static class MarketEndpointExtensions
 
     private static CreateMarketOrderRequest NormalizeCreateOrder(CreateMarketOrderRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.OrderType))
+        {
+            throw new ArgumentException("OrderType is required.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.TemplateId))
         {
-            throw new ArgumentException("饰品模板不能为空。");
+            throw new ArgumentException("TemplateId is required.");
         }
 
         if (request.TargetPrice <= 0)
         {
-            throw new ArgumentException("挂单价格必须大于 0。");
+            throw new ArgumentException("TargetPrice must be greater than 0.");
         }
 
         return new CreateMarketOrderRequest(

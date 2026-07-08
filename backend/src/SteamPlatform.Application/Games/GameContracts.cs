@@ -53,6 +53,42 @@ public sealed record AchievementSummaryItemResponse(
     string? Description,
     decimal? GlobalRate);
 
+public sealed record GameContentPackageResponse(
+    string PackageId,
+    string GameId,
+    string PackageName,
+    string PackageType,
+    decimal BasePrice,
+    decimal DiscountRate,
+    decimal FinalPrice,
+    string? ImageUrl,
+    string SourceKind);
+
+public sealed record GameItemSummaryResponse(
+    string GameId,
+    int TemplateCount,
+    int InventoryItemCount,
+    int ActiveBuyOrderCount,
+    int ActiveSellOrderCount,
+    int TradeCount,
+    decimal? HighestBuyPrice,
+    decimal? LowestSellPrice,
+    decimal? LastTradePrice,
+    IReadOnlyList<GameItemSummaryEntryResponse> Items);
+
+public sealed record GameItemSummaryEntryResponse(
+    string TemplateId,
+    string ItemName,
+    string Rarity,
+    string? ImageUrl,
+    int InventoryItemCount,
+    int ActiveBuyOrderCount,
+    int ActiveSellOrderCount,
+    int TradeCount,
+    decimal? HighestBuyPrice,
+    decimal? LowestSellPrice,
+    decimal? LastTradePrice);
+
 public sealed record CreateGameRequest(
     string DevId,
     string GameName,
@@ -74,6 +110,8 @@ public interface IGameService
     Task<GameDetailResponse> GetDetailAsync(string gameId, CancellationToken cancellationToken);
     Task<ReviewSummaryResponse> GetReviewSummaryAsync(string gameId, CancellationToken cancellationToken);
     Task<AchievementSummaryResponse> GetAchievementSummaryAsync(string gameId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<GameContentPackageResponse>> GetContentPackagesAsync(string gameId, CancellationToken cancellationToken);
+    Task<GameItemSummaryResponse> GetItemSummaryAsync(string gameId, CancellationToken cancellationToken);
     Task<GameDetailResponse> CreateAsync(CreateGameRequest request, CancellationToken cancellationToken);
     Task<GameDetailResponse> UpdateAsync(string gameId, string developerId, UpdateGameRequest request, CancellationToken cancellationToken);
     Task<GameDetailResponse> SetStatusAsync(string gameId, string status, CancellationToken cancellationToken);
@@ -85,6 +123,8 @@ public interface IGameRepository
     Task<GameDetailResponse?> GetDetailAsync(string gameId, CancellationToken cancellationToken);
     Task<ReviewSummaryResponse> GetReviewSummaryAsync(string gameId, CancellationToken cancellationToken);
     Task<AchievementSummaryResponse> GetAchievementSummaryAsync(string gameId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<GameContentPackageResponse>> GetContentPackagesAsync(string gameId, CancellationToken cancellationToken);
+    Task<GameItemSummaryResponse> GetItemSummaryAsync(string gameId, CancellationToken cancellationToken);
     Task<bool> DeveloperExistsAsync(string developerId, CancellationToken cancellationToken);
     Task<GameDetailResponse> CreateAsync(string gameId, CreateGameRequest request, CancellationToken cancellationToken);
     Task<bool> UpdateAsync(string gameId, string developerId, UpdateGameRequest request, CancellationToken cancellationToken);

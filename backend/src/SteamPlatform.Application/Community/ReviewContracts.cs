@@ -30,5 +30,6 @@ public interface IReviewRepository
     Task<IReadOnlyList<ReviewListItem>> ListByGameAsync(string gameId, int limit, CancellationToken cancellationToken);
     Task<ReviewListItem> CreateAsync(string gameId, string userId, CreateReviewRequest request, CancellationToken cancellationToken);
     Task<ReviewListItem> UpdateAsync(string reviewId, string userId, UpdateReviewRequest request, CancellationToken cancellationToken);
+    Task<ReviewListItem> SetStatusAsync(string reviewId, string status, CancellationToken cancellationToken);
     Task<IReadOnlyList<ReviewVersionItem>> ListVersionsAsync(string reviewId, CancellationToken cancellationToken);
 }

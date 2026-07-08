@@ -78,6 +78,20 @@ public sealed class GameService(IGameRepository repository) : IGameService
         return await _repository.GetAchievementSummaryAsync(NormalizeRequired(gameId, nameof(gameId)), cancellationToken);
     }
 
+    public async Task<IReadOnlyList<GameContentPackageResponse>> GetContentPackagesAsync(string gameId, CancellationToken cancellationToken)
+    {
+        var normalizedGameId = NormalizeRequired(gameId, nameof(gameId));
+        await EnsureGameExistsAsync(normalizedGameId, cancellationToken);
+        return await _repository.GetContentPackagesAsync(normalizedGameId, cancellationToken);
+    }
+
+    public async Task<GameItemSummaryResponse> GetItemSummaryAsync(string gameId, CancellationToken cancellationToken)
+    {
+        var normalizedGameId = NormalizeRequired(gameId, nameof(gameId));
+        await EnsureGameExistsAsync(normalizedGameId, cancellationToken);
+        return await _repository.GetItemSummaryAsync(normalizedGameId, cancellationToken);
+    }
+
     public async Task<GameDetailResponse> CreateAsync(CreateGameRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);

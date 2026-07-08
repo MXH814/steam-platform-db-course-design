@@ -90,11 +90,6 @@ public sealed class AuthService(
             throw new ArgumentException("Role must be PLAYER, DEVELOPER or ADMIN.");
         }
 
-        if (role == "DEVELOPER")
-        {
-            throw new UnauthorizedAccessException("Developer password login is not available until developer credentials are added to the schema.");
-        }
-
         await using var connection = _connectionFactory.CreateConnection();
         var account = request.Account.Trim();
         LoginRow? login = role switch
@@ -104,6 +99,15 @@ public sealed class AuthService(
                 select 'PLAYER' as role, user_id as principal_id, account, password_hash
                   from player
                  where account = :Account and status = 'NORMAL'
+                """,
+                new { Account = account },
+                cancellationToken: cancellationToken)),
+
+            "DEVELOPER" => await connection.QueryFirstOrDefaultAsync<LoginRow>(new CommandDefinition(
+                """
+                select 'DEVELOPER' as role, dev_id as principal_id, contact_email as account, password_hash
+                  from developer
+                 where contact_email = :Account and status = 'APPROVED'
                 """,
                 new { Account = account },
                 cancellationToken: cancellationToken)),

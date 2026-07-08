@@ -8,6 +8,8 @@ public interface IMarketRepository
 
     Task<IReadOnlyList<MarketTradeDto>> GetTradesAsync(CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<MarketPricePointDto>> GetPriceHistoryAsync(string templateId, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<ItemTransferDto>> GetItemTransfersAsync(string itemId, CancellationToken cancellationToken);
 
     Task<MarketOrderDto> CreateBuyOrderAsync(string userId, CreateMarketOrderRequest request, CancellationToken cancellationToken);
@@ -68,6 +70,16 @@ public sealed class MarketTradeDto
     public decimal PlatformFee { get; init; }
     public string Currency { get; init; } = "";
     public DateTime TradeTime { get; init; }
+}
+
+public sealed class MarketPricePointDto
+{
+    public DateTime TradeDate { get; init; }
+    public int TradeCount { get; init; }
+    public decimal MinPrice { get; init; }
+    public decimal MaxPrice { get; init; }
+    public decimal AveragePrice { get; init; }
+    public decimal LastPrice { get; init; }
 }
 
 public sealed class ItemTransferDto

@@ -124,6 +124,12 @@ public sealed class GameServiceTests
         public Task<AchievementSummaryResponse> GetAchievementSummaryAsync(string gameId, CancellationToken cancellationToken) =>
             Task.FromResult(new AchievementSummaryResponse(0, null, []));
 
+        public Task<IReadOnlyList<GameContentPackageResponse>> GetContentPackagesAsync(string gameId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<GameContentPackageResponse>>([]);
+
+        public Task<GameItemSummaryResponse> GetItemSummaryAsync(string gameId, CancellationToken cancellationToken) =>
+            Task.FromResult(new GameItemSummaryResponse(gameId, 0, 0, 0, 0, 0, null, null, null, []));
+
         public Task<bool> DeveloperExistsAsync(string developerId, CancellationToken cancellationToken) =>
             Task.FromResult(DeveloperExists);
 

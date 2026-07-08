@@ -63,6 +63,24 @@ public static class GameEndpointExtensions
             return Results.Ok(ApiResponse<AchievementSummaryResponse>.Success(result));
         });
 
+        games.MapGet("{gameId}/content-packages", async (
+            string gameId,
+            IGameService service,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await service.GetContentPackagesAsync(gameId, cancellationToken);
+            return Results.Ok(ApiResponse<IReadOnlyList<GameContentPackageResponse>>.Success(result));
+        });
+
+        games.MapGet("{gameId}/items/summary", async (
+            string gameId,
+            IGameService service,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await service.GetItemSummaryAsync(gameId, cancellationToken);
+            return Results.Ok(ApiResponse<GameItemSummaryResponse>.Success(result));
+        });
+
         var developerGames = app.MapGroup("/api/developer/games").WithTags("Developer Games");
 
         developerGames.MapPost("", async (

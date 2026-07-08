@@ -8,11 +8,11 @@ VALUES ('P001', 'alice', 'PBKDF2$SHA256$100000$c2VlZC1hbGljZV9fX19fXw==$iTPCU6/l
 INSERT INTO PLAYER (user_id, account, password_hash, nickname, credit_score, status, version, create_time, update_time)
 VALUES ('P002', 'bob', 'PBKDF2$SHA256$100000$c2VlZC1ib2JfX19fX19fXw==$2CvTcEyGV8IfmgB6hEZN+em2lyvIsaRLrQJ/5YgkipM=', 'Bob', 96, 'NORMAL', 0, TIMESTAMP '2026-07-05 09:05:00', TIMESTAMP '2026-07-05 09:05:00');
 
-INSERT INTO DEVELOPER (dev_id, company_name, tax_id, contact_email, status, join_time)
-VALUES ('DEV_VALVE', 'Valve', 'TAX-DEMO-VALVE', 'valve@example.com', 'APPROVED', TIMESTAMP '2026-07-05 09:10:00');
+INSERT INTO DEVELOPER (dev_id, company_name, tax_id, contact_email, password_hash, status, join_time)
+VALUES ('DEV_VALVE', 'Valve', 'TAX-DEMO-VALVE', 'valve@example.com', 'PBKDF2$SHA256$100000$c2VlZC12YWx2ZS1kZXZfX18=$apqFEKjAoaMZvUroAQ9eaiAH4qutVdFRtt0Yorzqf44=', 'APPROVED', TIMESTAMP '2026-07-05 09:10:00');
 
-INSERT INTO DEVELOPER (dev_id, company_name, tax_id, contact_email, status, join_time)
-VALUES ('DEV_KLEI', 'Klei Entertainment', 'TAX-DEMO-KLEI', 'klei@example.com', 'APPROVED', TIMESTAMP '2026-07-05 09:12:00');
+INSERT INTO DEVELOPER (dev_id, company_name, tax_id, contact_email, password_hash, status, join_time)
+VALUES ('DEV_KLEI', 'Klei Entertainment', 'TAX-DEMO-KLEI', 'klei@example.com', 'PBKDF2$SHA256$100000$c2VlZC1rbGVpLWRldl9fX18=$Syi9RKVX+XpYxt6A39k3dDAC0DAfWVxDolxY0mRn4O8=', 'APPROVED', TIMESTAMP '2026-07-05 09:12:00');
 
 INSERT INTO ADMIN_USER (admin_id, account, password_hash, role, create_time)
 VALUES ('ADM001', 'rootadmin', 'PBKDF2$SHA256$100000$c2VlZC1yb290YWRtaW5fXw==$yHE6M2jmsTpAplUmz5Vjp4o3zmV30sSQwdnx0jMVHpo=', 'SUPER_ADMIN', TIMESTAMP '2026-07-05 09:15:00');

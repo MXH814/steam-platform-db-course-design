@@ -665,13 +665,23 @@ AUDITOR     审计员，可选
 
 安全原则：
 
-- 密码必须使用 BCrypt 或 ASP.NET Core PasswordHasher，不存明文。
+- 密码必须使用 BCrypt、ASP.NET Core PasswordHasher 或当前后端统一实现的 PBKDF2-SHA256 哈希，不存明文。
 - 登录成功后使用 JWT。
 - 前端只保存 token，不保存密码。
 - 敏感接口必须后端鉴权。
 - 钱包、订单、市场、退款接口必须从 token 中获取当前用户，不信任前端传入的用户 ID。
 - Oracle 连接字符串、JWT 密钥、云服务器密码不得提交 Git。
 - 云端 Oracle 1521 不对公网开放。
+
+演示种子账号仅用于课程演示和本地/云端样例库联调，不代表真实生产密码：
+
+```text
+PLAYER      alice / alice
+PLAYER      bob / bob
+ADMIN       rootadmin / admin
+DEVELOPER   valve@example.com / valve
+DEVELOPER   klei@example.com / klei
+```
 
 ## 13. 开发顺序计划
 
@@ -1259,6 +1269,8 @@ GET    /api/games/{gameId}/reviews
 POST   /api/games/{gameId}/reviews
 PUT    /api/reviews/{reviewId}
 GET    /api/reviews/{reviewId}/versions
+POST   /api/admin/reviews/{reviewId}/hide
+POST   /api/admin/reviews/{reviewId}/show
 GET    /api/games/{gameId}/achievements
 POST   /api/achievements/{achId}/unlock
 GET    /api/inventory
@@ -1270,7 +1282,8 @@ POST   /api/market/orders
 POST   /api/market/orders/{marketOrderId}/cancel
 POST   /api/market/match
 GET    /api/market/trades
-GET    /api/items/{itemId}/transfers
+GET    /api/market/templates/{templateId}/price-history
+GET    /api/market/items/{itemId}/transfers
 ```
 
 主要前端页面：
@@ -1691,6 +1704,7 @@ appsettings.Local.json       不提交 Git
 database/schema.sql
 database/data.sql
 database/verify_phase1.sql
+database/migrations/
 database/admin/create_phase1_user.sql
 database/admin/run_phase1_verification.sql
 ```
@@ -1722,6 +1736,8 @@ Phase 1 database verification passed
 | 2026-07-06 | 选择 B/S 架构 | 课程允许 C/S 或 B/S；B/S 更适合 Steam 风格界面和云部署 |
 | 2026-07-06 | 初步选择阿里云作为云部署平台 | 应用服务器和数据库均需部署到云服务器 |
 | 2026-07-08 | 云平台调整为腾讯云轻量应用服务器并完成部署 | 因成本和配置更适合课程项目，应用服务器、Oracle、Nginx、前端静态文件均部署在云服务器 |
+| 2026-07-08 | `DEVELOPER` 增加 `password_hash`，开发商使用 `contact_email + password` 登录 | 支撑开发商工作台、CDKey 批次、开发商游戏管理等权限闭环 |
+| 2026-07-08 | 补齐内容包、物品摘要、市场价格历史、评价隐藏/恢复后端接口 | 保证 Steam 风格详情页、市场页、社区管理页可直接联调 |
 | 2026-07-06 | 后端采用 ASP.NET Core Web API + 五层结构 | 符合 C# 要求，层次清晰，便于答辩说明 |
 | 2026-07-06 | 数据访问采用 Oracle EF Core + Dapper / ODP.NET | 兼顾 ORM 规范性与复杂 SQL 可控性 |
 | 2026-07-06 | 确定 .NET 10 SDK 与 dotnet-ef 10.x 作为开发工具链基线 | 支持 ASP.NET Core / EF Core 10 开发 |

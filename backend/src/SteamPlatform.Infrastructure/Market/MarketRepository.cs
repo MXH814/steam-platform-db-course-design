@@ -104,6 +104,50 @@ public sealed class MarketRepository : IMarketRepository
         return rows.ToList();
     }
 
+    public async Task<IReadOnlyList<MarketPricePointDto>> GetPriceHistoryAsync(string templateId, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            WITH daily AS (
+              SELECT
+                TRUNC(trade_time) AS trade_date,
+                COUNT(*) AS trade_count,
+                MIN(trade_price) AS min_price,
+                MAX(trade_price) AS max_price,
+                AVG(trade_price) AS average_price
+              FROM MARKET_TRADE
+              WHERE template_id = :TemplateId
+              GROUP BY TRUNC(trade_time)
+            ),
+            latest AS (
+              SELECT trade_date, trade_price AS last_price
+              FROM (
+                SELECT
+                  TRUNC(trade_time) AS trade_date,
+                  trade_price,
+                  ROW_NUMBER() OVER (PARTITION BY TRUNC(trade_time) ORDER BY trade_time DESC, trade_id DESC) AS rn
+                FROM MARKET_TRADE
+                WHERE template_id = :TemplateId
+              )
+              WHERE rn = 1
+            )
+            SELECT
+              d.trade_date AS TradeDate,
+              d.trade_count AS TradeCount,
+              d.min_price AS MinPrice,
+              d.max_price AS MaxPrice,
+              ROUND(d.average_price, 2) AS AveragePrice,
+              l.last_price AS LastPrice
+            FROM daily d
+            JOIN latest l ON l.trade_date = d.trade_date
+            ORDER BY d.trade_date
+            """;
+
+        await using var connection = _connectionFactory.CreateConnection();
+        var rows = await connection.QueryAsync<MarketPricePointRow>(
+            new CommandDefinition(sql, new { TemplateId = templateId }, cancellationToken: cancellationToken));
+        return rows.Select(row => row.ToDto()).ToList();
+    }
+
     public async Task<IReadOnlyList<ItemTransferDto>> GetItemTransfersAsync(string itemId, CancellationToken cancellationToken)
     {
         const string sql = """
@@ -141,7 +185,7 @@ public sealed class MarketRepository : IMarketRepository
 
             if (wallet.AvailableBalance < request.TargetPrice)
             {
-                throw new BusinessRuleException("INSUFFICIENT_BALANCE", "可用余额不足，无法创建买单。");
+                throw new BusinessRuleException("INSUFFICIENT_BALANCE", "Available wallet balance is insufficient to create the buy order.");
             }
 
             var orderId = NewId();
@@ -202,7 +246,7 @@ public sealed class MarketRepository : IMarketRepository
     {
         if (string.IsNullOrWhiteSpace(request.ItemId))
         {
-            throw new BusinessRuleException("ITEM_ID_REQUIRED", "卖单必须选择要上架的饰品。");
+            throw new BusinessRuleException("ITEM_ID_REQUIRED", "Sell orders must include the listed item id.");
         }
 
         await using var connection = _connectionFactory.CreateConnection();
@@ -224,22 +268,22 @@ public sealed class MarketRepository : IMarketRepository
 
             if (item is null)
             {
-                throw new BusinessRuleException("ITEM_NOT_FOUND", "饰品不存在。");
+                throw new BusinessRuleException("ITEM_NOT_FOUND", "Inventory item does not exist.");
             }
 
             if (!string.Equals(item.UserId, userId, StringComparison.OrdinalIgnoreCase))
             {
-                throw new BusinessRuleException("ITEM_NOT_OWNED", "只能上架当前玩家自己的饰品。");
+                throw new BusinessRuleException("ITEM_NOT_OWNED", "Only the current player's own item can be listed.");
             }
 
             if (!string.Equals(item.TemplateId, request.TemplateId, StringComparison.OrdinalIgnoreCase))
             {
-                throw new BusinessRuleException("ITEM_TEMPLATE_MISMATCH", "饰品模板与挂单模板不一致。");
+                throw new BusinessRuleException("ITEM_TEMPLATE_MISMATCH", "Inventory item template does not match the market order template.");
             }
 
             if (item.Status != "NORMAL")
             {
-                throw new BusinessRuleException("ITEM_NOT_SELLABLE", "只有 NORMAL 状态的饰品可以上架。");
+                throw new BusinessRuleException("ITEM_NOT_SELLABLE", "Only NORMAL inventory items can be listed.");
             }
 
             var orderId = NewId();
@@ -271,7 +315,7 @@ public sealed class MarketRepository : IMarketRepository
         catch (OracleException ex) when (ex.Number == 1)
         {
             await transaction.RollbackAsync(cancellationToken);
-            throw new BusinessRuleException("ACTIVE_SELL_ORDER_EXISTS", "同一饰品同一时刻只能存在一个有效卖单。");
+            throw new BusinessRuleException("ACTIVE_SELL_ORDER_EXISTS", "One inventory item can have only one active sell order.");
         }
         catch
         {
@@ -291,17 +335,17 @@ public sealed class MarketRepository : IMarketRepository
             var order = await GetOrderRowForUpdateAsync(connection, transaction, marketOrderId, cancellationToken);
             if (order is null)
             {
-                throw new BusinessRuleException("ORDER_NOT_FOUND", "市场挂单不存在。");
+                throw new BusinessRuleException("ORDER_NOT_FOUND", "Market order does not exist.");
             }
 
             if (!string.Equals(order.UserId, userId, StringComparison.OrdinalIgnoreCase))
             {
-                throw new BusinessRuleException("ORDER_NOT_OWNED", "只能取消自己的市场挂单。");
+                throw new BusinessRuleException("ORDER_NOT_OWNED", "Only the owner can cancel this market order.");
             }
 
             if (order.Status != "MATCHING")
             {
-                throw new BusinessRuleException("ORDER_NOT_CANCELABLE", "只有撮合中的挂单可以取消。");
+                throw new BusinessRuleException("ORDER_NOT_CANCELABLE", "Only MATCHING market orders can be canceled.");
             }
 
             if (order.OrderType == "BUY")
@@ -309,7 +353,7 @@ public sealed class MarketRepository : IMarketRepository
                 var wallet = await GetWalletForUpdateAsync(connection, transaction, userId, cancellationToken);
                 if (wallet.FrozenBalance < order.FrozenAmount)
                 {
-                    throw new BusinessRuleException("WALLET_FROZEN_INCONSISTENT", "冻结余额不足，无法取消买单。");
+                    throw new BusinessRuleException("WALLET_FROZEN_INCONSISTENT", "Frozen wallet balance is insufficient to cancel the buy order.");
                 }
 
                 var availableAfter = wallet.AvailableBalance + order.FrozenAmount;
@@ -403,17 +447,17 @@ public sealed class MarketRepository : IMarketRepository
 
             if (match is null)
             {
-                throw new BusinessRuleException("NO_MATCHING_ORDER", "当前没有可撮合的买单和卖单。");
+                throw new BusinessRuleException("NO_MATCHING_ORDER", "There is no matchable buy/sell order pair.");
             }
 
             var buyOrder = await GetOrderRowForUpdateAsync(connection, transaction, match.BuyOrderId, cancellationToken)
-                ?? throw new BusinessRuleException("BUY_ORDER_NOT_FOUND", "买单不存在。");
+                ?? throw new BusinessRuleException("BUY_ORDER_NOT_FOUND", "Buy order does not exist.");
             var sellOrder = await GetOrderRowForUpdateAsync(connection, transaction, match.SellOrderId, cancellationToken)
-                ?? throw new BusinessRuleException("SELL_ORDER_NOT_FOUND", "卖单不存在。");
+                ?? throw new BusinessRuleException("SELL_ORDER_NOT_FOUND", "Sell order does not exist.");
 
             if (buyOrder.Status != "MATCHING" || sellOrder.Status != "MATCHING")
             {
-                throw new BusinessRuleException("ORDER_STATUS_CHANGED", "挂单状态已变化，请重新撮合。");
+                throw new BusinessRuleException("ORDER_STATUS_CHANGED", "Market order status changed; please match again.");
             }
 
             var item = await connection.QuerySingleAsync<InventoryItemRow>(new CommandDefinition("""
@@ -429,7 +473,7 @@ public sealed class MarketRepository : IMarketRepository
 
             if (item.Status != "IN_MARKET" || item.UserId != sellOrder.UserId)
             {
-                throw new BusinessRuleException("ITEM_STATUS_CHANGED", "卖单饰品状态已变化，请重新撮合。");
+                throw new BusinessRuleException("ITEM_STATUS_CHANGED", "Listed item status changed; please match again.");
             }
 
             var buyerWallet = await GetWalletForUpdateAsync(connection, transaction, buyOrder.UserId, cancellationToken);
@@ -438,7 +482,7 @@ public sealed class MarketRepository : IMarketRepository
             var tradePrice = sellOrder.TargetPrice;
             if (buyerWallet.FrozenBalance < tradePrice || buyOrder.FrozenAmount < tradePrice)
             {
-                throw new BusinessRuleException("FROZEN_BALANCE_INSUFFICIENT", "买单冻结资金不足。");
+                throw new BusinessRuleException("FROZEN_BALANCE_INSUFFICIENT", "Buy order frozen balance is insufficient.");
             }
 
             var platformFee = decimal.Round(tradePrice * PlatformFeeRate, 2, MidpointRounding.AwayFromZero);
@@ -628,7 +672,7 @@ public sealed class MarketRepository : IMarketRepository
 
         if (exists == 0)
         {
-            throw new BusinessRuleException("ITEM_TEMPLATE_NOT_FOUND", "饰品模板不存在。");
+            throw new BusinessRuleException("ITEM_TEMPLATE_NOT_FOUND", "Item template does not exist.");
         }
     }
 
@@ -649,7 +693,7 @@ public sealed class MarketRepository : IMarketRepository
             FOR UPDATE
             """, new { UserId = userId }, transaction, cancellationToken: cancellationToken));
 
-        return wallet ?? throw new BusinessRuleException("WALLET_NOT_FOUND", "当前玩家钱包不存在。");
+        return wallet ?? throw new BusinessRuleException("WALLET_NOT_FOUND", "Current player's wallet does not exist.");
     }
 
     private static async Task<MarketOrderRow?> GetOrderRowForUpdateAsync(
@@ -754,5 +798,25 @@ public sealed class MarketRepository : IMarketRepository
         public decimal BuyPrice { get; init; }
         public decimal SellPrice { get; init; }
         public decimal FrozenAmount { get; init; }
+    }
+
+    private sealed class MarketPricePointRow
+    {
+        public DateTime TradeDate { get; init; }
+        public decimal TradeCount { get; init; }
+        public decimal MinPrice { get; init; }
+        public decimal MaxPrice { get; init; }
+        public decimal AveragePrice { get; init; }
+        public decimal LastPrice { get; init; }
+
+        public MarketPricePointDto ToDto() => new()
+        {
+            TradeDate = TradeDate.Date,
+            TradeCount = decimal.ToInt32(TradeCount),
+            MinPrice = MinPrice,
+            MaxPrice = MaxPrice,
+            AveragePrice = AveragePrice,
+            LastPrice = LastPrice
+        };
     }
 }
