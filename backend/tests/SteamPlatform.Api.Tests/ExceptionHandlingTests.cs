@@ -15,6 +15,17 @@ public sealed class ExceptionHandlingTests
     }
 
     [Fact]
+    public void Business_rules_map_to_409_with_error_code_title()
+    {
+        var problem = ApiExceptionHandlingExtensions.CreateProblem(
+            new BusinessRuleException("REVIEW_ALREADY_EXISTS", "The player already reviewed this game."));
+
+        Assert.Equal(409, problem.Status);
+        Assert.Equal("REVIEW_ALREADY_EXISTS", problem.Title);
+        Assert.Equal("The player already reviewed this game.", problem.Detail);
+    }
+
+    [Fact]
     public void Invalid_operation_maps_to_generic_500()
     {
         var problem = ApiExceptionHandlingExtensions.CreateProblem(new InvalidOperationException("ConnectionStrings:Oracle is not configured."));
