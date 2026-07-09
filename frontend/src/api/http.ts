@@ -30,12 +30,12 @@ http.interceptors.request.use((config) => {
 
 export function getApiError(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { detail?: string; title?: string } | string | undefined;
+    const data = error.response?.data as { detail?: string; title?: string; message?: string } | string | undefined;
     if (typeof data === 'string') {
       return data;
     }
 
-    return data?.detail || data?.title || error.message;
+    return data?.detail || data?.title || data?.message || error.message;
   }
 
   return error instanceof Error ? error.message : '请求失败';

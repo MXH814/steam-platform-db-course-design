@@ -1,8 +1,9 @@
 <template>
   <div class="app-shell">
     <header class="topbar">
-      <RouterLink class="brand" to="/">Steam Platform</RouterLink>
+      <RouterLink class="brand" to="/store">Steam Platform</RouterLink>
       <nav class="nav-links" aria-label="主导航">
+        <RouterLink to="/store">商店</RouterLink>
         <RouterLink to="/">公告</RouterLink>
         <RouterLink to="/market">市场</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/account">账户</RouterLink>

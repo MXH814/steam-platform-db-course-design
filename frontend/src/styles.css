@@ -1,7 +1,19 @@
 :root {
-  color: #eef2f8;
-  background: #10151d;
-  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  --steam-bg: #0d1118;
+  --steam-shell: #101822;
+  --steam-panel: #16202d;
+  --steam-panel-2: #1b2838;
+  --steam-border: rgba(151, 170, 195, 0.18);
+  --steam-text: #eef2f8;
+  --steam-muted: #8f98a0;
+  --steam-blue: #66c0f4;
+  --steam-blue-strong: #1a9fff;
+  --steam-green: #75c53f;
+  --steam-discount-bg: #4c6b22;
+  --steam-discount-text: #b8f36f;
+  color: var(--steam-text);
+  background: var(--steam-bg);
+  font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
   line-height: 1.5;
 }
 
@@ -14,8 +26,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    linear-gradient(135deg, rgba(38, 115, 154, 0.28), transparent 34rem),
-    linear-gradient(180deg, #121923 0%, #0d1118 100%);
+    radial-gradient(circle at 14% 18%, rgba(102, 192, 244, 0.08), transparent 18rem),
+    linear-gradient(180deg, #101822 0%, var(--steam-bg) 100%);
 }
 
 button,
@@ -27,7 +39,7 @@ textarea {
 
 button,
 a {
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
 
 a {
@@ -49,9 +61,8 @@ a {
   gap: 1rem;
   min-height: 64px;
   padding: 0 24px;
-  border-bottom: 1px solid rgba(151, 170, 195, 0.18);
-  background: rgba(13, 17, 24, 0.9);
-  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--steam-border);
+  background: #171d25;
 }
 
 .brand {
@@ -74,7 +85,7 @@ a {
 
 .nav-links a.router-link-active,
 .nav-links a:hover {
-  color: #ffffff;
+  color: var(--steam-blue-strong);
 }
 
 .session {
@@ -90,9 +101,9 @@ a {
 }
 
 .page {
-  width: min(1120px, calc(100% - 32px));
+  width: min(1400px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 36px 0 64px;
+  padding: 24px 0 64px;
 }
 
 .view-stack,
@@ -151,7 +162,7 @@ a {
   border: 1px solid rgba(151, 170, 195, 0.18);
   border-radius: 8px;
   background: rgba(20, 28, 39, 0.92);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
+  box-shadow: none;
 }
 
 .form-panel {
@@ -214,7 +225,7 @@ textarea:focus {
 .primary-button,
 .button-link {
   color: #06111b;
-  background: #7fc6ff;
+  background: var(--steam-blue);
 }
 
 .primary-button:hover,
@@ -238,7 +249,7 @@ textarea:focus {
 }
 
 .ghost-button:hover {
-  border-color: #7fc6ff;
+  border-color: var(--steam-blue);
 }
 
 .ghost-button.fit {
@@ -251,7 +262,7 @@ button:disabled {
 }
 
 .inline-link {
-  color: #7fc6ff;
+  color: var(--steam-blue);
   font-weight: 750;
 }
 
@@ -281,7 +292,29 @@ button:disabled {
 }
 
 .notice-item.selectable:hover {
-  border-color: rgba(127, 198, 255, 0.55);
+  border-color: rgba(102, 192, 244, 0.55);
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+  }
 }
 
 .notice-item h2,
