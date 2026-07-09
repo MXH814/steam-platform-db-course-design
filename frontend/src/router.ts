@@ -6,6 +6,7 @@ import AdminRefundsView from './views/AdminRefundsView.vue';
 import CdkeyBatchView from './views/CdkeyBatchView.vue';
 import GameDetailView from './views/GameDetailView.vue';
 import HomeView from './views/HomeView.vue';
+import InventoryView from './views/InventoryView.vue';
 import GameCommunityView from './views/GameCommunityView.vue';
 import LibraryView from './views/LibraryView.vue';
 import LoginView from './views/LoginView.vue';
@@ -27,6 +28,7 @@ export const router = createRouter({
     { path: '/store/:section(recommend|categories|playstyles|specials)', name: 'store-collection', component: StoreCollectionView },
     { path: '/store/:section(categories|playstyles|specials)/:collectionId', name: 'store-collection-detail', component: StoreCollectionView },
     { path: '/games/:gameId', name: 'game-detail', component: GameDetailView },
+    { path: '/inventory', name: 'inventory', component: InventoryView, meta: { requiresAuth: true } },
     { path: '/games/:gameId/community', name: 'game-community', component: GameCommunityView },
     { path: '/market', name: 'market', component: MarketView, meta: { tab: 'market' } },
     { path: '/market/orders', name: 'market-orders', component: MarketView, meta: { tab: 'orders' } },

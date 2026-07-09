@@ -5,6 +5,7 @@
       <nav class="nav-links" aria-label="主导航">
         <RouterLink to="/store">商店</RouterLink>
         <RouterLink to="/">公告</RouterLink>
+        <RouterLink to="/inventory">库存</RouterLink>
         <RouterLink to="/market">市场</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/wallet">钱包</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/orders">订单</RouterLink>
@@ -23,18 +24,19 @@
       </div>
     </header>
 
-    <main class="page">
+    <main class="page" :class="{ 'page-wide': route.name === 'inventory' }">
       <RouterView />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
 function logout() {
   auth.logout();
