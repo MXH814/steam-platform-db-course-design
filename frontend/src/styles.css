@@ -27,7 +27,8 @@ body {
   min-height: 100vh;
   background:
     radial-gradient(circle at 14% 18%, rgba(102, 192, 244, 0.08), transparent 18rem),
-    linear-gradient(180deg, #101822 0%, var(--steam-bg) 100%);
+    linear-gradient(135deg, rgba(38, 115, 154, 0.14), transparent 34rem),
+    linear-gradient(180deg, #1b2838 0%, #101822 42%, var(--steam-bg) 100%);
 }
 
 button,
@@ -59,16 +60,28 @@ a {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 1rem;
-  min-height: 64px;
-  padding: 0 24px;
+  min-height: 58px;
+  padding: 0 28px;
   border-bottom: 1px solid var(--steam-border);
-  background: #171d25;
+  background: rgba(23, 26, 33, 0.96);
+  backdrop-filter: blur(12px);
 }
 
 .brand {
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0;
+}
+
+.brand::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  vertical-align: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 38%, #c7d5e0 0 20%, #5c7e99 21% 42%, #1b2838 43% 100%);
 }
 
 .nav-links,
@@ -81,6 +94,13 @@ a {
 .nav-links a {
   color: #aebbd0;
   font-weight: 650;
+}
+
+.nav-links a[href*="/store"],
+.nav-links a[href*="/library"],
+.nav-links a[href*="/community"],
+.nav-links a[href*="/market"] {
+  font-size: 1.05rem;
 }
 
 .nav-links a.router-link-active,
@@ -101,7 +121,7 @@ a {
 }
 
 .page {
-  width: min(1400px, calc(100% - 32px));
+  width: min(1500px, calc(100% - 32px));
   margin: 0 auto;
   padding: 24px 0 64px;
 }
@@ -652,7 +672,7 @@ tbody tr:hover {
   }
 
   .page {
-    width: min(100% - 24px, 1120px);
+    width: min(100% - 24px, 1500px);
     padding-top: 24px;
   }
 

@@ -4,9 +4,11 @@ import AccountView from './views/AccountView.vue';
 import AdminNoticesView from './views/AdminNoticesView.vue';
 import AdminRefundsView from './views/AdminRefundsView.vue';
 import CdkeyBatchView from './views/CdkeyBatchView.vue';
-import GameDetailView from './views/GameDetailView.vue';
-import HomeView from './views/HomeView.vue';
 import GameCommunityView from './views/GameCommunityView.vue';
+import GameDetailView from './views/GameDetailView.vue';
+import GameLibraryView from './views/GameLibraryView.vue';
+import GameStoreView from './views/GameStoreView.vue';
+import HomeView from './views/HomeView.vue';
 import LibraryView from './views/LibraryView.vue';
 import LoginView from './views/LoginView.vue';
 import MarketView from './views/MarketView.vue';
@@ -27,7 +29,10 @@ export const router = createRouter({
     { path: '/store/:section(recommend|categories|playstyles|specials)', name: 'store-collection', component: StoreCollectionView },
     { path: '/store/:section(categories|playstyles|specials)/:collectionId', name: 'store-collection-detail', component: StoreCollectionView },
     { path: '/games/:gameId', name: 'game-detail', component: GameDetailView },
+    { path: '/games/:gameId/store', name: 'game-store', component: GameStoreView },
     { path: '/games/:gameId/community', name: 'game-community', component: GameCommunityView },
+    { path: '/library', name: 'library', component: LibraryView, meta: { requiresAuth: true } },
+    { path: '/library/:gameId', name: 'game-library', component: GameLibraryView, meta: { requiresAuth: true } },
     { path: '/market', name: 'market', component: MarketView, meta: { tab: 'market' } },
     { path: '/market/orders', name: 'market-orders', component: MarketView, meta: { tab: 'orders' } },
     { path: '/market/trades', name: 'market-trades', component: MarketView, meta: { tab: 'trades' } },
@@ -38,7 +43,6 @@ export const router = createRouter({
     { path: '/wallet', name: 'wallet', component: WalletView, meta: { requiresAuth: true } },
     { path: '/orders', name: 'orders', component: OrdersView, meta: { requiresAuth: true } },
     { path: '/orders/:orderId', name: 'order-detail', component: OrderDetailView, meta: { requiresAuth: true } },
-    { path: '/library', name: 'library', component: LibraryView, meta: { requiresAuth: true } },
     { path: '/refunds', name: 'refunds', component: RefundsView, meta: { requiresAuth: true } },
     { path: '/redeem', name: 'redeem', component: RedeemView, meta: { requiresAuth: true } },
     { path: '/developer/cdkeys', name: 'developer-cdkeys', component: CdkeyBatchView, meta: { requiresAuth: true, requiresDeveloper: true } },
