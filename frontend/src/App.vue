@@ -4,6 +4,9 @@
       <RouterLink class="brand" to="/">Steam Platform</RouterLink>
       <nav class="nav-links" aria-label="主导航">
         <RouterLink to="/">公告</RouterLink>
+        <RouterLink to="/games/GAME_DST/store">商店</RouterLink>
+        <RouterLink v-if="auth.isAuthenticated" to="/library/GAME_DST">库</RouterLink>
+        <RouterLink to="/games/GAME_DST/community">社区</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/account">账户</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/admin/notices">公告管理</RouterLink>
       </nav>

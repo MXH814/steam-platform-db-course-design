@@ -14,8 +14,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    linear-gradient(135deg, rgba(38, 115, 154, 0.28), transparent 34rem),
-    linear-gradient(180deg, #121923 0%, #0d1118 100%);
+    linear-gradient(135deg, rgba(38, 115, 154, 0.22), transparent 34rem),
+    linear-gradient(180deg, #1b2838 0%, #101822 42%, #0d1118 100%);
 }
 
 button,
@@ -47,10 +47,10 @@ a {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 1rem;
-  min-height: 64px;
-  padding: 0 24px;
+  min-height: 58px;
+  padding: 0 28px;
   border-bottom: 1px solid rgba(151, 170, 195, 0.18);
-  background: rgba(13, 17, 24, 0.9);
+  background: rgba(23, 26, 33, 0.96);
   backdrop-filter: blur(12px);
 }
 
@@ -90,9 +90,9 @@ a {
 }
 
 .page {
-  width: min(1120px, calc(100% - 32px));
+  width: min(1500px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 36px 0 64px;
+  padding: 24px 0 64px;
 }
 
 .view-stack,
@@ -340,7 +340,7 @@ dd {
   }
 
   .page {
-    width: min(100% - 24px, 1120px);
+    width: min(100% - 24px, 1500px);
     padding-top: 24px;
   }
 
@@ -353,4 +353,21 @@ dd {
   .notice-meta {
     min-width: 0;
   }
+}
+
+.nav-links a[href*="/store"],
+.nav-links a[href*="/library"],
+.nav-links a[href*="/community"] {
+  font-size: 1.05rem;
+}
+
+.brand::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  vertical-align: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 38%, #c7d5e0 0 20%, #5c7e99 21% 42%, #1b2838 43% 100%);
 }
