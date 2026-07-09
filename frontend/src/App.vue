@@ -4,7 +4,7 @@
       <RouterLink class="brand" to="/store">Steam Platform</RouterLink>
       <nav class="nav-links" aria-label="主导航">
         <RouterLink to="/store">商店</RouterLink>
-        <RouterLink to="/">公告</RouterLink>
+        <RouterLink to="/games/GAME_DST/community">社区</RouterLink>
         <RouterLink to="/inventory">库存</RouterLink>
         <RouterLink to="/market">市场</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/wallet">钱包</RouterLink>
@@ -12,6 +12,7 @@
         <RouterLink v-if="auth.isAuthenticated" to="/library">游戏库</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/refunds">退款</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/redeem">CDKey</RouterLink>
+        <RouterLink to="/">公告</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/account">账户</RouterLink>
         <RouterLink v-if="auth.isDeveloper || auth.isAdmin" to="/developer/cdkeys">开发商</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/admin/notices">公告管理</RouterLink>
