@@ -48,6 +48,7 @@ const transfersLoading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
 const droppedItem = ref<InventoryItem | null>(null);
+const missingImageKeys = ref<Set<string>>(new Set());
 
 const activeGame = computed(() => games.find((game) => game.id === activeGameId.value) ?? games[0]);
 const activeTemplates = computed(() => templates.value.filter((template) => template.gameId === activeGameId.value));
@@ -207,6 +208,20 @@ function formatWear(value?: number | null) {
   return typeof value === 'number' ? value.toFixed(8) : '无';
 }
 
+function imageKey(item: Pick<InventoryItem, 'itemId' | 'templateId'>) {
+  return item.itemId || item.templateId;
+}
+
+function shouldShowImage(item: Pick<InventoryItem, 'itemId' | 'templateId' | 'imageUrl'>) {
+  return Boolean(item.imageUrl && !missingImageKeys.value.has(imageKey(item)));
+}
+
+function markImageMissing(item: Pick<InventoryItem, 'itemId' | 'templateId'>) {
+  const next = new Set(missingImageKeys.value);
+  next.add(imageKey(item));
+  missingImageKeys.value = next;
+}
+
 function shortId(value: string) {
   return value.length > 16 ? `${value.slice(0, 10)}...` : value;
 }
@@ -306,7 +321,7 @@ function transferParty(value?: string | null) {
                 :class="[rarityClass(item.rarity), { selected: selectedItem?.itemId === item.itemId }]"
                 @click="selectItem(item)"
               >
-                <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.itemName" />
+                <img v-if="shouldShowImage(item)" :src="item.imageUrl ?? ''" :alt="item.itemName" @error="markImageMissing(item)" />
                 <span v-else class="item-fallback">{{ item.itemName.slice(0, 2).toUpperCase() }}</span>
               </button>
             </div>
@@ -325,7 +340,12 @@ function transferParty(value?: string | null) {
           <aside class="item-detail" :class="{ empty: !selectedItem }">
             <template v-if="selectedItem">
               <div class="detail-art" :class="rarityClass(selectedItem.rarity)">
-                <img v-if="selectedItem.imageUrl" :src="selectedItem.imageUrl" :alt="selectedItem.itemName" />
+                <img
+                  v-if="shouldShowImage(selectedItem)"
+                  :src="selectedItem.imageUrl ?? ''"
+                  :alt="selectedItem.itemName"
+                  @error="markImageMissing(selectedItem)"
+                />
                 <span v-else>{{ selectedItem.itemName.slice(0, 2).toUpperCase() }}</span>
               </div>
 
