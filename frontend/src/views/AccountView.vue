@@ -25,6 +25,21 @@
         </div>
       </dl>
     </div>
+
+    <section class="data-panel">
+      <header class="panel-header">
+        <h2>常用入口</h2>
+      </header>
+      <div class="quick-grid">
+        <RouterLink class="quick-link" to="/wallet">钱包余额与流水</RouterLink>
+        <RouterLink class="quick-link" to="/orders">购买与订单</RouterLink>
+        <RouterLink class="quick-link" to="/library">我的游戏库</RouterLink>
+        <RouterLink class="quick-link" to="/refunds">退款申请</RouterLink>
+        <RouterLink class="quick-link" to="/redeem">CDKey 兑换</RouterLink>
+        <RouterLink v-if="auth.isDeveloper || auth.isAdmin" class="quick-link" to="/developer/cdkeys">CDKey 批次</RouterLink>
+        <RouterLink v-if="auth.isAdmin" class="quick-link" to="/admin/refunds">退款审核</RouterLink>
+      </div>
+    </section>
   </section>
 </template>
 

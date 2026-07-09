@@ -238,6 +238,19 @@ public static class CoreTransactionEndpointExtensions
 
         var adminRefunds = app.MapGroup("/api/admin/refunds").WithTags("Admin Refunds");
 
+        adminRefunds.MapGet("", async (
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "ADMIN") is { } denied)
+            {
+                return denied;
+            }
+
+            return Results.Ok(await service.ListAllRefundsAsync(claims!, cancellationToken));
+        });
+
         adminRefunds.MapPost("{refundId}/approve", async (
             string refundId,
             AuditRefundRequest request,

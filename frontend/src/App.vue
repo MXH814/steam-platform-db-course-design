@@ -6,8 +6,15 @@
         <RouterLink to="/store">商店</RouterLink>
         <RouterLink to="/">公告</RouterLink>
         <RouterLink to="/market">市场</RouterLink>
+        <RouterLink v-if="auth.isAuthenticated" to="/wallet">钱包</RouterLink>
+        <RouterLink v-if="auth.isAuthenticated" to="/orders">订单</RouterLink>
+        <RouterLink v-if="auth.isAuthenticated" to="/library">游戏库</RouterLink>
+        <RouterLink v-if="auth.isAuthenticated" to="/refunds">退款</RouterLink>
+        <RouterLink v-if="auth.isAuthenticated" to="/redeem">CDKey</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/account">账户</RouterLink>
+        <RouterLink v-if="auth.isDeveloper || auth.isAdmin" to="/developer/cdkeys">开发商</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/admin/notices">公告管理</RouterLink>
+        <RouterLink v-if="auth.isAdmin" to="/admin/refunds">退款审核</RouterLink>
       </nav>
       <div class="session">
         <span v-if="auth.currentUser" class="session-user">{{ auth.currentUser.account }}</span>

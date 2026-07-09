@@ -11,6 +11,7 @@
         <select v-model="form.role">
           <option value="PLAYER">玩家</option>
           <option value="ADMIN">管理员</option>
+          <option value="DEVELOPER">开发商</option>
         </select>
       </label>
 
