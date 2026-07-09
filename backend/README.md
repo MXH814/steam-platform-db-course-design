@@ -41,11 +41,28 @@ POST   /api/auth/register
 POST   /api/auth/register/player
 POST   /api/auth/login
 GET    /api/auth/me
+GET    /api/wallet
+POST   /api/wallet/recharge
+GET    /api/wallet/transactions?page=1&pageSize=20
+POST   /api/orders
+POST   /api/games/{gameId}/free-claim
+GET    /api/orders
+GET    /api/orders/{orderId}
+GET    /api/library
+POST   /api/library/{gameId}/playtime
+POST   /api/refunds
+GET    /api/refunds
+POST   /api/admin/refunds/{refundId}/approve
+POST   /api/admin/refunds/{refundId}/reject
+POST   /api/developer/cdkey-batches
+POST   /api/cdkeys/redeem
 GET    /api/notices
 POST   /api/notices
 POST   /api/admin/notices
 PUT    /api/admin/notices/{noticeId}
 ```
+
+钱包充值为课程演示用模拟充值，不接入第三方支付。`POST /api/wallet/recharge` 必须传入 `amount` 和 `idempotencyKey`，金额范围为 `0.01` 到 `99999.99` 且最多两位小数；同一幂等键重复提交不能重复加钱。
 
 运行命令：
 
@@ -56,7 +73,19 @@ dotnet test backend\SteamPlatform.sln
 dotnet run --project backend\src\SteamPlatform.Api
 ```
 
-本地 Oracle 连接通过 `backend/src/SteamPlatform.Api/appsettings.json` 的 `ConnectionStrings:Oracle` 或 User Secrets 配置。`Auth:SigningKey` 至少 32 字节；Development 未配置时使用进程内演示 key。
+本地 Oracle 连接通过 `backend/src/SteamPlatform.Api/appsettings.json` 的 `ConnectionStrings:Oracle` 或 User Secrets 配置。`Auth:SigningKey` 至少 32 字节；Development 未配置时使用进程内演示 key。真实连接串、数据库密码和 JWT 密钥不得提交到 Git。
+
+```powershell
+dotnet user-secrets set --project backend\src\SteamPlatform.Api "ConnectionStrings:Oracle" "User Id=steam_app;Password=***;Data Source=服务器地址:1521/FREEPDB1"
+dotnet user-secrets set --project backend\src\SteamPlatform.Api "Auth:SigningKey" "至少32字节的JWT密钥"
+```
+
+数据库测试默认做静态契约验证；如需真实 Oracle smoke test，使用本机环境变量：
+
+```powershell
+$env:STEAM_ORACLE_TEST_CONNECTION="User Id=steam_app;Password=***;Data Source=服务器地址:1521/FREEPDB1"
+dotnet test tests\SteamPlatform.Database.Tests\SteamPlatform.Database.Tests.csproj
+```
 
 当前不允许使用 `DEVELOPER.tax_id` 作为登录密码。开发商登录需要等 `DEVELOPER` 表补充安全密码哈希字段后再接入。
 

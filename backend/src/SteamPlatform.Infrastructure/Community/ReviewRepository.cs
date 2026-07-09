@@ -162,6 +162,30 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
             ?? throw new ResourceNotFoundException("Review does not exist.");
     }
 
+    public async Task<ReviewListItem> SetStatusAsync(string reviewId, string status, CancellationToken cancellationToken)
+    {
+        var normalizedReviewId = NormalizeRequired(reviewId, nameof(reviewId));
+        var normalizedStatus = NormalizeReviewStatus(status);
+
+        await using var connection = _connectionFactory.CreateConnection();
+        var affected = await connection.ExecuteAsync(new CommandDefinition(
+            """
+            update game_review
+               set status = :Status
+             where review_id = :ReviewId
+            """,
+            new { ReviewId = normalizedReviewId, Status = normalizedStatus },
+            cancellationToken: cancellationToken));
+
+        if (affected == 0)
+        {
+            throw new ResourceNotFoundException("Review does not exist.");
+        }
+
+        return await GetLatestReviewAsync(connection, normalizedReviewId, cancellationToken)
+            ?? throw new ResourceNotFoundException("Review does not exist.");
+    }
+
     public async Task<IReadOnlyList<ReviewVersionItem>> ListVersionsAsync(string reviewId, CancellationToken cancellationToken)
     {
         var normalizedReviewId = NormalizeRequired(reviewId, nameof(reviewId));
@@ -243,6 +267,14 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
         return string.IsNullOrWhiteSpace(normalized)
             ? throw new ArgumentException($"{fieldName} is required.")
             : normalized;
+    }
+
+    private static string NormalizeReviewStatus(string value)
+    {
+        var normalized = NormalizeRequired(value, nameof(value)).ToUpperInvariant();
+        return normalized is "VISIBLE" or "HIDDEN"
+            ? normalized
+            : throw new ArgumentException("Review status must be VISIBLE or HIDDEN.");
     }
 
     private static int ToNumber(bool value) => value ? 1 : 0;

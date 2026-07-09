@@ -12,6 +12,8 @@ public sealed class AuthServiceTokenTests
     [InlineData("alice", "PBKDF2$SHA256$100000$c2VlZC1hbGljZV9fX19fXw==$iTPCU6/lngHZz3zx/gYotoK0h7N0WJu8m0Vnre7/1NA=")]
     [InlineData("bob", "PBKDF2$SHA256$100000$c2VlZC1ib2JfX19fX19fXw==$2CvTcEyGV8IfmgB6hEZN+em2lyvIsaRLrQJ/5YgkipM=")]
     [InlineData("admin", "PBKDF2$SHA256$100000$c2VlZC1yb290YWRtaW5fXw==$yHE6M2jmsTpAplUmz5Vjp4o3zmV30sSQwdnx0jMVHpo=")]
+    [InlineData("valve", "PBKDF2$SHA256$100000$c2VlZC12YWx2ZS1kZXZfX18=$apqFEKjAoaMZvUroAQ9eaiAH4qutVdFRtt0Yorzqf44=")]
+    [InlineData("klei", "PBKDF2$SHA256$100000$c2VlZC1rbGVpLWRldl9fX18=$Syi9RKVX+XpYxt6A39k3dDAC0DAfWVxDolxY0mRn4O8=")]
     public void PasswordHasher_verifies_seed_hashes(string password, string storedHash)
     {
         var hasher = new PasswordHasher();
@@ -115,17 +117,6 @@ public sealed class AuthServiceTokenTests
         signingKeyProvider.Key[0] = (byte)'x';
 
         Assert.NotNull(service.ValidateToken(token));
-    }
-
-    [Fact]
-    public async Task Developer_login_is_disabled_until_schema_has_password_credentials()
-    {
-        var service = CreateService();
-
-        var exception = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            service.LoginAsync(new LoginRequest("DEVELOPER", "dev@example.com", "TAX-DEMO-001"), CancellationToken.None));
-
-        Assert.Contains("Developer password login is not available", exception.Message);
     }
 
     private static AuthService CreateService(string signingKey = SteamPlatformApiFactory.SigningKey) =>

@@ -60,7 +60,7 @@ GitHub 仓库已对 `main` 分支启用保护规则：
 
 - 架构选择 B/S。
 - 除前端界面外，后端、应用服务器、数据访问层、部署脚本等项目实现均使用 C# / .NET 技术栈。
-- 数据库和应用服务器均部署到阿里云云服务器。
+- 数据库和应用服务器均部署到腾讯云云服务器。
 - 前端继续使用 Vue 技术栈实现 Steam 风格界面。
 
 废弃旧计划：
@@ -181,7 +181,7 @@ _local_tools_archive/
 浏览器
   -> Vue 3 前端页面
   -> HTTPS / HTTP
-  -> 阿里云 Nginx
+  -> 腾讯云 Nginx
   -> ASP.NET Core Web API 应用服务器
   -> EF Core / Dapper / ODP.NET
   -> Oracle Database
@@ -192,7 +192,7 @@ _local_tools_archive/
 - 课程允许 C/S 或 B/S，B/S 符合要求。
 - Steam 风格界面更适合 Web 前端实现。
 - 答辩演示只需浏览器访问云服务器地址。
-- 应用服务器和数据库都可以部署在阿里云，满足云部署要求。
+- 应用服务器和数据库都部署在腾讯云服务器，满足云部署要求。
 - 前后端分离方便团队协作。
 - Oracle 端口不需要暴露给客户端，安全性明显好于桌面客户端直连数据库。
 
@@ -206,7 +206,7 @@ _local_tools_archive/
 
 | 层级 | 选型 | 说明 |
 |---|---|---|
-| 云平台 | 阿里云 ECS | 运行 Oracle、ASP.NET Core API、Nginx、前端静态文件 |
+| 云平台 | 腾讯云轻量应用服务器 | 运行 Oracle、ASP.NET Core API、Nginx、前端静态文件 |
 | 操作系统 | Ubuntu 24.04 LTS 或 Ubuntu 22.04 LTS | 轻量、资料多、适合 Nginx + Kestrel 部署 |
 | 数据库 | Oracle Database Free / Oracle 26ai Free，满足 Oracle 18c+ 要求 | 课程要求 Oracle 18c 或更高版本 |
 | 后端语言 | C# | 课程提纲硬要求 |
@@ -287,7 +287,7 @@ sqlplus -V
 
 ## 6. 云服务器选择与部署目标
 
-云平台：阿里云。
+云平台：腾讯云轻量应用服务器。
 
 推荐实例：
 
@@ -303,7 +303,7 @@ sqlplus -V
 云服务器部署结构：
 
 ```text
-阿里云 ECS
+腾讯云轻量应用服务器
   /opt/steam-platform/
     api/        ASP.NET Core 发布产物
     frontend/   Vue 打包后的 dist 静态文件
@@ -610,7 +610,7 @@ GET    /api/games/{gameId}
 POST   /api/orders
 GET    /api/orders/{orderId}
 POST   /api/wallet/recharge
-GET    /api/wallet/transactions
+GET    /api/wallet/transactions?page=1&pageSize=20
 POST   /api/cdkeys/redeem
 POST   /api/reviews
 PUT    /api/reviews/{reviewId}
@@ -665,13 +665,23 @@ AUDITOR     审计员，可选
 
 安全原则：
 
-- 密码必须使用 BCrypt 或 ASP.NET Core PasswordHasher，不存明文。
+- 密码必须使用 BCrypt、ASP.NET Core PasswordHasher 或当前后端统一实现的 PBKDF2-SHA256 哈希，不存明文。
 - 登录成功后使用 JWT。
 - 前端只保存 token，不保存密码。
 - 敏感接口必须后端鉴权。
 - 钱包、订单、市场、退款接口必须从 token 中获取当前用户，不信任前端传入的用户 ID。
 - Oracle 连接字符串、JWT 密钥、云服务器密码不得提交 Git。
 - 云端 Oracle 1521 不对公网开放。
+
+演示种子账号仅用于课程演示和本地/云端样例库联调，不代表真实生产密码：
+
+```text
+PLAYER      alice / alice
+PLAYER      bob / bob
+ADMIN       rootadmin / admin
+DEVELOPER   valve@example.com / valve
+DEVELOPER   klei@example.com / klei
+```
 
 ## 13. 开发顺序计划
 
@@ -684,11 +694,11 @@ AUDITOR     审计员，可选
 - [x] 准备 `.gitignore`。
 - [x] 读取新版课程提纲并确认 C# / Oracle / VS.NET / C/S 或 B/S 要求。
 - [x] 选择 B/S 架构。
-- [x] 选择阿里云作为云部署平台。
+- [x] 选择腾讯云作为云部署平台。
 
 ### 第 1 阶段：数据库落地
 
-状态：数据库脚本已完成阶段性验收，后续仍需在阿里云 Oracle 环境复验。
+状态：数据库脚本已完成阶段性验收，并已在腾讯云 Oracle 环境完成部署验证。
 
 - [x] 根据设计文档生成 Oracle `schema.sql`。
 - [x] 写主键、外键、唯一约束、检查约束。
@@ -696,7 +706,7 @@ AUDITOR     审计员，可选
 - [x] 写初始化数据 `data.sql`。
 - [x] 验证 27 张表能成功创建。
 - [x] 验证关键唯一约束和外键有效。
-- [ ] 在阿里云 Oracle 环境重新执行 `schema.sql`、`data.sql`、`verify_phase1.sql`。
+- [x] 在腾讯云 Oracle 环境部署并验证 `schema.sql`、`data.sql`、`verify_phase1.sql`。
 
 ### 第 2 阶段：C# 后端基础
 
@@ -797,9 +807,9 @@ AUDITOR     审计员，可选
 - 管理员后台。
 - 开发商后台。
 
-### 第 11 阶段：阿里云部署
+### 第 11 阶段：腾讯云部署
 
-- 购买阿里云 ECS。
+- 购买腾讯云轻量应用服务器。
 - 安装 Oracle。
 - 安装 .NET 10 Runtime。
 - 安装 Nginx。
@@ -1123,7 +1133,7 @@ ADMIN_USER
 ```text
 GET    /api/wallet
 POST   /api/wallet/recharge
-GET    /api/wallet/transactions
+GET    /api/wallet/transactions?page=1&pageSize=20
 POST   /api/orders
 POST   /api/games/{gameId}/free-claim
 GET    /api/orders
@@ -1174,6 +1184,16 @@ Group C 必须优先保证的演示链路：
   -> 退款流水
   -> 免费入库 Counter-Strike 2
 ```
+
+Group C 钱包接口规则：
+
+- `GET /api/wallet` 返回 `availableBalance`、`frozenBalance`、查询计算的 `totalBalance` 和 `version`。
+- `POST /api/wallet/recharge` 是演示充值接口，请求字段为 `amount` 和 `idempotencyKey`。
+- 充值金额必须在 `0.01` 到 `99999.99` 之间，最多两位小数。
+- 充值必须在同一事务中更新 `WALLET_ACCOUNT.available_balance`、增加 `version` 并写 `WALLET_TRANSACTION`。
+- 充值流水固定使用 `biz_type = RECHARGE`、`funds_direction = CREDIT`，并记录 `avail_bal_before` / `avail_bal_after`。
+- 同一 `idempotencyKey` 重复提交不能重复加钱，应返回已有充值结果。
+- `GET /api/wallet/transactions` 使用分页参数 `page`、`pageSize`，默认 `1`、`20`，最大 `pageSize = 100`。
 
 Group C 与其他组的边界：
 
@@ -1249,6 +1269,8 @@ GET    /api/games/{gameId}/reviews
 POST   /api/games/{gameId}/reviews
 PUT    /api/reviews/{reviewId}
 GET    /api/reviews/{reviewId}/versions
+POST   /api/admin/reviews/{reviewId}/hide
+POST   /api/admin/reviews/{reviewId}/show
 GET    /api/games/{gameId}/achievements
 POST   /api/achievements/{achId}/unlock
 GET    /api/inventory
@@ -1260,7 +1282,8 @@ POST   /api/market/orders
 POST   /api/market/orders/{marketOrderId}/cancel
 POST   /api/market/match
 GET    /api/market/trades
-GET    /api/items/{itemId}/transfers
+GET    /api/market/templates/{templateId}/price-history
+GET    /api/market/items/{itemId}/transfers
 ```
 
 主要前端页面：
@@ -1663,7 +1686,7 @@ appsettings.Local.json       不提交 Git
 - `.gitignore` 创建。
 - 新版课程提纲已读取。
 - 架构从旧 Spring Boot 方案调整为 C# / ASP.NET Core B/S 方案。
-- 云平台选择阿里云。
+- 云平台选择腾讯云轻量应用服务器。
 
 ### 第 1 阶段
 
@@ -1681,6 +1704,7 @@ appsettings.Local.json       不提交 Git
 database/schema.sql
 database/data.sql
 database/verify_phase1.sql
+database/migrations/
 database/admin/create_phase1_user.sql
 database/admin/run_phase1_verification.sql
 ```
@@ -1697,9 +1721,11 @@ check constraint count = 222
 Phase 1 database verification passed
 ```
 
-待完成：
+补充云端验收：
 
-- 在阿里云服务器 Oracle 环境重新执行数据库验收。
+- 已在腾讯云服务器 Oracle 环境完成数据库部署和基础验收。
+- 已从公网访问 API，确认应用服务器可连接云端 Oracle。
+- 2026-07-08 已执行 `database/migrations/20260708_developer_login_backend_completion.sql`，并将后端补全版本部署到云端。
 
 ## 22. 当前决策记录
 
@@ -1709,7 +1735,10 @@ Phase 1 database verification passed
 | 2026-07-05 | 完成数据库第 1 阶段脚本验收 | 证明 27 张表、约束和初始化数据可执行 |
 | 2026-07-06 | 根据新版课程提纲废弃 Java / Spring Boot / MyBatis 方案 | 课程要求 VS.NET、C#、Oracle、Oracle 数据访问组件或 ORM |
 | 2026-07-06 | 选择 B/S 架构 | 课程允许 C/S 或 B/S；B/S 更适合 Steam 风格界面和云部署 |
-| 2026-07-06 | 选择阿里云作为云部署平台 | 应用服务器和数据库均需部署到云服务器 |
+| 2026-07-06 | 初步选择阿里云作为云部署平台 | 应用服务器和数据库均需部署到云服务器 |
+| 2026-07-08 | 云平台调整为腾讯云轻量应用服务器并完成部署 | 因成本和配置更适合课程项目，应用服务器、Oracle、Nginx、前端静态文件均部署在云服务器 |
+| 2026-07-08 | `DEVELOPER` 增加 `password_hash`，开发商使用 `contact_email + password` 登录 | 支撑开发商工作台、CDKey 批次、开发商游戏管理等权限闭环 |
+| 2026-07-08 | 补齐内容包、物品摘要、市场价格历史、评价隐藏/恢复后端接口 | 保证 Steam 风格详情页、市场页、社区管理页可直接联调 |
 | 2026-07-06 | 后端采用 ASP.NET Core Web API + 五层结构 | 符合 C# 要求，层次清晰，便于答辩说明 |
 | 2026-07-06 | 数据访问采用 Oracle EF Core + Dapper / ODP.NET | 兼顾 ORM 规范性与复杂 SQL 可控性 |
 | 2026-07-06 | 确定 .NET 10 SDK 与 dotnet-ef 10.x 作为开发工具链基线 | 支持 ASP.NET Core / EF Core 10 开发 |

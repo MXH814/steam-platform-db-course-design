@@ -92,6 +92,20 @@ public sealed class CommunityEndpointTests(SteamPlatformApiFactory factory) : IC
     }
 
     [Fact]
+    public async Task Hide_review_forbids_player_tokens_before_opening_database()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/admin/reviews/REV001/hide")
+        {
+            Content = JsonContent.Create(new { })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("PLAYER", "P001", "alice"));
+
+        using var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Unlock_achievement_requires_player_authentication_before_opening_database()
     {
         using var response = await _client.PostAsJsonAsync("/api/achievements/ACH001/unlock", new { });

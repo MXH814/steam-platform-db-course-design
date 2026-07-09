@@ -78,6 +78,44 @@ public static class CommunityEndpointExtensions
             return Results.Ok(await repository.ListVersionsAsync(reviewId, cancellationToken));
         });
 
+        community.MapPost("/admin/reviews/{reviewId}/hide", async (
+            string reviewId,
+            IReviewRepository repository,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out _, "ADMIN") is { } denied)
+            {
+                return denied;
+            }
+
+            if (InputGuards.IsBlank(reviewId))
+            {
+                return Results.BadRequest("ReviewId is required.");
+            }
+
+            return Results.Ok(await repository.SetStatusAsync(reviewId, "HIDDEN", cancellationToken));
+        });
+
+        community.MapPost("/admin/reviews/{reviewId}/show", async (
+            string reviewId,
+            IReviewRepository repository,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out _, "ADMIN") is { } denied)
+            {
+                return denied;
+            }
+
+            if (InputGuards.IsBlank(reviewId))
+            {
+                return Results.BadRequest("ReviewId is required.");
+            }
+
+            return Results.Ok(await repository.SetStatusAsync(reviewId, "VISIBLE", cancellationToken));
+        });
+
         community.MapGet("/games/{gameId}/achievements", async (
             string gameId,
             IAchievementRepository repository,

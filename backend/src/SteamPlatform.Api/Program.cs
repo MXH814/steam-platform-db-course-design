@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using SteamPlatform.Api.Features.Auth;
 using SteamPlatform.Api.Features.Community;
 using SteamPlatform.Api.Features.CoreTransactions;
+using SteamPlatform.Api.Features.Games;
 using SteamPlatform.Api.Features.Inventory;
+using SteamPlatform.Api.Features.Market;
 using SteamPlatform.Api.Features.Notices;
 using SteamPlatform.Api.Infrastructure;
 using SteamPlatform.Application.Auth;
@@ -42,14 +44,23 @@ app.MapGet("/health", () => Results.Ok(new
     time = DateTimeOffset.UtcNow
 }));
 
+app.MapGet("/api/health", () => Results.Ok(new
+{
+    service = "SteamPlatform.Api",
+    status = "OK",
+    time = DateTimeOffset.UtcNow
+}));
+
 app.MapGet("/health/database", async (IDatabaseHealthProbe probe, CancellationToken cancellationToken) =>
     Results.Ok(await probe.CheckAsync(cancellationToken)));
 
 app.MapAuthEndpoints();
 app.MapInventoryEndpoints();
+app.MapGameEndpoints();
 app.MapNoticeEndpoints();
 app.MapCoreTransactionEndpoints();
 app.MapCommunityEndpoints();
+app.MapMarketEndpoints();
 
 app.Run();
 
