@@ -1,4 +1,4 @@
-export type LoginRole = 'PLAYER' | 'ADMIN';
+export type LoginRole = 'PLAYER' | 'ADMIN' | 'DEVELOPER';
 
 export interface LoginRequest {
   role: LoginRole;

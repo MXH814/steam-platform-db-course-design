@@ -255,6 +255,16 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
     public Task<IReadOnlyList<RefundSummary>> ListRefundsAsync(AuthClaims claims, CancellationToken cancellationToken)
         => Task.FromResult((IReadOnlyList<RefundSummary>)Array.Empty<RefundSummary>());
 
+    public Task<IReadOnlyList<RefundSummary>> ListAllRefundsAsync(AuthClaims claims, CancellationToken cancellationToken)
+    {
+        _ = NormalizeDeveloperOrAdmin(claims);
+        var summaries = _refunds.Values
+            .OrderByDescending(refund => refund.ApplyTime)
+            .Select(refund => new RefundSummary(refund.RefundId, refund.OrderId, refund.RefundAmount, "FULL", refund.Reason, 0m, refund.Status, refund.ApplyTime))
+            .ToArray();
+        return Task.FromResult((IReadOnlyList<RefundSummary>)summaries);
+    }
+
     public Task<RefundSummary> ApproveRefundAsync(AuthClaims claims, string refundId, AuditRefundRequest request, CancellationToken cancellationToken)
     {
         var operatorId = NormalizeDeveloperOrAdmin(claims);

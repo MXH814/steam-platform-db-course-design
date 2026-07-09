@@ -623,6 +623,29 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         return rows.Select(row => row.ToSummary()).ToArray();
     }
 
+    public async Task<IReadOnlyList<RefundSummary>> ListAllRefundsAsync(AuthClaims claims, CancellationToken cancellationToken)
+    {
+        _ = NormalizeAdmin(claims);
+
+        await using var connection = _connectionFactory.CreateConnection();
+        var rows = await connection.QueryAsync<RefundRow>(new CommandDefinition(
+            """
+            select rt.refund_id,
+                   rt.order_id,
+                   rt.refund_amount,
+                   rt.refund_type,
+                   rt.reason,
+                   rt.play_time_hours,
+                   rt.status,
+                   rt.apply_time
+              from refund_ticket rt
+             order by rt.apply_time desc, rt.refund_id desc
+            """,
+            cancellationToken: cancellationToken));
+
+        return rows.Select(row => row.ToSummary()).ToArray();
+    }
+
     public async Task<RefundSummary> ApproveRefundAsync(AuthClaims claims, string refundId, AuditRefundRequest request, CancellationToken cancellationToken)
     {
         var adminId = NormalizeAdmin(claims);
