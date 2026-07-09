@@ -9,6 +9,7 @@ import GameDetailView from './views/GameDetailView.vue';
 import GameLibraryView from './views/GameLibraryView.vue';
 import GameStoreView from './views/GameStoreView.vue';
 import HomeView from './views/HomeView.vue';
+import InventoryView from './views/InventoryView.vue';
 import LibraryView from './views/LibraryView.vue';
 import LoginView from './views/LoginView.vue';
 import MarketView from './views/MarketView.vue';
@@ -31,6 +32,7 @@ export const router = createRouter({
     { path: '/games/:gameId', name: 'game-detail', component: GameDetailView },
     { path: '/games/:gameId/store', name: 'game-store', component: GameStoreView },
     { path: '/games/:gameId/community', name: 'game-community', component: GameCommunityView },
+    { path: '/inventory', name: 'inventory', component: InventoryView, meta: { requiresAuth: true } },
     { path: '/library', name: 'library', component: LibraryView, meta: { requiresAuth: true } },
     { path: '/library/:gameId', name: 'game-library', component: GameLibraryView, meta: { requiresAuth: true } },
     { path: '/market', name: 'market', component: MarketView, meta: { tab: 'market' } },

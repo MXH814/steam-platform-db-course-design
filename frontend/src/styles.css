@@ -126,6 +126,10 @@ a {
   padding: 24px 0 64px;
 }
 
+.page.page-wide {
+  width: min(1440px, calc(100% - 32px));
+}
+
 .view-stack,
 .admin-layout {
   display: grid;
