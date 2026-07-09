@@ -3,17 +3,24 @@ import { useAuthStore } from './stores/auth';
 import AccountView from './views/AccountView.vue';
 import AdminNoticesView from './views/AdminNoticesView.vue';
 import GameCommunityView from './views/GameCommunityView.vue';
+import GameDetailView from './views/GameDetailView.vue';
 import GameLibraryView from './views/GameLibraryView.vue';
 import GameStoreView from './views/GameStoreView.vue';
 import HomeView from './views/HomeView.vue';
 import LoginView from './views/LoginView.vue';
 import MarketView from './views/MarketView.vue';
 import RegisterView from './views/RegisterView.vue';
+import StoreCollectionView from './views/StoreCollectionView.vue';
+import StoreView from './views/StoreView.vue';
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'home', component: HomeView },
+    { path: '/store', name: 'store', component: StoreView },
+    { path: '/store/:section(recommend|categories|playstyles|specials)', name: 'store-collection', component: StoreCollectionView },
+    { path: '/store/:section(categories|playstyles|specials)/:collectionId', name: 'store-collection-detail', component: StoreCollectionView },
+    { path: '/games/:gameId', name: 'game-detail', component: GameDetailView },
     { path: '/games/:gameId/store', name: 'game-store', component: GameStoreView },
     { path: '/library/:gameId', name: 'game-library', component: GameLibraryView, meta: { requiresAuth: true } },
     { path: '/games/:gameId/community', name: 'game-community', component: GameCommunityView },

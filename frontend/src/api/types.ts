@@ -93,3 +93,123 @@ export interface UnlockAchievementResult {
   alreadyUnlocked: boolean;
   unlockTime: string;
 }
+
+export interface ApiEnvelope<T> {
+  code: number;
+  message: string;
+  data: T;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export type DataSource = 'api' | 'fallback';
+
+export interface FallbackAwarePagedResult<T> extends PagedResult<T> {
+  source: DataSource;
+  warning?: string;
+}
+
+export type GameStatus = 'ONLINE' | 'OFFLINE' | 'DRAFT' | string;
+
+export type GamePriceFilter = 'all' | 'free' | 'paid' | 'discount' | 'market' | 'packages';
+
+export type GameSortKey = 'default' | 'price' | 'releaseDate' | 'reputation';
+
+export interface GameQuery {
+  keyword?: string;
+  search?: string;
+  tag?: string;
+  priceFilter?: GamePriceFilter;
+  sort?: GameSortKey;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface GameListItem {
+  gameId: string;
+  gameName: string;
+  shortName: string;
+  developerId: string;
+  developerName: string;
+  coverTone: 'cs2' | 'dst' | 'background';
+  tags: string[];
+  basePrice: number;
+  discountRate: number;
+  finalPrice: number;
+  releaseDate: string;
+  reputation: string;
+  status: GameStatus;
+  supportsMarket: boolean;
+  hasContentPackages: boolean;
+  summary: string;
+}
+
+export interface GameDetail extends GameListItem {
+  description: string;
+}
+
+export interface GameContentPackage {
+  packageId: string;
+  gameId: string;
+  packageName: string;
+  packageType: string;
+  basePrice: number;
+  discountRate: number;
+  finalPrice: number;
+  imageUrl: string | null;
+  sourceKind: string;
+}
+
+export interface GameItemSummaryEntry {
+  templateId: string;
+  itemName: string;
+  rarity: string;
+  imageUrl: string | null;
+  inventoryItemCount: number;
+  activeBuyOrderCount: number;
+  activeSellOrderCount: number;
+  tradeCount: number;
+  highestBuyPrice: number | null;
+  lowestSellPrice: number | null;
+  lastTradePrice: number | null;
+}
+
+export interface GameItemSummary {
+  gameId: string;
+  templateCount: number;
+  inventoryItemCount: number;
+  activeBuyOrderCount: number;
+  activeSellOrderCount: number;
+  tradeCount: number;
+  highestBuyPrice: number | null;
+  lowestSellPrice: number | null;
+  lastTradePrice: number | null;
+  items: GameItemSummaryEntry[];
+}
+
+export interface GameReviewSummary {
+  reviewCount: number;
+  recommendCount: number;
+  recommendRate: number;
+  latestReviewContent: string | null;
+  ratingText: string;
+}
+
+export interface GameAchievementSummaryItem {
+  achievementId: string;
+  achievementName: string;
+  description: string | null;
+  globalRate: number | null;
+}
+
+export interface GameAchievementSummary {
+  achievementCount: number;
+  averageGlobalRate: number | null;
+  achievements: GameAchievementSummaryItem[];
+}
