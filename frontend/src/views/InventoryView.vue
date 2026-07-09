@@ -275,7 +275,7 @@ function transferParty(value?: string | null) {
         <div class="filter-row">
           <label class="search-box">
             <Search :size="17" />
-            <input v-model="searchTerm" placeholder="在上架物品中搜索" />
+            <input v-model="searchTerm" placeholder="在库存物品中搜索" />
           </label>
           <button class="filter-button" type="button">
             <SlidersHorizontal :size="16" />
