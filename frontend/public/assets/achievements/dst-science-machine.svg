@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="science machine">
+  <rect width="128" height="128" rx="12" fill="#0b1118"/>
+  <circle cx="64" cy="38" r="18" fill="#66c0f4" opacity=".35"/>
+  <path fill="#c7d5e0" d="M53 22h22v30H53zM44 53h40l10 44H34l10-44Z"/>
+  <path fill="#26394b" d="M48 60h32l5 26H43l5-26Z"/>
+  <circle cx="55" cy="73" r="5" fill="#a4d007"/>
+  <circle cx="73" cy="73" r="5" fill="#d8a447"/>
+  <path stroke="#66c0f4" stroke-width="5" stroke-linecap="round" d="M64 20V8M45 28l-9-9M83 28l9-9"/>
+  <path stroke="#8f98a0" stroke-width="6" stroke-linecap="round" d="M44 103h40"/>
+</svg>

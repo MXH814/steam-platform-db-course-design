@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="shadow duel">
+  <rect width="128" height="128" rx="12" fill="#090a0f"/>
+  <path fill="#321746" d="M64 16c25 18 38 38 36 61-2 21-18 34-36 34S30 98 28 77c-2-23 11-43 36-61Z"/>
+  <path fill="#c66cff" opacity=".55" d="M43 73c6-15 13-22 21-22s15 7 21 22c-5 14-12 21-21 21s-16-7-21-21Z"/>
+  <circle cx="53" cy="72" r="6" fill="#f5e9ff"/>
+  <circle cx="75" cy="72" r="6" fill="#f5e9ff"/>
+  <path stroke="#d8a447" stroke-width="5" stroke-linecap="round" d="M38 106 90 26M90 106 38 26"/>
+</svg>

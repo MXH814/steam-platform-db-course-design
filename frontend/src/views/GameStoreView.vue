@@ -3,7 +3,8 @@
     <nav class="store-blue-nav" aria-label="商店导航">
       <RouterLink to="/">您的商店</RouterLink>
       <RouterLink :to="`/games/${gameId}/store`">游戏详情</RouterLink>
-      <RouterLink :to="`/games/${gameId}/community`">社区评测</RouterLink>
+      <a href="#store-reviews">玩家评测</a>
+      <a href="#store-achievements">Steam 成就</a>
       <RouterLink :to="`/library/${gameId}`">库内查看</RouterLink>
     </nav>
 
@@ -12,7 +13,11 @@
         <p class="steam-kicker">商店页面</p>
         <h1>{{ game.title }}</h1>
       </div>
-      <RouterLink class="subtle-link" :to="`/games/${gameId}/community`">查看社区中心</RouterLink>
+      <div class="store-title-actions">
+        <button type="button" @click="scrollToSection('store-reviews')">查看评测</button>
+        <button type="button" @click="scrollToSection('store-achievements')">查看成就</button>
+        <RouterLink class="subtle-link" :to="`/games/${gameId}/community`">社区中心</RouterLink>
+      </div>
     </header>
 
     <section class="store-hero">
@@ -46,6 +51,10 @@
             <dt>标签</dt>
             <dd>{{ game.tags.join('、') }}</dd>
           </div>
+          <div>
+            <dt>Steam 成就</dt>
+            <dd>{{ achievements.length }} 项</dd>
+          </div>
         </dl>
       </aside>
     </section>
@@ -66,9 +75,36 @@
           <p>本页面用于模拟 Steam 商店详情页：右栏展示成就和链接，主区域展示购买入口、评测摘要和社区入口。</p>
         </section>
 
-        <section class="store-panel review-snapshot">
+        <section id="store-achievements" class="store-panel store-achievement-section">
           <div class="panel-title-row">
-            <h2>玩家评测</h2>
+            <div>
+              <p class="steam-kicker">STEAM 成就</p>
+              <h2>包括 {{ achievements.length }} 项与 {{ game.shortName }} 相关的成就</h2>
+            </div>
+            <RouterLink :to="`/games/${gameId}/community`">打开完整成就页</RouterLink>
+          </div>
+          <p>成就展示会合并后端真实解锁状态；没有落库的演示成就只用于商店页展示，不会绕过后端确权。</p>
+          <div v-if="loadingAchievements" class="store-state">正在加载成就...</div>
+          <div v-else-if="achievements.length === 0" class="store-state">暂无成就数据。</div>
+          <div v-else class="store-achievement-list">
+            <article v-for="achievement in achievements" :key="achievement.achId" :class="{ locked: !achievement.isUnlocked }">
+              <img :src="achievement.iconUrl" :alt="achievement.achName" />
+              <div>
+                <strong>{{ achievement.achName }}</strong>
+                <span>{{ achievement.description || '暂无描述' }}</span>
+                <small>{{ formatRate(achievement.globalRate) }}</small>
+              </div>
+              <em>{{ achievement.isUnlocked ? '已解锁' : '未解锁' }}</em>
+            </article>
+          </div>
+        </section>
+
+        <section id="store-reviews" class="store-panel review-snapshot">
+          <div class="panel-title-row">
+            <div>
+              <p class="steam-kicker">玩家评测</p>
+              <h2>{{ reviewSummary }}</h2>
+            </div>
             <RouterLink :to="`/games/${gameId}/community`">查看全部评测</RouterLink>
           </div>
           <div v-if="loadingReviews" class="store-state">正在加载评测...</div>
@@ -87,15 +123,15 @@
         <section class="store-panel achievement-store-box">
           <div class="panel-title-row">
             <h2>包括 {{ achievements.length }} 项 Steam 成就</h2>
-            <RouterLink :to="`/games/${gameId}/community`">查看全部</RouterLink>
+            <a href="#store-achievements">查看全部</a>
           </div>
           <div class="achievement-tile-row">
             <div v-for="achievement in achievementPreview" :key="achievement.achId" :class="['achievement-tile', { locked: !achievement.isUnlocked }]">
-              {{ achievement.achName.slice(0, 1) }}
+              <img :src="achievement.iconUrl" :alt="achievement.achName" />
             </div>
-            <RouterLink v-if="achievements.length > achievementPreview.length" class="all-achievements" :to="`/games/${gameId}/community`">
+            <a v-if="achievements.length > achievementPreview.length" class="all-achievements" href="#store-achievements">
               查看所有 {{ achievements.length }} 项
-            </RouterLink>
+            </a>
           </div>
           <div class="store-progress"><i :style="{ width: achievementPercent + '%' }" /></div>
           <small>您已解锁 {{ unlockedCount }}/{{ achievements.length }} 项</small>
@@ -113,18 +149,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { listGameAchievements, listGameReviews } from '../api/communityApi';
 import { getApiError } from '../api/http';
-import type { AchievementListItem, ReviewListItem } from '../api/types';
+import type { ReviewListItem } from '../api/types';
+import { mergeAchievementCatalog, type AchievementDisplayItem } from '../data/achievementCatalog';
 import { getGameMeta } from '../data/gameCatalog';
 
 const route = useRoute();
 const gameId = computed(() => String(route.params.gameId || 'GAME_DST'));
 const game = computed(() => getGameMeta(gameId.value));
-const achievements = ref<AchievementListItem[]>([]);
+const achievements = ref<AchievementDisplayItem[]>([]);
 const reviews = ref<ReviewListItem[]>([]);
+const loadingAchievements = ref(false);
 const loadingReviews = ref(false);
 const notice = ref('');
 
@@ -142,22 +180,42 @@ const reviewSummary = computed(() => {
 });
 
 watch(gameId, loadStore, { immediate: true });
+watch(
+  () => route.hash,
+  async (hash) => {
+    if (!hash) return;
+    await nextTick();
+    scrollToSection(hash.slice(1));
+  },
+  { immediate: true }
+);
 
 async function loadStore() {
   notice.value = '';
+  loadingAchievements.value = true;
   loadingReviews.value = true;
   try {
     const [achievementRows, reviewRows] = await Promise.all([
       listGameAchievements(gameId.value),
       listGameReviews(gameId.value, 12)
     ]);
-    achievements.value = achievementRows;
+    achievements.value = mergeAchievementCatalog(gameId.value, achievementRows);
     reviews.value = reviewRows;
   } catch (error) {
     notice.value = getApiError(error);
+    achievements.value = mergeAchievementCatalog(gameId.value, []);
   } finally {
+    loadingAchievements.value = false;
     loadingReviews.value = false;
   }
+}
+
+function scrollToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function formatRate(value: number | null) {
+  return value === null ? '全球解锁率 --' : `全球解锁率 ${value.toFixed(1)}%`;
 }
 </script>
 
@@ -453,6 +511,102 @@ async function loadStore() {
   border-left: 4px solid #66c0f4;
 }
 
+.store-title-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.store-title-actions button {
+  min-height: 34px;
+  border: 0;
+  padding: 0 12px;
+  color: #c7d5e0;
+  background: rgba(102, 192, 244, 0.13);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.store-title-actions button:hover {
+  color: #ffffff;
+  background: rgba(102, 192, 244, 0.24);
+}
+
+.store-achievement-section {
+  scroll-margin-top: 82px;
+}
+
+.store-achievement-section > p {
+  margin: 10px 0 14px;
+  color: #8f98a0;
+}
+
+.store-achievement-list {
+  display: grid;
+  gap: 8px;
+}
+
+.store-achievement-list article {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 86px;
+  padding: 10px;
+  background: rgba(29, 41, 55, 0.82);
+}
+
+.store-achievement-list article.locked {
+  background: rgba(29, 41, 55, 0.54);
+}
+
+.store-achievement-list img,
+.achievement-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.store-achievement-list img {
+  width: 62px;
+  height: 62px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #05080c;
+}
+
+.store-achievement-list div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.store-achievement-list strong {
+  color: #dfe3e6;
+  font-size: 1.02rem;
+}
+
+.store-achievement-list span,
+.store-achievement-list small {
+  color: #8f98a0;
+}
+
+.store-achievement-list em {
+  min-width: 68px;
+  color: #66c0f4;
+  font-style: normal;
+  font-weight: 900;
+  text-align: right;
+}
+
+.store-achievement-list article.locked img {
+  filter: grayscale(0.85);
+  opacity: 0.58;
+}
+
+#store-reviews {
+  scroll-margin-top: 82px;
+}
 @media (max-width: 980px) {
   .store-hero,
   .store-content-grid {

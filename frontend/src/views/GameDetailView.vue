@@ -57,6 +57,12 @@
         <button type="button" class="primary-button">{{ game.shortName === 'CS2' ? '免费入库' : '购买游戏' }}</button>
       </section>
 
+      <div class="detail-module-links">
+        <RouterLink class="button-link" :to="{ name: 'game-store', params: { gameId: game.gameId }, hash: '#store-reviews' }">查看玩家评测</RouterLink>
+        <RouterLink class="ghost-button" :to="{ name: 'game-store', params: { gameId: game.gameId }, hash: '#store-achievements' }">查看 Steam 成就</RouterLink>
+        <RouterLink class="ghost-button" :to="{ name: 'game-community', params: { gameId: game.gameId } }">进入社区中心</RouterLink>
+      </div>
+
       <div v-if="game.shortName === 'CS2'" class="quick-links">
         <RouterLink class="button-link" to="/market">进入饰品市场</RouterLink>
         <RouterLink class="ghost-button" to="/account">查看库存</RouterLink>
@@ -107,8 +113,12 @@
             <div><dt>平均达成率</dt><dd>{{ achievements.data.averageGlobalRate ?? 0 }}%</dd></div>
           </dl>
           <div v-if="achievements.data?.achievements.length" class="achievement-list">
-            <article v-for="item in achievements.data.achievements.slice(0, 3)" :key="item.achievementId">
-              <strong>{{ item.achievementName }}</strong>
+            <article v-for="item in achievements.data.achievements.slice(0, 4)" :key="item.achievementId">
+              <img :src="summaryAchievementIcon(item)" :alt="item.achievementName" />
+              <div>
+                <strong>{{ item.achievementName }}</strong>
+                <span>{{ item.description || '暂无描述' }}</span>
+              </div>
               <span>{{ item.globalRate ?? 0 }}%</span>
             </article>
           </div>
@@ -129,7 +139,8 @@ import {
   getGameItemSummary,
   getGameReviewSummary
 } from '../api/games';
-import type { GameAchievementSummary, GameContentPackage, GameDetail, GameItemSummary, GameQuery, GameReviewSummary } from '../api/types';
+import type { GameAchievementSummary, GameAchievementSummaryItem, GameContentPackage, GameDetail, GameItemSummary, GameQuery, GameReviewSummary } from '../api/types';
+import { getAchievementCatalog } from '../data/achievementCatalog';
 import GameFilterBar from '../components/GameFilterBar.vue';
 import GamePriceBlock from '../components/GamePriceBlock.vue';
 import GameSummarySection from '../components/GameSummarySection.vue';
@@ -208,6 +219,13 @@ function money(value: number | null) {
   return typeof value === 'number' ? `¥${value.toFixed(2)}` : '-';
 }
 
+function summaryAchievementIcon(item: GameAchievementSummaryItem) {
+  const currentGameId = String(route.params.gameId || '');
+  return getAchievementCatalog(currentGameId).find(
+    (achievement) => achievement.achId === item.achievementId || achievement.achName === item.achievementName
+  )?.iconUrl ?? '/assets/achievements/default-medal.svg';
+}
+
 onMounted(loadDetail);
 </script>
 
@@ -219,7 +237,8 @@ onMounted(loadDetail);
 
 .breadcrumbs,
 .detail-title,
-.quick-links {
+.quick-links,
+.detail-module-links {
   display: flex;
   align-items: center;
   gap: 0.55rem;
@@ -380,6 +399,17 @@ onMounted(loadDetail);
 .achievement-list strong,
 .achievement-list span {
   display: block;
+}
+
+.achievement-list article {
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+}
+
+.achievement-list img {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  background: #05080c;
 }
 
 .package-list span,

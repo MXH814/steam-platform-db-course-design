@@ -63,7 +63,7 @@
             <div v-else-if="achievements.length === 0" class="library-state">暂无成就数据。</div>
             <div v-else class="library-achievement-grid">
               <div v-for="achievement in achievementPreview" :key="achievement.achId" :class="['library-achievement', { locked: !achievement.isUnlocked }]">
-                <span>{{ achievement.achName.slice(0, 1) }}</span>
+                <img :src="achievement.iconUrl" :alt="achievement.achName" />
                 <small>{{ achievement.achName }}</small>
               </div>
             </div>
@@ -94,14 +94,14 @@ import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { listGameAchievements } from '../api/communityApi';
 import { getApiError } from '../api/http';
-import type { AchievementListItem } from '../api/types';
+import { mergeAchievementCatalog, type AchievementDisplayItem } from '../data/achievementCatalog';
 import { gameCatalog, getGameMeta } from '../data/gameCatalog';
 
 const route = useRoute();
 const gameId = computed(() => String(route.params.gameId || 'GAME_DST'));
 const game = computed(() => getGameMeta(gameId.value));
 const libraryEntries = Object.values(gameCatalog);
-const achievements = ref<AchievementListItem[]>([]);
+const achievements = ref<AchievementDisplayItem[]>([]);
 const loading = ref(false);
 const notice = ref('');
 
@@ -115,8 +115,10 @@ async function loadLibrary() {
   loading.value = true;
   notice.value = '';
   try {
-    achievements.value = await listGameAchievements(gameId.value);
+    const achievementRows = await listGameAchievements(gameId.value);
+    achievements.value = mergeAchievementCatalog(gameId.value, achievementRows);
   } catch (error) {
+    achievements.value = mergeAchievementCatalog(gameId.value, []);
     notice.value = getApiError(error);
   } finally {
     loading.value = false;
@@ -396,16 +398,16 @@ async function loadLibrary() {
   width: 64px;
 }
 
-.library-achievement span {
-  display: grid;
-  place-items: center;
+.library-achievement img {
+  display: block;
+  width: 64px;
   height: 54px;
+  object-fit: cover;
   color: #ffffff;
   background: linear-gradient(135deg, #2f89bc, #1b2838);
-  font-weight: 900;
 }
 
-.library-achievement.locked span {
+.library-achievement.locked img {
   filter: grayscale(1);
   opacity: 0.5;
 }

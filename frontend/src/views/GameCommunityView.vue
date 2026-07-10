@@ -168,7 +168,7 @@
           <div v-else-if="achievements.length === 0" class="steam-state inline">暂无成就数据。</div>
           <div v-else class="achievement-list">
             <article v-for="achievement in achievements" :key="achievement.achId" class="achievement-row">
-              <div :class="['achievement-icon', { locked: !achievement.isUnlocked }]">{{ achievement.achName.slice(0, 1) }}</div>
+              <img :class="['achievement-icon', { locked: !achievement.isUnlocked }]" :src="achievement.iconUrl" :alt="achievement.achName" />
               <div>
                 <strong>{{ achievement.achName }}</strong>
                 <span>{{ achievement.description || '暂无描述' }}</span>
@@ -177,10 +177,10 @@
               <button
                 class="unlock-button"
                 type="button"
-                :disabled="achievement.isUnlocked || !auth.isAuthenticated || unlockingAchId === achievement.achId"
+                :disabled="achievement.source !== 'api' || achievement.isUnlocked || !auth.isAuthenticated || unlockingAchId === achievement.achId"
                 @click="unlock(achievement.achId)"
               >
-                {{ achievement.isUnlocked ? '已解锁' : unlockingAchId === achievement.achId ? '...' : '解锁' }}
+                {{ achievement.source !== 'api' ? '展示' : achievement.isUnlocked ? '已解锁' : unlockingAchId === achievement.achId ? '...' : '解锁' }}
               </button>
             </article>
           </div>
@@ -218,7 +218,8 @@ import {
   updateGameReview
 } from '../api/communityApi';
 import { getApiError } from '../api/http';
-import type { AchievementListItem, ReviewListItem, ReviewVersionItem } from '../api/types';
+import type { ReviewListItem, ReviewVersionItem } from '../api/types';
+import { mergeAchievementCatalog, type AchievementDisplayItem } from '../data/achievementCatalog';
 import { getGameMeta } from '../data/gameCatalog';
 import { useAuthStore } from '../stores/auth';
 
@@ -228,7 +229,7 @@ const gameId = computed(() => String(route.params.gameId || 'GAME_DST'));
 const game = computed(() => getGameMeta(gameId.value));
 
 const reviews = ref<ReviewListItem[]>([]);
-const achievements = ref<AchievementListItem[]>([]);
+const achievements = ref<AchievementDisplayItem[]>([]);
 const versions = ref<ReviewVersionItem[]>([]);
 const loadingReviews = ref(false);
 const loadingAchievements = ref(false);
@@ -305,8 +306,10 @@ async function loadReviews() {
 async function loadAchievements() {
   loadingAchievements.value = true;
   try {
-    achievements.value = await listGameAchievements(gameId.value);
+    const achievementRows = await listGameAchievements(gameId.value);
+    achievements.value = mergeAchievementCatalog(gameId.value, achievementRows);
   } catch (requestError) {
+    achievements.value = mergeAchievementCatalog(gameId.value, []);
     error.value = friendlyError(requestError);
   } finally {
     loadingAchievements.value = false;
@@ -902,6 +905,7 @@ button:disabled {
 .achievement-icon {
   width: 54px;
   height: 54px;
+  object-fit: cover;
   font-size: 1.4rem;
   font-weight: 900;
 }

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="first night">
+  <rect width="128" height="128" rx="12" fill="#090f12"/>
+  <path fill="#172a35" d="M10 88c18-21 29-46 54-46s36 25 54 46v30H10V88Z"/>
+  <circle cx="91" cy="33" r="18" fill="#d8d4b8"/>
+  <path fill="#ec7f2f" d="M60 89c-14-18 9-25 2-43 24 22 6 32 18 43H60Z"/>
+  <path fill="#ffd166" d="M49 97c-8-13 7-21 7-31 17 14 3 24 18 31H49Z"/>
+  <path stroke="#765438" stroke-width="8" stroke-linecap="round" d="m36 102 56-20M92 102 36 82"/>
+</svg>
