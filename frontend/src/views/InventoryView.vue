@@ -212,6 +212,11 @@ function imageKey(item: Pick<InventoryItem, 'itemId' | 'templateId'>) {
   return item.itemId || item.templateId;
 }
 
+function versionedImageUrl(value?: string | null) {
+  if (!value) return '';
+  return `${value}${value.includes('?') ? '&' : '?'}v=7787514-transparent`;
+}
+
 function shouldShowImage(item: Pick<InventoryItem, 'itemId' | 'templateId' | 'imageUrl'>) {
   return Boolean(item.imageUrl && !missingImageKeys.value.has(imageKey(item)));
 }
@@ -321,7 +326,12 @@ function transferParty(value?: string | null) {
                 :class="[rarityClass(item.rarity), { selected: selectedItem?.itemId === item.itemId }]"
                 @click="selectItem(item)"
               >
-                <img v-if="shouldShowImage(item)" :src="item.imageUrl ?? ''" :alt="item.itemName" @error="markImageMissing(item)" />
+                <img
+                  v-if="shouldShowImage(item)"
+                  :src="versionedImageUrl(item.imageUrl)"
+                  :alt="item.itemName"
+                  @error="markImageMissing(item)"
+                />
                 <span v-else class="item-fallback">{{ item.itemName.slice(0, 2).toUpperCase() }}</span>
               </button>
             </div>
@@ -342,7 +352,7 @@ function transferParty(value?: string | null) {
               <div class="detail-art" :class="rarityClass(selectedItem.rarity)">
                 <img
                   v-if="shouldShowImage(selectedItem)"
-                  :src="selectedItem.imageUrl ?? ''"
+                  :src="versionedImageUrl(selectedItem.imageUrl)"
                   :alt="selectedItem.itemName"
                   @error="markImageMissing(selectedItem)"
                 />
