@@ -4,6 +4,7 @@ import AccountView from './views/AccountView.vue';
 import AdminGamesView from './views/AdminGamesView.vue';
 import AdminNoticesView from './views/AdminNoticesView.vue';
 import AdminRefundsView from './views/AdminRefundsView.vue';
+import CdkeyBatchView from './views/CdkeyBatchView.vue';
 import DeveloperGamesView from './views/DeveloperGamesView.vue';
 import GameCommunityView from './views/GameCommunityView.vue';
 import GameDetailView from './views/GameDetailView.vue';
@@ -49,6 +50,7 @@ export const router = createRouter({
     { path: '/refunds', name: 'refunds', component: RefundsView, meta: { requiresAuth: true } },
     { path: '/redeem', name: 'redeem', component: RedeemView, meta: { requiresAuth: true } },
     { path: '/developer/games', name: 'developer-games', component: DeveloperGamesView, meta: { requiresAuth: true, requiresDeveloper: true } },
+    { path: '/developer/cdkeys', name: 'developer-cdkeys', component: CdkeyBatchView, meta: { requiresAuth: true, requiresDeveloper: true } },
     { path: '/admin/games', name: 'admin-games', component: AdminGamesView, meta: { requiresAuth: true, requiresAdmin: true } },
     { path: '/admin/notices', name: 'admin-notices', component: AdminNoticesView, meta: { requiresAuth: true, requiresAdmin: true } },
     { path: '/admin/refunds', name: 'admin-refunds', component: AdminRefundsView, meta: { requiresAuth: true, requiresAdmin: true } }
@@ -69,7 +71,7 @@ router.beforeEach(async (to) => {
     return { name: 'account' };
   }
 
-  if (to.meta.requiresDeveloper && !auth.isDeveloper) {
+  if (to.meta.requiresDeveloper && !auth.isDeveloper && !auth.isAdmin) {
     return { name: 'account' };
   }
 

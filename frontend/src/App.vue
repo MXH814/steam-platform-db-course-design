@@ -15,6 +15,7 @@
         <RouterLink to="/">公告</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/account">账户</RouterLink>
         <RouterLink v-if="auth.isDeveloper" to="/developer/games">游戏管理</RouterLink>
+        <RouterLink v-if="auth.isDeveloper || auth.isAdmin" to="/developer/cdkeys">CDKey 批次</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/admin/games">游戏上下架</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/admin/notices">公告管理</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/admin/refunds">退款审核</RouterLink>

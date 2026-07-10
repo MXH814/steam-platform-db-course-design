@@ -125,6 +125,22 @@ public sealed class GameServiceTests
     }
 
     [Fact]
+    public async Task Delete_preserves_dependency_conflict_as_business_rule()
+    {
+        var repository = new RecordingGameRepository
+        {
+            ExistingStatus = "OFFLINE",
+            DeleteException = new BusinessRuleException("GAME_HAS_DEPENDENCIES", "Game cannot be deleted.")
+        };
+        var service = new GameService(repository);
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.DeleteAsync("G001", "DEV001", CancellationToken.None));
+
+        Assert.Equal("GAME_HAS_DEPENDENCIES", exception.Code);
+    }
+
+    [Fact]
     public async Task Admin_status_action_can_change_game_status()
     {
         var repository = new RecordingGameRepository();
@@ -145,6 +161,7 @@ public sealed class GameServiceTests
         public string? LastAdminStatus { get; private set; }
         public bool UpdateCalled { get; private set; }
         public bool DeleteCalled { get; private set; }
+        public Exception? DeleteException { get; init; }
         public GameListQuery? LastListQuery { get; private set; }
 
         public Task<PagedResponse<GameListItemResponse>> ListAsync(GameListQuery query, CancellationToken cancellationToken)
@@ -187,6 +204,11 @@ public sealed class GameServiceTests
         public Task<bool> DeleteAsync(string gameId, string developerId, CancellationToken cancellationToken)
         {
             DeleteCalled = true;
+            if (DeleteException is not null)
+            {
+                throw DeleteException;
+            }
+
             return Task.FromResult(true);
         }
 

@@ -37,6 +37,7 @@
         <RouterLink class="quick-link" to="/refunds">退款申请</RouterLink>
         <RouterLink class="quick-link" to="/redeem">CDKey 兑换</RouterLink>
         <RouterLink v-if="auth.isDeveloper" class="quick-link" to="/developer/games">游戏管理</RouterLink>
+        <RouterLink v-if="auth.isDeveloper || auth.isAdmin" class="quick-link" to="/developer/cdkeys">CDKey 批次</RouterLink>
         <RouterLink v-if="auth.isAdmin" class="quick-link" to="/admin/games">游戏上下架</RouterLink>
         <RouterLink v-if="auth.isAdmin" class="quick-link" to="/admin/refunds">退款审核</RouterLink>
       </div>
