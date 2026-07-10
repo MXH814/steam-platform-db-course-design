@@ -10,22 +10,23 @@
 
     <div class="library-grid">
       <article v-for="entry in library" :key="entry.libId" class="library-card">
-        <div>
+        <RouterLink class="library-card-main" :to="{ name: 'game-library', params: { gameId: entry.gameId } }">
           <span class="pill">{{ entry.acquireWay }}</span>
           <h2>{{ entry.gameName }}</h2>
           <p>{{ entry.status }} · {{ minutesText(entry.playMinutes) }}</p>
           <small>最近游玩：{{ dateTime(entry.lastPlayTime) }}</small>
-        </div>
+        </RouterLink>
         <button class="ghost-button" type="button" @click="addMinutes(entry.gameId)">增加 30 分钟</button>
       </article>
     </div>
 
-    <p v-if="!library.length && !error" class="state-panel">暂无游戏，先去订单页购买 DST 或免费领取 CS2。</p>
+    <p v-if="!library.length && !error" class="state-panel">暂无游戏，先去商店购买 DST 或免费领取 CS2。</p>
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import { addPlaytime, getLibrary, type LibraryEntry } from '../api/coreApi';
 import { getApiError } from '../api/http';
 import { dateTime, minutesText } from '../utils/format';
@@ -57,3 +58,20 @@ async function addMinutes(gameId: string) {
 
 onMounted(load);
 </script>
+
+<style scoped>
+.library-card-main {
+  display: block;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.library-card-main h2 {
+  color: var(--steam-text);
+}
+
+.library-card-main:hover h2 {
+  color: var(--steam-blue);
+}
+</style>

@@ -1,12 +1,12 @@
 <template>
   <section class="steam-library-page">
     <aside class="library-rail">
-      <div class="rail-home">主页</div>
-      <div class="rail-filter">游戏和软件</div>
-      <div class="rail-search">搜索</div>
+      <div class="rail-home">我的游戏库</div>
+      <div class="rail-filter">已入库游戏</div>
+      <RouterLink class="rail-search" to="/store">返回商店</RouterLink>
       <ul>
-        <li v-for="entry in libraryEntries" :key="entry.gameId" :class="{ active: entry.gameId === gameId }">
-          <RouterLink :to="`/library/${entry.gameId}`">
+        <li v-for="entry in libraryNavEntries" :key="entry.gameId" :class="{ active: entry.gameId === gameId }">
+          <RouterLink :to="{ name: 'game-library', params: { gameId: entry.gameId } }">
             <span>{{ entry.shortName }}</span>
             {{ entry.title }}
           </RouterLink>
@@ -16,14 +16,17 @@
 
     <main class="library-detail">
       <header class="library-hero" :class="`tone-${game.heroTone}`">
-        <button class="install-button" type="button" @click="notice = '安装按钮是库页面展示占位，真实安装不属于本课程系统。'">安装</button>
+        <button class="install-button" type="button" @click="addMinutes(30)">增加 30 分钟</button>
         <div class="library-game-title">
           <span>{{ game.capsuleLabel }}</span>
-          <h1>{{ game.title }}</h1>
+          <div>
+            <h1>{{ game.title }}</h1>
+            <p>{{ ownedEntry ? '已在库中' : '暂未确认入库状态' }}</p>
+          </div>
         </div>
         <div class="library-actions">
-          <RouterLink :to="`/games/${gameId}/store`">商店页面</RouterLink>
-          <RouterLink :to="`/games/${gameId}/community`">评测与成就</RouterLink>
+          <RouterLink :to="{ name: 'game-detail', params: { gameId } }">商店页面</RouterLink>
+          <RouterLink :to="{ name: 'game-community', params: { gameId } }">评价与成就</RouterLink>
         </div>
       </header>
 
@@ -31,6 +34,40 @@
 
       <section class="library-grid">
         <div class="activity-feed">
+          <section class="library-panel stats-panel">
+            <h2>我的游戏数据</h2>
+            <dl>
+              <div>
+                <dt>总游玩时长</dt>
+                <dd>{{ playtimeText }}</dd>
+              </div>
+              <div>
+                <dt>最近游玩</dt>
+                <dd>{{ lastPlayText }}</dd>
+              </div>
+              <div>
+                <dt>入库方式</dt>
+                <dd>{{ ownedEntry?.acquireWay || '等待接口确认' }}</dd>
+              </div>
+              <div>
+                <dt>库状态</dt>
+                <dd>{{ ownedEntry?.status || '未确认' }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="library-panel owned-actions">
+            <h2>{{ game.shortName }} 已入库入口</h2>
+            <div class="entry-grid">
+              <RouterLink :to="{ name: 'game-community', params: { gameId } }">社区评价</RouterLink>
+              <RouterLink :to="{ name: 'game-community', params: { gameId }, query: { tab: 'achievements' } }">我的成就</RouterLink>
+              <RouterLink v-if="isCs2" :to="{ name: 'inventory', query: { gameId } }">我的库存</RouterLink>
+              <RouterLink v-if="isCs2" :to="{ name: 'market', query: { gameId } }">饰品市场</RouterLink>
+              <RouterLink v-if="isDst" :to="{ name: 'game-detail', params: { gameId }, hash: '#packages' }">DLC / 礼包</RouterLink>
+              <RouterLink v-if="isDst" :to="{ name: 'store' }">更新公告</RouterLink>
+            </div>
+          </section>
+
           <article v-for="update in game.updates" :key="update.title" class="activity-card">
             <div class="activity-art">{{ game.shortName }}</div>
             <div>
@@ -40,24 +77,15 @@
               <p>{{ update.body }}</p>
             </div>
           </article>
-
-          <article class="activity-card compact">
-            <div class="tool-icon">工具</div>
-            <div>
-              <p>社区入口</p>
-              <h2>发表评价、查看历史版本并解锁成就</h2>
-              <RouterLink :to="`/games/${gameId}/community`">打开社区页面</RouterLink>
-            </div>
-          </article>
         </div>
 
         <aside class="library-sidebar">
           <section class="library-panel achievements-card">
             <div class="panel-title-row">
-              <h2>成就</h2>
-              <RouterLink :to="`/games/${gameId}/community`">查看我的成就</RouterLink>
+              <h2>我的成就</h2>
+              <RouterLink :to="{ name: 'game-community', params: { gameId } }">查看全部</RouterLink>
             </div>
-            <strong>您已解锁 {{ unlockedCount }}/{{ achievements.length }}（{{ achievementPercent }}%）</strong>
+            <strong>已解锁 {{ unlockedCount }}/{{ achievements.length }}（{{ achievementPercent }}%）</strong>
             <div class="library-progress"><i :style="{ width: achievementPercent + '%' }" /></div>
             <div v-if="loading" class="library-state">正在加载成就...</div>
             <div v-else-if="achievements.length === 0" class="library-state">暂无成就数据。</div>
@@ -69,19 +97,18 @@
             </div>
           </section>
 
-          <section class="library-panel notes-card">
-            <div class="panel-title-row">
-              <h2>笔记</h2>
-              <button type="button" @click="notice = '笔记需要后端或本地存储设计，当前先不改后端。'">新笔记</button>
-            </div>
-            <p>可记录测试流程：购买 GAME_DST 后发表评价，再解锁自定义成就。</p>
+          <section v-if="isCs2" class="library-panel links-card">
+            <h2>CS2 库内能力</h2>
+            <RouterLink :to="{ name: 'inventory', query: { gameId } }">查看我的饰品库存</RouterLink>
+            <RouterLink :to="{ name: 'market', query: { gameId } }">进入饰品市场</RouterLink>
+            <RouterLink :to="{ name: 'game-community', params: { gameId }, query: { section: 'workshop' } }">创意工坊入口</RouterLink>
           </section>
 
-          <section class="library-panel links-card">
-            <h2>快捷链接</h2>
-            <RouterLink :to="`/games/${gameId}/store`">在商店中查看</RouterLink>
-            <RouterLink :to="`/games/${gameId}/community`">查看讨论与评测</RouterLink>
-            <button type="button" @click="notice = 'DLC 管理需要 Group B/C 的商品扩展接口。'">管理 DLC</button>
+          <section v-else class="library-panel links-card">
+            <h2>DST 库内能力</h2>
+            <RouterLink :to="{ name: 'game-detail', params: { gameId }, hash: '#packages' }">查看 DLC / 礼包</RouterLink>
+            <RouterLink :to="{ name: 'game-community', params: { gameId } }">社区评价与成就</RouterLink>
+            <RouterLink :to="{ name: 'game-community', params: { gameId }, query: { section: 'workshop' } }">创意工坊入口</RouterLink>
           </section>
         </aside>
       </section>
@@ -92,34 +119,69 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
+import { addPlaytime, getLibrary, type LibraryEntry } from '../api/coreApi';
 import { listGameAchievements } from '../api/communityApi';
 import { getApiError } from '../api/http';
 import type { AchievementListItem } from '../api/types';
 import { gameCatalog, getGameMeta } from '../data/gameCatalog';
+import { dateTime, minutesText } from '../utils/format';
 
 const route = useRoute();
 const gameId = computed(() => String(route.params.gameId || 'GAME_DST'));
 const game = computed(() => getGameMeta(gameId.value));
-const libraryEntries = Object.values(gameCatalog);
+const isCs2 = computed(() => game.value.shortName === 'CS2');
+const isDst = computed(() => game.value.shortName === 'DST');
+const library = ref<LibraryEntry[]>([]);
 const achievements = ref<AchievementListItem[]>([]);
 const loading = ref(false);
 const notice = ref('');
 
+const ownedEntry = computed(() => library.value.find((entry) => entry.gameId === gameId.value) || null);
+const playtimeText = computed(() => minutesText(ownedEntry.value?.playMinutes || 0));
+const lastPlayText = computed(() => ownedEntry.value?.lastPlayTime ? dateTime(ownedEntry.value.lastPlayTime) : '暂无记录');
 const unlockedCount = computed(() => achievements.value.filter((achievement) => achievement.isUnlocked).length);
 const achievementPercent = computed(() => achievements.value.length === 0 ? 0 : Math.round((unlockedCount.value / achievements.value.length) * 100));
 const achievementPreview = computed(() => achievements.value.slice(0, 5));
+const libraryNavEntries = computed(() => {
+  const ids = library.value.length ? library.value.map((entry) => entry.gameId) : Object.keys(gameCatalog);
+  return ids.map((id) => getGameMeta(id));
+});
 
-watch(gameId, loadLibrary, { immediate: true });
+watch(gameId, loadLibraryDetail, { immediate: true });
 
-async function loadLibrary() {
+async function loadLibraryDetail() {
   loading.value = true;
   notice.value = '';
   try {
-    achievements.value = await listGameAchievements(gameId.value);
+    const [libraryRows, achievementRows] = await Promise.all([
+      getLibrary(),
+      listGameAchievements(gameId.value)
+    ]);
+    library.value = libraryRows;
+    achievements.value = achievementRows;
+    if (!libraryRows.some((entry) => entry.gameId === gameId.value)) {
+      notice.value = '当前账号暂未确认拥有此游戏。你可以返回商店详情查看购买或入库入口。';
+    }
   } catch (error) {
     notice.value = getApiError(error);
   } finally {
     loading.value = false;
+  }
+}
+
+async function addMinutes(minutesToAdd: number) {
+  notice.value = '';
+  try {
+    const updated = await addPlaytime(gameId.value, minutesToAdd);
+    const index = library.value.findIndex((entry) => entry.gameId === gameId.value);
+    if (index >= 0) {
+      library.value.splice(index, 1, updated);
+    } else {
+      library.value.push(updated);
+    }
+    notice.value = `${updated.gameName} 游玩时长已更新为 ${minutesText(updated.playMinutes)}`;
+  } catch (error) {
+    notice.value = getApiError(error);
   }
 }
 </script>
@@ -131,16 +193,16 @@ async function loadLibrary() {
   min-height: calc(100vh - 128px);
   background:
     linear-gradient(90deg, rgba(20, 31, 44, 0.96), rgba(20, 31, 44, 0.76)),
-    radial-gradient(circle at 82% 10%, rgba(156, 108, 55, 0.26), transparent 34rem);
+    radial-gradient(circle at 82% 10%, rgba(156, 108, 55, 0.18), transparent 34rem);
 }
 
 .library-rail {
   display: grid;
   align-content: start;
   gap: 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   padding: 8px;
   background: rgba(19, 26, 36, 0.94);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .rail-home,
@@ -150,6 +212,7 @@ async function loadLibrary() {
   padding: 7px 10px;
   color: #c7d5e0;
   background: rgba(255, 255, 255, 0.06);
+  text-decoration: none;
 }
 
 .library-rail ul {
@@ -168,6 +231,7 @@ async function loadLibrary() {
   min-height: 34px;
   padding: 4px;
   color: #a8b3c2;
+  text-decoration: none;
 }
 
 .library-rail span {
@@ -193,18 +257,16 @@ async function loadLibrary() {
 
 .library-hero,
 .panel-title-row,
-.library-grid,
 .activity-card,
 .library-actions,
-.library-achievement-grid,
-.links-card {
+.library-achievement-grid {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .library-hero {
-  min-height: 64px;
+  min-height: 76px;
   padding: 12px 18px;
   background:
     linear-gradient(90deg, rgba(42, 71, 94, 0.88), rgba(20, 31, 44, 0.78)),
@@ -225,7 +287,7 @@ async function loadLibrary() {
   color: #ffffff;
   background: linear-gradient(90deg, #1a9fff, #3b8edb);
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 900;
 }
 
@@ -236,7 +298,7 @@ async function loadLibrary() {
   min-width: 0;
 }
 
-.library-game-title span {
+.library-game-title > span {
   display: grid;
   place-items: center;
   width: 44px;
@@ -246,17 +308,34 @@ async function loadLibrary() {
   font-weight: 900;
 }
 
+.library-game-title h1,
+.library-game-title p {
+  margin: 0;
+}
+
 .library-game-title h1 {
   overflow: hidden;
-  margin: 0;
   color: #dfe3e6;
   font-size: 1.35rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.library-game-title p {
+  color: #8f98a0;
+}
+
 .library-actions {
   margin-left: auto;
+}
+
+.library-actions a,
+.entry-grid a,
+.panel-title-row a,
+.links-card a {
+  color: #66c0f4;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .library-actions a {
@@ -267,15 +346,18 @@ async function loadLibrary() {
 }
 
 .library-grid {
-  align-items: start;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 18px;
+  align-items: start;
   padding: 18px;
 }
 
 .activity-feed,
-.library-sidebar {
+.library-sidebar,
+.links-card,
+.owned-actions,
+.stats-panel {
   display: grid;
   gap: 16px;
 }
@@ -284,45 +366,37 @@ async function loadLibrary() {
 .library-panel,
 .library-notice {
   border: 1px solid rgba(102, 192, 244, 0.12);
-  border-radius: 2px;
+  border-radius: 4px;
   background: rgba(29, 41, 55, 0.84);
+}
+
+.activity-card,
+.library-panel,
+.library-notice {
+  padding: 14px;
 }
 
 .activity-card {
   align-items: stretch;
-  padding: 14px;
-}
-
-.activity-card.compact {
-  background: rgba(26, 39, 54, 0.9);
 }
 
 .activity-art {
   display: grid;
   place-items: center;
-  width: 270px;
+  width: 240px;
   min-height: 120px;
   color: #ffffff;
   background:
-    linear-gradient(135deg, rgba(72, 111, 140, 0.96), rgba(12, 18, 26, 0.96)),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.06) 0 12px, transparent 12px 24px);
+    linear-gradient(135deg, rgba(72, 111, 140, 0.96), rgba(12, 18, 26, 0.96));
   font-size: 2.4rem;
-  font-weight: 900;
-}
-
-.tool-icon {
-  display: grid;
-  place-items: center;
-  width: 100px;
-  color: #c7d5e0;
-  background: rgba(255, 255, 255, 0.08);
   font-weight: 900;
 }
 
 .activity-card small,
 .activity-card p,
 .library-panel p,
-.library-state {
+.library-state,
+.stats-panel dt {
   color: #8f98a0;
 }
 
@@ -338,16 +412,39 @@ async function loadLibrary() {
   color: #dfe3e6;
 }
 
-.activity-card a,
-.panel-title-row a,
-.links-card a {
-  color: #66c0f4;
-  font-weight: 800;
+.stats-panel dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
 }
 
-.library-panel,
-.library-notice {
-  padding: 14px;
+.stats-panel div {
+  border-radius: 4px;
+  padding: 12px;
+  background: rgba(9, 14, 22, 0.42);
+}
+
+.stats-panel dd {
+  margin: 4px 0 0;
+  color: #dfe3e6;
+  font-size: 1.2rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.entry-grid a,
+.links-card a {
+  border: 1px solid rgba(102, 192, 244, 0.16);
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: rgba(102, 192, 244, 0.08);
 }
 
 .panel-title-row {
@@ -356,15 +453,6 @@ async function loadLibrary() {
 
 .panel-title-row h2 {
   margin: 0;
-}
-
-.panel-title-row button,
-.links-card button {
-  border: 0;
-  color: #66c0f4;
-  background: rgba(102, 192, 244, 0.13);
-  cursor: pointer;
-  font-weight: 800;
 }
 
 .achievements-card strong {
@@ -418,42 +506,47 @@ async function loadLibrary() {
   white-space: nowrap;
 }
 
-.links-card {
-  align-items: stretch;
-  flex-direction: column;
-}
-
-.links-card a,
-.links-card button {
-  min-height: 34px;
-  padding: 7px 10px;
-  text-align: left;
-  background: rgba(42, 71, 94, 0.72);
-}
-
 @media (max-width: 1120px) {
-  .steam-library-page,
-  .library-grid {
+  .steam-library-page {
     grid-template-columns: 1fr;
   }
 
   .library-rail {
     display: none;
   }
+
+  .library-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
-  .library-hero,
-  .activity-card,
-  .library-actions {
-    align-items: stretch;
+  .library-hero {
+    align-items: flex-start;
     flex-direction: column;
   }
 
-  .activity-art,
-  .install-button,
-  .library-actions a {
+  .library-actions {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .stats-panel dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .activity-card {
+    display: grid;
+  }
+
+  .activity-art {
     width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .stats-panel dl {
+    grid-template-columns: 1fr;
   }
 }
 </style>

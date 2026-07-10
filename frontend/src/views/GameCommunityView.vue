@@ -9,7 +9,7 @@
         <h1>{{ game.title }}</h1>
         <p>{{ game.subtitle }}</p>
         <nav class="steam-tabs" aria-label="游戏页面导航">
-          <RouterLink :to="`/games/${gameId}/store`">商店页面</RouterLink>
+          <RouterLink :to="`/games/${gameId}`">商店页面</RouterLink>
           <RouterLink :to="`/library/${gameId}`">库内详情</RouterLink>
           <RouterLink :to="`/games/${gameId}/community`">评测与成就</RouterLink>
         </nav>

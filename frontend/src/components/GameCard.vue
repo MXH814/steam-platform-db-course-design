@@ -5,6 +5,7 @@
       <span v-if="game.supportsMarket" class="corner-label">市场</span>
       <span v-else-if="game.hasContentPackages" class="corner-label">礼包</span>
     </div>
+
     <div class="game-meta">
       <div>
         <h3>{{ game.gameName }}</h3>
@@ -12,6 +13,7 @@
       </div>
       <GamePriceBlock :base-price="game.basePrice" :final-price="game.finalPrice" :discount-rate="game.discountRate" compact />
     </div>
+
     <div class="tag-row">
       <span v-for="tag in game.tags.slice(0, 3)" :key="tag">{{ tag }}</span>
     </div>
@@ -38,6 +40,7 @@ const releaseYear = computed(() => (props.game.releaseDate ? new Date(props.game
   border: 1px solid transparent;
   border-radius: 6px;
   background: rgba(16, 24, 34, 0.9);
+  transition: border-color 160ms ease-out, background-color 160ms ease-out;
 }
 
 .game-card:hover {
@@ -52,15 +55,12 @@ const releaseYear = computed(() => (props.game.releaseDate ? new Date(props.game
   aspect-ratio: 16 / 7;
   place-items: center;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.18), transparent 0.8rem),
-    linear-gradient(135deg, #20374d, #0e151f);
+  background: linear-gradient(135deg, #20374d, #0e151f);
 }
 
 .game-art::before,
 .game-art::after {
   position: absolute;
-  inset: auto;
   content: "";
 }
 
@@ -158,6 +158,12 @@ const releaseYear = computed(() => (props.game.releaseDate ? new Date(props.game
   color: #b8c7d9;
   background: rgba(151, 170, 195, 0.15);
   font-size: 0.72rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card {
+    transition: none;
+  }
 }
 
 @media (max-width: 620px) {
