@@ -960,8 +960,52 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             await transaction.CommitAsync(cancellationToken);
             return new CdkeyRedeemResult("REDEEMED", null, null, "Player already owns this game.");
         }
-        catch
+        catch (Exception ex)
         {
+            // Handle common Oracle unique constraint / race condition where another concurrent redeem
+            // inserted the player_library row or updated cdkey status, resulting in ORA-00001.
+            var msg = ex.Message ?? string.Empty;
+            if (msg.Contains("ORA-00001") || msg.Contains("ORA-1") || msg.IndexOf("unique", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                // Best-effort: rollback and return a friendly business-style result instead of propagating DB error
+                try
+                {
+                    await transaction.RollbackAsync(CancellationToken.None);
+                }
+                catch { }
+
+                // If possible, try to provide the game id in the response
+                string? gameId = null;
+                try
+                {
+                    var cdkeyRow = await connection.QueryFirstOrDefaultAsync<CdkeyRow>(new CommandDefinition(
+                        """
+                        select c.cdkey_hash,
+                               c.status,
+                               b.batch_id,
+                               b.game_id,
+                               b.valid_from,
+                               b.expire_time
+                          from cdkey c
+                          join cdkey_batch b on b.batch_id = c.batch_id
+                         where c.cdkey_hash = :CdkeyHash
+                        """,
+                        new { CdkeyHash = submittedHash },
+                        cancellationToken: cancellationToken));
+
+                    if (cdkeyRow is not null)
+                    {
+                        gameId = cdkeyRow.GameId;
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                return new CdkeyRedeemResult("REDEEMED", gameId, null, "Player already owns this game or CDKey has been redeemed.");
+            }
+
             await transaction.RollbackAsync(CancellationToken.None);
             throw;
         }
