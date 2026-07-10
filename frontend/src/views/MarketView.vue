@@ -32,6 +32,12 @@ import { useAuthStore } from '../stores/auth';
 type TabKey = 'market' | 'orders' | 'trades' | 'transfers';
 type SortKey = 'popular' | 'price-asc' | 'price-desc' | 'name';
 type CategoryKey = 'all' | 'rifle' | 'pistol' | 'case' | 'sticker';
+type AssetGalleryItem = {
+  name: string;
+  rarity: string;
+  category: CategoryKey;
+  imageUrl: string;
+};
 
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'market', label: '市场首页' },
@@ -46,6 +52,36 @@ const categories: Array<{ key: CategoryKey; label: string }> = [
   { key: 'pistol', label: '手枪' },
   { key: 'case', label: '武器箱' },
   { key: 'sticker', label: '印花' }
+];
+
+const assetGallery: AssetGalleryItem[] = [
+  { name: 'AK-47 | Redline', rarity: 'EPIC', category: 'rifle', imageUrl: '/assets/items/cs2-ak-redline.png' },
+  { name: 'AK-47 | Neon Rider', rarity: 'LEGENDARY', category: 'rifle', imageUrl: '/assets/items/cs2-ak-neon-rider.png' },
+  { name: 'AWP | Asiimov', rarity: 'LEGENDARY', category: 'rifle', imageUrl: '/assets/items/cs2-awp-asiimov.png' },
+  { name: 'AWP | Dragon Lore', rarity: 'LEGENDARY', category: 'rifle', imageUrl: '/assets/items/cs2-awp-dragon-lore.png' },
+  { name: 'Desert Eagle | Blaze', rarity: 'LEGENDARY', category: 'pistol', imageUrl: '/assets/items/cs2-deagle-blaze.png' },
+  { name: 'Desert Eagle | Printstream', rarity: 'LEGENDARY', category: 'pistol', imageUrl: '/assets/items/cs2-deagle-printstream.png' },
+  { name: 'Dreams & Nightmares Case', rarity: 'RARE', category: 'case', imageUrl: '/assets/items/cs2-dreams-case.png' },
+  { name: 'FAMAS | Commemoration', rarity: 'LEGENDARY', category: 'rifle', imageUrl: '/assets/items/cs2-famas-commemoration.png' },
+  { name: 'FAMAS | Mecha Industries', rarity: 'LEGENDARY', category: 'rifle', imageUrl: '/assets/items/cs2-famas-mecha.png' },
+  { name: 'Galil AR | Chromatic Aberration', rarity: 'EPIC', category: 'rifle', imageUrl: '/assets/items/cs2-galil-chromatic.png' },
+  { name: 'Galil AR | Phoenix Blacklight', rarity: 'EPIC', category: 'rifle', imageUrl: '/assets/items/cs2-galil-phoenix.png' },
+  { name: 'Glock-18 | Fade', rarity: 'LEGENDARY', category: 'pistol', imageUrl: '/assets/items/cs2-glock-fade.png' },
+  { name: 'Glock-18 | Water Elemental', rarity: 'EPIC', category: 'pistol', imageUrl: '/assets/items/cs2-glock-water.png' },
+  { name: 'M4A1-S | Printstream', rarity: 'LEGENDARY', category: 'rifle', imageUrl: '/assets/items/cs2-m4a1-printstream.png' },
+  { name: 'M4A4 | Howl', rarity: 'LEGENDARY', category: 'rifle', imageUrl: '/assets/items/cs2-m4a4-howl.png' },
+  { name: 'M4A4 | Tooth Fairy', rarity: 'EPIC', category: 'rifle', imageUrl: '/assets/items/cs2-m4a4-tooth-fairy.png' },
+  { name: 'MP9 | Dark Tide', rarity: 'RARE', category: 'rifle', imageUrl: '/assets/items/cs2-mp9-dark-tide.png' },
+  { name: 'MP9 | Starlight Protector', rarity: 'LEGENDARY', category: 'rifle', imageUrl: '/assets/items/cs2-mp9-starlight.png' },
+  { name: 'P250 | Cyber Shell', rarity: 'RARE', category: 'pistol', imageUrl: '/assets/items/cs2-p250-cyber-shell.png' },
+  { name: 'P250 | See Ya Later', rarity: 'LEGENDARY', category: 'pistol', imageUrl: '/assets/items/cs2-p250-see-ya-later.png' },
+  { name: 'P90 | Asiimov', rarity: 'LEGENDARY', category: 'rifle', imageUrl: '/assets/items/cs2-p90-asiimov.png' },
+  { name: 'P90 | Elite Build', rarity: 'RARE', category: 'rifle', imageUrl: '/assets/items/cs2-p90-elite-build.png' },
+  { name: 'Sticker | Crown', rarity: 'LEGENDARY', category: 'sticker', imageUrl: '/assets/items/cs2-sticker-crown.png' },
+  { name: 'Tec-9 | Decimator', rarity: 'EPIC', category: 'pistol', imageUrl: '/assets/items/cs2-tec9-decimator.png' },
+  { name: 'Tec-9 | Nuclear Threat', rarity: 'LEGENDARY', category: 'pistol', imageUrl: '/assets/items/cs2-tec9-nuclear-threat.png' },
+  { name: 'USP-S | Kill Confirmed', rarity: 'LEGENDARY', category: 'pistol', imageUrl: '/assets/items/cs2-usp-kill-confirmed.png' },
+  { name: 'USP-S | The Traitor', rarity: 'EPIC', category: 'pistol', imageUrl: '/assets/items/cs2-usp-traitor.png' }
 ];
 
 const route = useRoute();
@@ -106,6 +142,17 @@ const filteredListings = computed(() => {
       return left.itemName.localeCompare(right.itemName);
     }
     return listingCount(right) - listingCount(left);
+  });
+});
+
+const filteredAssetGallery = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  return assetGallery.filter((item) => {
+    const matchesQuery =
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      (includeDescription.value && item.rarity.toLowerCase().includes(query));
+    return matchesQuery && (category.value === 'all' || item.category === category.value);
   });
 });
 
@@ -415,6 +462,30 @@ onMounted(async () => {
             </button>
           </article>
         </div>
+
+        <section class="asset-showcase" aria-labelledby="asset-showcase-title">
+          <div class="asset-showcase-head">
+            <div>
+              <span>本地饰品资源</span>
+              <h2 id="asset-showcase-title">饰品图鉴</h2>
+            </div>
+            <small>{{ filteredAssetGallery.length }} / {{ assetGallery.length }}</small>
+          </div>
+          <div class="asset-grid">
+            <article
+              v-for="item in filteredAssetGallery"
+              :key="item.imageUrl"
+              class="asset-card"
+              :class="`rarity-${item.rarity.toLowerCase()}`"
+            >
+              <img :src="versionedImageUrl(item.imageUrl)" :alt="item.name" loading="lazy" />
+              <div>
+                <span>{{ rarityLabel(item.rarity) }}</span>
+                <strong>{{ item.name }}</strong>
+              </div>
+            </article>
+          </div>
+        </section>
       </div>
     </section>
 
@@ -1015,6 +1086,100 @@ onMounted(async () => {
   background: linear-gradient(180deg, #79a83b, #567b2a);
 }
 
+.asset-showcase {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #293745;
+  background: #15202b;
+}
+
+.asset-showcase-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.asset-showcase-head span,
+.asset-showcase-head small {
+  color: #7890a4;
+  font-size: 0.75rem;
+}
+
+.asset-showcase-head h2 {
+  margin: 2px 0 0;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.asset-card {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  min-height: 172px;
+  padding: 10px;
+  border: 1px solid #354556;
+  background:
+    linear-gradient(180deg, rgba(97, 109, 123, 0.22), transparent 26%),
+    #202832;
+}
+
+.asset-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  content: "";
+  background: #7692a7;
+}
+
+.asset-card.rarity-rare::before {
+  background: #4b69ff;
+}
+
+.asset-card.rarity-epic::before {
+  background: #8847ff;
+}
+
+.asset-card.rarity-legendary::before {
+  background: #d32ce6;
+}
+
+.asset-card img {
+  width: 100%;
+  height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.38));
+}
+
+.asset-card div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.asset-card span {
+  color: #8794a1;
+  font-size: 0.68rem;
+}
+
+.asset-card strong {
+  overflow: hidden;
+  color: #e6ebef;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .market-empty {
   display: grid;
   min-height: 320px;
@@ -1313,6 +1478,10 @@ onMounted(async () => {
   .item-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .asset-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 900px) {
@@ -1358,6 +1527,10 @@ onMounted(async () => {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .asset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .steam-rows article,
   .trade-rows article,
   .transfer-rows article {
@@ -1393,7 +1566,8 @@ onMounted(async () => {
   }
 
   .category-list,
-  .item-grid {
+  .item-grid,
+  .asset-grid {
     grid-template-columns: 1fr;
   }
 
