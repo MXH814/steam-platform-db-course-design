@@ -133,6 +133,16 @@
             <RouterLink :to="{ name: 'game-community', params: { gameId } }">查看玩过此游戏的所有好友</RouterLink>
           </section>
 
+          <section class="sidebar-section notes-panel">
+            <div class="sidebar-heading">
+              <h2>笔记</h2>
+              <NotebookPen :size="17" />
+            </div>
+            <textarea v-model="noteDraft" rows="3" placeholder="为这款游戏写一条私人笔记" />
+            <button type="button" @click="saveNote">保存笔记</button>
+            <small v-if="noteSaved">笔记已保存在此浏览器</small>
+          </section>
+
           <section class="sidebar-section achievements-panel">
             <div class="sidebar-heading">
               <h2>我的成就</h2>
@@ -188,6 +198,7 @@ import {
   Heart,
   Info,
   MessageSquare,
+  NotebookPen,
   PackageOpen,
   Play,
   Settings,
@@ -217,6 +228,8 @@ const achievements = ref<AchievementListItem[]>([]);
 const loading = ref(false);
 const playing = ref(false);
 const notice = ref('');
+const noteDraft = ref('');
+const noteSaved = ref(false);
 const friends = ['Stephen', 'Alice', 'Bob', 'Klei', 'Valve'];
 
 const ownedEntry = computed(() => library.value.find((entry) => entry.gameId === gameId.value) || null);
@@ -229,20 +242,24 @@ watch(gameId, loadLibraryDetail, { immediate: true });
 async function loadLibraryDetail() {
   loading.value = true;
   notice.value = '';
+  noteSaved.value = false;
+  noteDraft.value = localStorage.getItem(noteStorageKey()) || '';
 
   try {
-    const [libraryRows, achievementRows] = await Promise.all([
-      getLibrary(),
-      listGameAchievements(gameId.value)
-    ]);
+    const libraryRows = await getLibrary();
     library.value = libraryRows;
-    achievements.value = achievementRows;
     if (!libraryRows.some((entry) => entry.gameId === gameId.value)) {
       notice.value = '当前账号暂未确认拥有此游戏。请返回商店详情查看购买或入库入口。';
     }
   } catch (error) {
-    achievements.value = [];
     notice.value = getApiError(error);
+  }
+
+  try {
+    achievements.value = await listGameAchievements(gameId.value);
+  } catch (error) {
+    achievements.value = [];
+    notice.value ||= getApiError(error);
   } finally {
     loading.value = false;
   }
@@ -271,6 +288,15 @@ function compactDate(value?: string | null) {
 
 function fullDate(value?: string | null) {
   return value ? dateTime(value) : '暂无记录';
+}
+
+function noteStorageKey() {
+  return `steam-platform-library-note:${gameId.value}`;
+}
+
+function saveNote() {
+  localStorage.setItem(noteStorageKey(), noteDraft.value.trim());
+  noteSaved.value = true;
 }
 </script>
 
@@ -698,6 +724,29 @@ function fullDate(value?: string | null) {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.notes-panel textarea {
+  margin: 8px 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
+  padding: 8px;
+  background: rgba(31, 40, 51, 0.86);
+  font-size: 0.78rem;
+  resize: vertical;
+}
+
+.notes-panel button {
+  border: 0;
+  padding: 5px 10px;
+  color: #c9d4df;
+  background: #34475a;
+  cursor: pointer;
+  font-size: 0.76rem;
+}
+
+.notes-panel small {
+  margin-left: 8px;
 }
 
 .achievement-progress {
