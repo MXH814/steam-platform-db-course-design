@@ -58,8 +58,8 @@
       </section>
 
       <div class="detail-module-links">
-        <RouterLink class="button-link" :to="{ name: 'game-store', params: { gameId: game.gameId }, hash: '#store-reviews' }">查看玩家评测</RouterLink>
-        <RouterLink class="ghost-button" :to="{ name: 'game-store', params: { gameId: game.gameId }, hash: '#store-achievements' }">查看 Steam 成就</RouterLink>
+        <button class="button-link" type="button" @click="scrollToDetailSection('detail-reviews')">查看玩家评测</button>
+        <button class="ghost-button" type="button" @click="scrollToDetailSection('detail-achievements')">查看 Steam 成就</button>
         <RouterLink class="ghost-button" :to="{ name: 'game-community', params: { gameId: game.gameId } }">进入社区中心</RouterLink>
       </div>
 
@@ -97,7 +97,7 @@
           </dl>
         </GameSummarySection>
 
-        <GameSummarySection title="评价概览" :loading="review.loading" :error="review.error" :empty="!review.data">
+        <GameSummarySection id="detail-reviews" title="评价概览" :loading="review.loading" :error="review.error" :empty="!review.data">
           <dl v-if="review.data" class="stat-grid">
             <div><dt>口碑</dt><dd class="blue">{{ review.data.ratingText }}</dd></div>
             <div><dt>评价数</dt><dd>{{ review.data.reviewCount }}</dd></div>
@@ -105,16 +105,17 @@
             <div><dt>推荐数</dt><dd>{{ review.data.recommendCount }}</dd></div>
           </dl>
           <p v-if="review.data?.latestReviewContent" class="summary-note">{{ review.data.latestReviewContent }}</p>
+          <RouterLink v-if="game" class="summary-link" :to="{ name: 'game-community', params: { gameId: game.gameId } }">查看全部玩家评测</RouterLink>
         </GameSummarySection>
 
-        <GameSummarySection title="成就概览" :loading="achievements.loading" :error="achievements.error" :empty="!achievements.data">
-          <dl v-if="achievements.data" class="stat-grid">
-            <div><dt>成就数</dt><dd>{{ achievements.data.achievementCount }}</dd></div>
-            <div><dt>平均达成率</dt><dd>{{ achievements.data.averageGlobalRate ?? 0 }}%</dd></div>
+        <GameSummarySection id="detail-achievements" title="成就概览" :loading="achievements.loading" :error="achievements.error" :empty="!achievements.data && !detailAchievements.length">
+          <dl class="stat-grid">
+            <div><dt>成就数</dt><dd>{{ achievements.data?.achievementCount || detailAchievements.length }}</dd></div>
+            <div><dt>平均达成率</dt><dd>{{ achievements.data?.averageGlobalRate ?? averageCatalogRate }}%</dd></div>
           </dl>
-          <div v-if="achievements.data?.achievements.length" class="achievement-list">
-            <article v-for="item in achievements.data.achievements.slice(0, 4)" :key="item.achievementId">
-              <img :src="summaryAchievementIcon(item)" :alt="item.achievementName" />
+          <div v-if="detailAchievements.length" class="achievement-list">
+            <article v-for="item in detailAchievements.slice(0, 6)" :key="item.achievementId">
+              <img :src="item.iconUrl" :alt="item.achievementName" />
               <div>
                 <strong>{{ item.achievementName }}</strong>
                 <span>{{ item.description || '暂无描述' }}</span>
@@ -122,6 +123,7 @@
               <span>{{ item.globalRate ?? 0 }}%</span>
             </article>
           </div>
+          <RouterLink v-if="game" class="summary-link" :to="{ name: 'game-community', params: { gameId: game.gameId } }">进入社区成就页</RouterLink>
         </GameSummarySection>
       </section>
     </template>
@@ -129,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getApiError } from '../api/http';
 import {
@@ -164,6 +166,34 @@ const packages = reactive<ModuleState<GameContentPackage[]>>({ loading: false, e
 const items = reactive<ModuleState<GameItemSummary | null>>({ loading: false, error: '', data: null });
 const review = reactive<ModuleState<GameReviewSummary | null>>({ loading: false, error: '', data: null });
 const achievements = reactive<ModuleState<GameAchievementSummary | null>>({ loading: false, error: '', data: null });
+
+const detailAchievements = computed(() => {
+  const currentGameId = String(route.params.gameId || '');
+  const catalog = getAchievementCatalog(currentGameId);
+  const apiRows = achievements.data?.achievements ?? [];
+  const matchedIds = new Set<string>();
+  const catalogRows = catalog.map((meta) => {
+    const apiRow = apiRows.find((item) => item.achievementId === meta.achId || item.achievementName === meta.achName);
+    if (apiRow) matchedIds.add(apiRow.achievementId);
+    return {
+      achievementId: apiRow?.achievementId ?? meta.achId,
+      achievementName: apiRow?.achievementName ?? meta.achName,
+      description: apiRow?.description ?? meta.description,
+      globalRate: apiRow?.globalRate ?? meta.globalRate,
+      iconUrl: meta.iconUrl
+    };
+  });
+  const extraRows = apiRows
+    .filter((item) => !matchedIds.has(item.achievementId))
+    .map((item) => ({ ...item, iconUrl: summaryAchievementIcon(item) }));
+  return [...catalogRows, ...extraRows];
+});
+
+const averageCatalogRate = computed(() => {
+  if (!detailAchievements.value.length) return 0;
+  const total = detailAchievements.value.reduce((sum, item) => sum + (item.globalRate ?? 0), 0);
+  return Math.round((total / detailAchievements.value.length) * 10) / 10;
+});
 
 watch(
   () => storeQuery.search,
@@ -224,6 +254,10 @@ function summaryAchievementIcon(item: GameAchievementSummaryItem) {
   return getAchievementCatalog(currentGameId).find(
     (achievement) => achievement.achId === item.achievementId || achievement.achName === item.achievementName
   )?.iconUrl ?? '/assets/achievements/default-medal.svg';
+}
+
+function scrollToDetailSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 onMounted(loadDetail);
@@ -416,6 +450,19 @@ onMounted(loadDetail);
 .achievement-list span {
   color: var(--steam-muted);
   font-size: 0.82rem;
+}
+
+.summary-link {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 0.4rem;
+  color: var(--steam-blue);
+  font-weight: 850;
+}
+
+#detail-reviews,
+#detail-achievements {
+  scroll-margin-top: 86px;
 }
 
 @media (max-width: 900px) {

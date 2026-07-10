@@ -22,7 +22,7 @@
           <h1>{{ game.title }}</h1>
         </div>
         <div class="library-actions">
-          <RouterLink :to="`/games/${gameId}/store`">商店页面</RouterLink>
+          <RouterLink :to="{ name: 'game-detail', params: { gameId } }">商店页面</RouterLink>
           <RouterLink :to="`/games/${gameId}/community`">评测与成就</RouterLink>
         </div>
       </header>
@@ -79,7 +79,7 @@
 
           <section class="library-panel links-card">
             <h2>快捷链接</h2>
-            <RouterLink :to="`/games/${gameId}/store`">在商店中查看</RouterLink>
+            <RouterLink :to="{ name: 'game-detail', params: { gameId } }">在商店中查看</RouterLink>
             <RouterLink :to="`/games/${gameId}/community`">查看讨论与评测</RouterLink>
             <button type="button" @click="notice = 'DLC 管理需要 Group B/C 的商品扩展接口。'">管理 DLC</button>
           </section>
