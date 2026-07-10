@@ -1,4 +1,16 @@
 <script setup lang="ts">
+import {
+  ArrowRightLeft,
+  ChevronDown,
+  History,
+  PackageSearch,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  ShoppingCart,
+  Tag,
+  X
+} from '@lucide/vue';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -18,12 +30,22 @@ import {
 import { useAuthStore } from '../stores/auth';
 
 type TabKey = 'market' | 'orders' | 'trades' | 'transfers';
+type SortKey = 'popular' | 'price-asc' | 'price-desc' | 'name';
+type CategoryKey = 'all' | 'rifle' | 'pistol' | 'case' | 'sticker';
 
 const tabs: Array<{ key: TabKey; label: string }> = [
-  { key: 'market', label: '市场' },
-  { key: 'orders', label: '挂单' },
-  { key: 'trades', label: '成交' },
-  { key: 'transfers', label: '流转' }
+  { key: 'market', label: '市场首页' },
+  { key: 'orders', label: '我的上架物品' },
+  { key: 'trades', label: '市场历史记录' },
+  { key: 'transfers', label: '物品流转' }
+];
+
+const categories: Array<{ key: CategoryKey; label: string }> = [
+  { key: 'all', label: '全部物品' },
+  { key: 'rifle', label: '步枪' },
+  { key: 'pistol', label: '手枪' },
+  { key: 'case', label: '武器箱' },
+  { key: 'sticker', label: '印花' }
 ];
 
 const route = useRoute();
@@ -31,11 +53,20 @@ const router = useRouter();
 const auth = useAuthStore();
 const activeTab = computed(() => (route.meta.tab as TabKey) || 'market');
 const isPlayer = computed(() => auth.currentUser?.role.toUpperCase() === 'PLAYER');
-const currentPlayerLabel = computed(() => (auth.currentUser ? `${auth.currentUser.account} / ${auth.currentUser.principalId}` : '未登录'));
+const currentPlayerLabel = computed(() =>
+  auth.currentUser ? `${auth.currentUser.account} / ${auth.currentUser.principalId}` : '尚未登录'
+);
+
 const loading = ref(false);
 const actionLoading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
+const searchQuery = ref('');
+const category = ref<CategoryKey>('all');
+const sortKey = ref<SortKey>('popular');
+const includeDescription = ref(false);
+const showOrderComposer = ref(false);
+const selectedListing = ref<MarketListing | null>(null);
 
 const listings = ref<MarketListing[]>([]);
 const orders = ref<MarketOrder[]>([]);
@@ -53,8 +84,46 @@ const transferItemId = ref('ITEM_CS2_001');
 const matchTemplateId = ref('ITPL_CS2_AK_REDLINE');
 const matchingOrders = computed(() => orders.value.filter((order) => order.status === 'MATCHING'));
 
+const filteredListings = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  const rows = listings.value.filter((item) => {
+    const matchesQuery =
+      !query ||
+      item.itemName.toLowerCase().includes(query) ||
+      item.templateId.toLowerCase().includes(query) ||
+      (includeDescription.value && item.rarity.toLowerCase().includes(query));
+    return matchesQuery && (category.value === 'all' || itemCategory(item) === category.value);
+  });
+
+  return [...rows].sort((left, right) => {
+    if (sortKey.value === 'price-asc') {
+      return listingPrice(left) - listingPrice(right);
+    }
+    if (sortKey.value === 'price-desc') {
+      return listingPrice(right) - listingPrice(left);
+    }
+    if (sortKey.value === 'name') {
+      return left.itemName.localeCompare(right.itemName);
+    }
+    return listingCount(right) - listingCount(left);
+  });
+});
+
 function money(value?: number | null) {
-  return typeof value === 'number' ? `¥${value.toFixed(2)}` : '-';
+  return typeof value === 'number' ? `¥${value.toFixed(2)}` : '暂无挂单';
+}
+
+function versionedImageUrl(value?: string | null) {
+  if (!value) return '';
+  return `${value}${value.includes('?') ? '&' : '?'}v=7787514-transparent`;
+}
+
+function listingPrice(item: MarketListing) {
+  return item.lowestSellPrice ?? item.highestBuyPrice ?? Number.MAX_SAFE_INTEGER;
+}
+
+function listingCount(item: MarketListing) {
+  return item.activeBuyCount + item.activeSellCount;
 }
 
 function shortId(value: string) {
@@ -65,19 +134,37 @@ function formatTime(value: string) {
   return new Date(value).toLocaleString('zh-CN', { hour12: false });
 }
 
-async function refreshAll() {
-  loading.value = true;
-  errorMessage.value = '';
-  try {
-    const [marketRows, tradeRows] = await Promise.all([getMarket('GAME_CS2'), getTrades()]);
-    listings.value = marketRows;
-    trades.value = tradeRows;
-    orders.value = isPlayer.value ? await getMyOrders() : [];
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '刷新失败';
-  } finally {
-    loading.value = false;
-  }
+function itemCategory(item: MarketListing): CategoryKey {
+  const text = `${item.itemName} ${item.templateId}`.toLowerCase();
+  if (text.includes('case')) return 'case';
+  if (text.includes('sticker')) return 'sticker';
+  if (text.includes('glock') || text.includes('usp') || text.includes('deagle')) return 'pistol';
+  return 'rifle';
+}
+
+function rarityLabel(rarity: string) {
+  const labels: Record<string, string> = {
+    COMMON: '普通级',
+    UNCOMMON: '消费级',
+    RARE: '军规级',
+    EPIC: '受限级',
+    LEGENDARY: '保密级'
+  };
+  return labels[rarity.toUpperCase()] || rarity;
+}
+
+function orderTypeLabel(type: string) {
+  return type === 'SELL' ? '出售' : '求购';
+}
+
+function statusLabel(status: string) {
+  const labels: Record<string, string> = {
+    MATCHING: '等待成交',
+    MATCHED: '已成交',
+    CANCELLED: '已取消',
+    CANCELED: '已取消'
+  };
+  return labels[status.toUpperCase()] || status;
 }
 
 function openTab(tab: TabKey) {
@@ -90,12 +177,35 @@ function openTab(tab: TabKey) {
   router.push(paths[tab]);
 }
 
+function openOrder(item: MarketListing, orderType: 'BUY' | 'SELL' = 'BUY') {
+  selectedListing.value = item;
+  orderForm.orderType = orderType;
+  orderForm.templateId = item.templateId;
+  orderForm.targetPrice = item.lowestSellPrice ?? item.highestBuyPrice ?? 1;
+  matchTemplateId.value = item.templateId;
+  showOrderComposer.value = true;
+}
+
+async function refreshAll() {
+  loading.value = true;
+  errorMessage.value = '';
+  try {
+    const [marketRows, tradeRows] = await Promise.all([getMarket('GAME_CS2'), getTrades()]);
+    listings.value = marketRows;
+    trades.value = tradeRows;
+    orders.value = isPlayer.value ? await getMyOrders() : [];
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '刷新市场失败';
+  } finally {
+    loading.value = false;
+  }
+}
+
 async function submitOrder() {
   if (!isPlayer.value) {
-    errorMessage.value = '请先登录玩家账号。';
+    errorMessage.value = '请先登录玩家账号后再创建挂单。';
     return;
   }
-
   if (!orderForm.templateId.trim()) {
     errorMessage.value = '饰品模板不能为空。';
     return;
@@ -105,27 +215,22 @@ async function submitOrder() {
     return;
   }
   if (orderForm.orderType === 'SELL' && !orderForm.itemId?.trim()) {
-    errorMessage.value = '卖单必须填写饰品编号。';
+    errorMessage.value = '出售物品时必须填写饰品编号。';
     return;
   }
 
   await runAction(async () => {
-    const payload = {
+    await createOrder({
       ...orderForm,
       itemId: orderForm.orderType === 'SELL' ? orderForm.itemId?.trim() : null
-    };
-    await createOrder(payload);
-    successMessage.value = '挂单已创建。';
+    });
+    successMessage.value = `${orderTypeLabel(orderForm.orderType)}挂单已创建。`;
+    showOrderComposer.value = false;
     await refreshAll();
   });
 }
 
 async function cancelSelectedOrder(order: MarketOrder) {
-  if (!isPlayer.value) {
-    errorMessage.value = '请先登录玩家账号。';
-    return;
-  }
-
   await runAction(async () => {
     await cancelOrder(order.marketOrderId);
     successMessage.value = '挂单已取消。';
@@ -134,30 +239,22 @@ async function cancelSelectedOrder(order: MarketOrder) {
 }
 
 async function submitMatch() {
-  if (!isPlayer.value) {
-    errorMessage.value = '请先登录玩家账号。';
-    return;
-  }
-
   await runAction(async () => {
     const trade = await matchMarket(matchTemplateId.value.trim());
-    successMessage.value = `成交 ${shortId(trade.tradeId)}，饰品 ${trade.itemId} 已换手。`;
+    successMessage.value = `成交 ${shortId(trade.tradeId)}，物品 ${trade.itemId} 已完成流转。`;
+    showOrderComposer.value = false;
     await refreshAll();
-    if (transferItemId.value === trade.itemId) {
-      await loadTransfers();
-    }
   });
 }
 
 async function loadTransfers() {
   if (!transferItemId.value.trim()) {
-    errorMessage.value = '饰品编号不能为空。';
+    errorMessage.value = '请输入饰品编号。';
     return;
   }
-
   await runAction(async () => {
     transfers.value = await getTransfers(transferItemId.value.trim());
-    successMessage.value = '流转记录已更新。';
+    successMessage.value = '物品流转记录已更新。';
   });
 }
 
@@ -176,298 +273,1156 @@ async function runAction(action: () => Promise<void>) {
 
 onMounted(async () => {
   await refreshAll();
-  await loadTransfers();
 });
 </script>
 
 <template>
-  <main class="market-shell">
-    <section class="market-workspace">
-      <header class="market-top">
-        <div>
-          <p class="eyebrow">Group D / Market</p>
-          <h1>饰品市场交易</h1>
-        </div>
-        <div class="market-toolbar">
-          <span>{{ currentPlayerLabel }}</span>
-          <button class="ghost-button" type="button" :disabled="loading" @click="refreshAll">{{ loading ? '刷新中' : '刷新' }}</button>
-        </div>
-      </header>
-
-      <nav class="market-tabs">
-        <button v-for="tab in tabs" :key="tab.key" type="button" :class="{ active: activeTab === tab.key }" @click="openTab(tab.key)">
-          {{ tab.label }}
+  <div class="community-market">
+    <header class="market-hero">
+      <div class="hero-copy">
+        <span class="steam-mark">STEAM</span>
+        <h1>社区市场</h1>
+        <p>与社区成员买卖 Counter-Strike 2 饰品</p>
+      </div>
+      <div class="hero-search">
+        <Search :size="18" aria-hidden="true" />
+        <input v-model="searchQuery" type="search" placeholder="搜索市场中的物品..." aria-label="搜索市场物品" />
+        <button type="button" title="搜索" aria-label="搜索">
+          <Search :size="17" />
         </button>
-      </nav>
+      </div>
+    </header>
 
-      <p v-if="errorMessage" class="message error">{{ errorMessage }}</p>
-      <p v-if="successMessage" class="message success">{{ successMessage }}</p>
+    <nav class="account-tabs" aria-label="市场导航">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        type="button"
+        :class="{ active: activeTab === tab.key }"
+        @click="openTab(tab.key)"
+      >
+        <ShoppingCart v-if="tab.key === 'market'" :size="16" />
+        <Tag v-else-if="tab.key === 'orders'" :size="16" />
+        <History v-else-if="tab.key === 'trades'" :size="16" />
+        <ArrowRightLeft v-else :size="16" />
+        {{ tab.label }}
+        <span v-if="tab.key === 'orders'">({{ orders.length }})</span>
+      </button>
+      <button class="refresh-button" type="button" :disabled="loading" title="刷新市场" @click="refreshAll">
+        <RefreshCw :size="17" :class="{ spinning: loading }" />
+        <span>{{ currentPlayerLabel }}</span>
+      </button>
+    </nav>
 
-      <section v-if="activeTab === 'market'" class="market-grid">
-        <div class="market-panel">
-          <h2>市场行情</h2>
-          <div v-if="loading" class="market-state">加载中...</div>
-          <div v-else-if="!listings.length" class="market-state">暂无饰品模板</div>
-          <div v-else class="listing-grid">
-            <article v-for="item in listings" :key="item.templateId" class="item-card">
-              <div class="item-art">{{ item.rarity }}</div>
-              <div>
-                <h3>{{ item.itemName }}</h3>
-                <p>{{ item.templateId }}</p>
-                <span>买价 {{ money(item.highestBuyPrice) }}</span>
-                <span>卖价 {{ money(item.lowestSellPrice) }}</span>
-              </div>
-            </article>
+    <div v-if="errorMessage || successMessage" class="message-stack" aria-live="polite">
+      <p v-if="errorMessage" class="market-message error">
+        <ShieldAlert :size="18" />
+        {{ errorMessage }}
+      </p>
+      <p v-if="successMessage" class="market-message success">{{ successMessage }}</p>
+    </div>
+
+    <section v-if="activeTab === 'market'" class="browse-layout">
+      <aside class="filter-sidebar">
+        <div class="filter-heading">
+          <div>
+            <span>筛选条件</span>
+            <strong>Counter-Strike 2</strong>
           </div>
+          <ChevronDown :size="18" />
         </div>
 
-        <aside class="market-panel side-panel">
-          <h2>创建挂单</h2>
+        <label class="sidebar-search">
+          <Search :size="16" />
+          <input v-model="searchQuery" type="search" placeholder="筛选结果..." />
+        </label>
+
+        <label class="check-row">
+          <input v-model="includeDescription" type="checkbox" />
+          <span>搜索内容包含物品品质</span>
+        </label>
+
+        <div class="category-list">
+          <button
+            v-for="item in categories"
+            :key="item.key"
+            type="button"
+            :class="{ active: category === item.key }"
+            @click="category = item.key"
+          >
+            <span class="category-art">{{ item.label.slice(0, 1) }}</span>
+            <span>{{ item.label }}</span>
+            <small>{{ item.key === 'all' ? listings.length : listings.filter((row) => itemCategory(row) === item.key).length }}</small>
+          </button>
+        </div>
+
+        <div class="market-security">
+          <ShieldAlert :size="20" />
+          <p>所有交易均绑定当前登录玩家身份，并由平台完成钱包与库存校验。</p>
+        </div>
+      </aside>
+
+      <div class="market-results">
+        <div class="result-toolbar">
+          <div>
+            <p>找到 {{ filteredListings.length }} 个搜索结果</p>
+            <span>显示社区中可交易的饰品模板</span>
+          </div>
           <label>
-            类型
-            <select v-model="orderForm.orderType">
-              <option value="BUY">买单</option>
-              <option value="SELL">卖单</option>
+            <span>排序方式</span>
+            <select v-model="sortKey">
+              <option value="popular">热门程度</option>
+              <option value="price-asc">价格从低到高</option>
+              <option value="price-desc">价格从高到低</option>
+              <option value="name">名称</option>
             </select>
           </label>
-          <label>
-            模板
-            <input v-model="orderForm.templateId" />
-          </label>
-          <label v-if="orderForm.orderType === 'SELL'">
-            饰品
-            <input v-model="orderForm.itemId" />
-          </label>
-          <label>
-            价格
-            <input v-model.number="orderForm.targetPrice" type="number" min="0.01" step="0.01" />
-          </label>
-          <button class="primary-button" type="button" :disabled="actionLoading || !isPlayer" @click="submitOrder">提交</button>
-
-          <div class="divider"></div>
-
-          <h2>撮合</h2>
-          <label>
-            模板
-            <input v-model="matchTemplateId" />
-          </label>
-          <button class="secondary-button" type="button" :disabled="actionLoading || !isPlayer" @click="submitMatch">撮合</button>
-        </aside>
-      </section>
-
-      <section v-if="activeTab === 'orders'" class="market-panel">
-        <h2>我的挂单</h2>
-        <div v-if="!orders.length" class="market-state">暂无挂单</div>
-        <div v-else class="market-table">
-          <div class="table-row table-head">
-            <span>编号</span><span>类型</span><span>饰品</span><span>价格</span><span>状态</span><span>操作</span>
-          </div>
-          <div v-for="order in orders" :key="order.marketOrderId" class="table-row">
-            <span>{{ shortId(order.marketOrderId) }}</span>
-            <span>{{ order.orderType }}</span>
-            <span>{{ order.itemName }}</span>
-            <span>{{ money(order.targetPrice) }}</span>
-            <span>{{ order.status }}</span>
-            <button class="ghost-button" type="button" :disabled="order.status !== 'MATCHING' || actionLoading || !isPlayer" @click="cancelSelectedOrder(order)">取消</button>
-          </div>
         </div>
-        <p class="micro">撮合中 {{ matchingOrders.length }} 条</p>
-      </section>
 
-      <section v-if="activeTab === 'trades'" class="market-panel">
-        <h2>成交记录</h2>
-        <div v-if="!trades.length" class="market-state">暂无成交</div>
-        <div v-else class="trade-list">
-          <article v-for="trade in trades" :key="trade.tradeId">
-            <strong>{{ trade.itemName }}</strong>
-            <span>{{ shortId(trade.tradeId) }} / {{ trade.itemId }}</span>
-            <span>{{ trade.sellerId }} → {{ trade.buyerId }}</span>
-            <strong>{{ money(trade.tradePrice) }}</strong>
-            <time>{{ formatTime(trade.tradeTime) }}</time>
+        <div v-if="loading" class="market-empty">
+          <RefreshCw :size="30" class="spinning" />
+          <strong>正在载入社区市场...</strong>
+        </div>
+        <div v-else-if="!filteredListings.length" class="market-empty">
+          <PackageSearch :size="34" />
+          <strong>没有找到符合条件的物品</strong>
+          <span>请尝试其他关键词或分类。</span>
+        </div>
+        <div v-else class="item-grid">
+          <article
+            v-for="item in filteredListings"
+            :key="item.templateId"
+            class="market-item"
+            :class="`rarity-${item.rarity.toLowerCase()}`"
+          >
+            <button class="item-main" type="button" @click="openOrder(item)">
+              <div class="item-meta">
+                <span>{{ rarityLabel(item.rarity) }}</span>
+                <h2>{{ item.itemName }}</h2>
+              </div>
+              <div class="item-image">
+                <img v-if="item.imageUrl" :src="versionedImageUrl(item.imageUrl)" :alt="item.itemName" />
+                <PackageSearch v-else :size="64" />
+              </div>
+              <div class="item-foot">
+                <span>在售数量：{{ item.activeSellCount.toLocaleString('zh-CN') }}</span>
+                <span>求购数量：{{ item.activeBuyCount.toLocaleString('zh-CN') }}</span>
+              </div>
+            </button>
+            <button class="price-button" type="button" @click="openOrder(item)">
+              <span>起价</span>
+              <strong>{{ money(item.lowestSellPrice ?? item.highestBuyPrice) }}</strong>
+            </button>
           </article>
         </div>
-      </section>
-
-      <section v-if="activeTab === 'transfers'" class="market-panel">
-        <h2>饰品流转</h2>
-        <div class="lookup">
-          <input v-model="transferItemId" />
-          <button class="primary-button" type="button" :disabled="actionLoading" @click="loadTransfers">查询</button>
-        </div>
-        <div v-if="!transfers.length" class="market-state">暂无流转记录</div>
-        <div v-else class="timeline">
-          <article v-for="transfer in transfers" :key="transfer.transferId">
-            <span>{{ transfer.transferType }}</span>
-            <strong>{{ transfer.fromUserId ?? 'SYSTEM' }} → {{ transfer.toUserId }}</strong>
-            <p>{{ transfer.itemName }} / {{ formatTime(transfer.transferTime) }}</p>
-          </article>
-        </div>
-      </section>
+      </div>
     </section>
-  </main>
+
+    <section v-else-if="activeTab === 'orders'" class="steam-section">
+      <header>
+        <div>
+          <span>我的市场</span>
+          <h2>我的上架物品与订购单</h2>
+        </div>
+        <button type="button" :disabled="!listings.length" @click="listings[0] && openOrder(listings[0], 'SELL')">
+          <Tag :size="17" />
+          出售物品
+        </button>
+      </header>
+      <div v-if="!isPlayer" class="market-empty compact">
+        <ShieldAlert :size="30" />
+        <strong>请使用玩家账号登录</strong>
+        <span>挂单只对已认证玩家开放。</span>
+      </div>
+      <div v-else-if="!orders.length" class="market-empty compact">
+        <PackageSearch :size="30" />
+        <strong>您目前没有市场挂单</strong>
+      </div>
+      <div v-else class="steam-rows">
+        <article v-for="order in orders" :key="order.marketOrderId">
+          <div class="row-art"><Tag :size="22" /></div>
+          <div class="row-main">
+            <strong>{{ order.itemName }}</strong>
+            <span>{{ orderTypeLabel(order.orderType) }} · {{ shortId(order.marketOrderId) }}</span>
+          </div>
+          <span>{{ formatTime(order.createTime) }}</span>
+          <strong>{{ money(order.targetPrice) }}</strong>
+          <span class="status-chip">{{ statusLabel(order.status) }}</span>
+          <button
+            type="button"
+            :disabled="order.status !== 'MATCHING' || actionLoading"
+            @click="cancelSelectedOrder(order)"
+          >
+            取消
+          </button>
+        </article>
+      </div>
+      <p class="section-foot">等待撮合：{{ matchingOrders.length }} 条</p>
+    </section>
+
+    <section v-else-if="activeTab === 'trades'" class="steam-section">
+      <header>
+        <div>
+          <span>社区市场</span>
+          <h2>最近成交记录</h2>
+        </div>
+      </header>
+      <div v-if="!trades.length" class="market-empty compact">
+        <History :size="30" />
+        <strong>暂无成交记录</strong>
+      </div>
+      <div v-else class="steam-rows trade-rows">
+        <article v-for="trade in trades" :key="trade.tradeId">
+          <div class="row-art"><History :size="22" /></div>
+          <div class="row-main">
+            <strong>{{ trade.itemName }}</strong>
+            <span>{{ shortId(trade.tradeId) }} · {{ trade.itemId }}</span>
+          </div>
+          <span>{{ trade.sellerId }} → {{ trade.buyerId }}</span>
+          <strong>{{ money(trade.tradePrice) }}</strong>
+          <time>{{ formatTime(trade.tradeTime) }}</time>
+        </article>
+      </div>
+    </section>
+
+    <section v-else class="steam-section">
+      <header>
+        <div>
+          <span>库存账本</span>
+          <h2>物品流转记录</h2>
+        </div>
+        <form class="transfer-search" @submit.prevent="loadTransfers">
+          <input v-model="transferItemId" placeholder="输入物品编号" />
+          <button type="submit" :disabled="actionLoading">
+            <Search :size="17" />
+            查询
+          </button>
+        </form>
+      </header>
+      <div v-if="!transfers.length" class="market-empty compact">
+        <ArrowRightLeft :size="30" />
+        <strong>输入物品编号查询流转记录</strong>
+      </div>
+      <div v-else class="steam-rows transfer-rows">
+        <article v-for="transfer in transfers" :key="transfer.transferId">
+          <div class="row-art"><ArrowRightLeft :size="22" /></div>
+          <div class="row-main">
+            <strong>{{ transfer.itemName }}</strong>
+            <span>{{ transfer.transferType }}</span>
+          </div>
+          <span>{{ transfer.fromUserId ?? 'SYSTEM' }} → {{ transfer.toUserId }}</span>
+          <time>{{ formatTime(transfer.transferTime) }}</time>
+        </article>
+      </div>
+    </section>
+
+    <div v-if="showOrderComposer && selectedListing" class="order-overlay" @click.self="showOrderComposer = false">
+      <section class="order-composer" role="dialog" aria-modal="true" aria-labelledby="order-title">
+        <header>
+          <div>
+            <span>社区市场交易</span>
+            <h2 id="order-title">{{ selectedListing.itemName }}</h2>
+          </div>
+          <button type="button" title="关闭" aria-label="关闭" @click="showOrderComposer = false">
+            <X :size="20" />
+          </button>
+        </header>
+
+        <div class="composer-body">
+          <div class="composer-item" :class="`rarity-${selectedListing.rarity.toLowerCase()}`">
+            <img
+              v-if="selectedListing.imageUrl"
+              :src="versionedImageUrl(selectedListing.imageUrl)"
+              :alt="selectedListing.itemName"
+            />
+            <span>{{ rarityLabel(selectedListing.rarity) }}</span>
+            <strong>{{ selectedListing.templateId }}</strong>
+          </div>
+
+          <form class="order-form" @submit.prevent="submitOrder">
+            <div class="segmented-control">
+              <button
+                type="button"
+                :class="{ active: orderForm.orderType === 'BUY' }"
+                @click="orderForm.orderType = 'BUY'"
+              >
+                创建求购单
+              </button>
+              <button
+                type="button"
+                :class="{ active: orderForm.orderType === 'SELL' }"
+                @click="orderForm.orderType = 'SELL'"
+              >
+                出售物品
+              </button>
+            </div>
+            <label v-if="orderForm.orderType === 'SELL'">
+              <span>库存物品编号</span>
+              <input v-model="orderForm.itemId" placeholder="例如 ITEM_CS2_002" />
+            </label>
+            <label>
+              <span>您的价格</span>
+              <input v-model.number="orderForm.targetPrice" type="number" min="0.01" step="0.01" />
+            </label>
+            <div class="price-summary">
+              <span>当前最低售价</span>
+              <strong>{{ money(selectedListing.lowestSellPrice) }}</strong>
+              <span>当前最高求购价</span>
+              <strong>{{ money(selectedListing.highestBuyPrice) }}</strong>
+            </div>
+            <p v-if="!isPlayer" class="login-note">请先登录玩家账号后再提交交易。</p>
+            <div class="composer-actions">
+              <button class="match-button" type="button" :disabled="actionLoading || !isPlayer" @click="submitMatch">
+                <ArrowRightLeft :size="17" />
+                撮合测试
+              </button>
+              <button class="submit-button" type="submit" :disabled="actionLoading || !isPlayer">
+                <ShoppingCart :size="17" />
+                {{ actionLoading ? '处理中...' : orderTypeLabel(orderForm.orderType) }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.market-shell,
-.market-workspace,
-.market-panel,
-.side-panel {
+.community-market {
   display: grid;
-  gap: 1rem;
+  gap: 18px;
+  color: #d6d7d8;
 }
 
-.market-top,
-.market-toolbar,
-.market-tabs,
-.lookup {
-  display: flex;
+.market-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 520px);
   align-items: center;
-  gap: 0.75rem;
+  gap: 32px;
+  min-height: 124px;
+  padding: 26px 32px;
+  border: 1px solid rgba(104, 134, 122, 0.35);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(65, 94, 82, 0.82), rgba(43, 54, 63, 0.96)),
+    #29333c;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
 }
 
-.market-top {
-  justify-content: space-between;
-}
-
-.market-top h1,
-.market-top p,
-.market-panel h2,
-.item-card h3,
-.item-card p,
-.micro {
-  margin: 0;
-}
-
-.market-toolbar {
-  justify-content: flex-end;
+.hero-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-.market-toolbar span {
-  color: var(--steam-muted);
+.hero-copy h1,
+.hero-copy p {
+  margin: 0;
 }
 
-.market-tabs button {
-  border: 1px solid var(--steam-border);
-  border-radius: 4px;
-  padding: 0.48rem 0.8rem;
-  color: var(--steam-text);
-  background: rgba(22, 32, 45, 0.9);
-  cursor: pointer;
+.hero-copy h1 {
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 400;
 }
 
-.market-tabs button.active {
-  color: #07111c;
-  background: var(--steam-blue);
+.hero-copy p {
+  flex-basis: 100%;
+  color: #aeb6bf;
+  font-size: 0.9rem;
 }
 
-.market-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 1rem;
-}
-
-.market-panel {
-  border: 1px solid var(--steam-border);
-  border-radius: 6px;
-  padding: 1rem;
-  background: rgba(22, 32, 45, 0.86);
-}
-
-.listing-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-.item-card {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 0.75rem;
-  border-radius: 4px;
-  padding: 0.75rem;
-  background: rgba(8, 13, 19, 0.36);
-}
-
-.item-art {
-  display: grid;
-  min-height: 76px;
-  place-items: center;
-  border-radius: 4px;
-  color: var(--steam-blue);
-  background: linear-gradient(135deg, #17202c, #26435a);
-  font-size: 0.78rem;
-  font-weight: 900;
-}
-
-.item-card p,
-.item-card span,
-.market-state,
-.micro {
-  color: var(--steam-muted);
-}
-
-.item-card span {
-  display: inline-block;
-  margin-right: 0.55rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.divider {
-  height: 1px;
-  background: var(--steam-border);
-}
-
-.market-table,
-.trade-list,
-.timeline {
-  display: grid;
-  gap: 0.55rem;
-}
-
-.table-row,
-.trade-list article,
-.timeline article {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.5rem;
-  align-items: center;
-  border-radius: 4px;
-  padding: 0.6rem;
-  background: rgba(8, 13, 19, 0.32);
-}
-
-.table-head {
-  color: var(--steam-muted);
+.steam-mark {
+  color: #fff;
+  font-size: 1.15rem;
   font-weight: 800;
 }
 
-.trade-list article {
-  grid-template-columns: 1.2fr 1fr 1.4fr 0.8fr 1fr;
+.hero-search,
+.sidebar-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  background: #171d23;
 }
 
-.timeline article {
-  grid-template-columns: 0.8fr 1.4fr 1.6fr;
+.hero-search {
+  min-height: 48px;
+  border: 1px solid #10151a;
+  padding-left: 14px;
+  color: #7d8994;
 }
 
-@media (max-width: 920px) {
-  .market-top,
-  .market-grid,
-  .listing-grid,
-  .table-row,
-  .trade-list article,
-  .timeline article {
+.hero-search input,
+.sidebar-search input {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.hero-search button,
+.account-tabs button,
+.category-list button,
+.price-button,
+.steam-section button,
+.order-composer button {
+  border: 0;
+  border-radius: 2px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.hero-search button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  background: #2d3944;
+}
+
+.account-tabs {
+  display: flex;
+  align-items: stretch;
+  min-height: 48px;
+  background: #0f1822;
+}
+
+.account-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 170px;
+  padding: 0 18px;
+  color: #8493a3;
+  background: transparent;
+}
+
+.account-tabs button:hover,
+.account-tabs button.active {
+  color: #fff;
+  background: linear-gradient(180deg, #6f943c, #4e702a);
+}
+
+.account-tabs .refresh-button {
+  min-width: 0;
+  margin-left: auto;
+  color: #aeb6bf;
+}
+
+.account-tabs .refresh-button:hover {
+  color: #fff;
+  background: #263747;
+}
+
+.message-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.market-message {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 12px 16px;
+  border-left: 3px solid currentColor;
+  background: #17212c;
+}
+
+.market-message.error {
+  color: #ff8d8d;
+}
+
+.market-message.success {
+  color: #9bcf62;
+}
+
+.browse-layout {
+  display: grid;
+  grid-template-columns: 278px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  padding-top: 18px;
+}
+
+.filter-sidebar {
+  display: grid;
+  gap: 12px;
+}
+
+.filter-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 0 14px;
+  background: #303b49;
+}
+
+.filter-heading div {
+  display: grid;
+  gap: 2px;
+}
+
+.filter-heading span {
+  color: #8c98a5;
+  font-size: 0.75rem;
+}
+
+.filter-heading strong {
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.sidebar-search {
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 42px;
+  padding-left: 12px;
+  color: #8e9aa6;
+  background: #3a4555;
+}
+
+.check-row {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 9px;
+  padding: 3px 4px 7px;
+  color: #8f99a5;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.check-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: #6c9139;
+}
+
+.category-list {
+  display: grid;
+  gap: 8px;
+}
+
+.category-list button {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 7px 12px;
+  color: #d5d9dd;
+  text-align: left;
+  background: linear-gradient(90deg, #2e3b47, #343a43);
+}
+
+.category-list button:hover,
+.category-list button.active {
+  color: #fff;
+  background: linear-gradient(90deg, #3f5865, #36404b);
+  box-shadow: inset 3px 0 #66c0f4;
+}
+
+.category-list small {
+  color: #929da8;
+}
+
+.category-art {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: #d7e9f4;
+  background: #1b2731;
+  font-weight: 800;
+}
+
+.market-security {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 14px;
+  color: #87929d;
+  background: #111a23;
+}
+
+.market-security p {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.market-results {
+  min-width: 0;
+}
+
+.result-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.result-toolbar p,
+.result-toolbar span {
+  margin: 0;
+}
+
+.result-toolbar p {
+  color: #9ca6b1;
+}
+
+.result-toolbar > div > span {
+  color: #687685;
+  font-size: 0.78rem;
+}
+
+.result-toolbar label {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 9px;
+  color: #87939f;
+  font-weight: 400;
+}
+
+.result-toolbar select {
+  width: 178px;
+  border: 0;
+  border-radius: 2px;
+  background: #3a4555;
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.market-item {
+  position: relative;
+  min-width: 0;
+  border: 1px solid #56616d;
+  background:
+    linear-gradient(180deg, rgba(96, 106, 119, 0.28), transparent 18%),
+    #1f2630;
+}
+
+.market-item::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  content: "";
+  background: #7692a7;
+}
+
+.market-item.rarity-uncommon::before {
+  background: #5e98d9;
+}
+
+.market-item.rarity-rare::before {
+  background: #4b69ff;
+}
+
+.market-item.rarity-epic::before {
+  background: #8847ff;
+}
+
+.market-item.rarity-legendary::before {
+  background: #d32ce6;
+}
+
+.item-main {
+  display: grid;
+  width: 100%;
+  padding: 14px 14px 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+}
+
+.item-meta {
+  min-height: 55px;
+}
+
+.item-meta span {
+  color: #8f99a3;
+  font-size: 0.75rem;
+}
+
+.item-meta h2 {
+  margin: 1px 0 0;
+  overflow: hidden;
+  color: #f2f2f2;
+  font-size: 0.98rem;
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-image {
+  display: grid;
+  height: 170px;
+  place-items: center;
+  padding: 8px;
+  color: #556474;
+}
+
+.item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 12px rgba(0, 0, 0, 0.42));
+  transition: transform 0.18s ease;
+}
+
+.market-item:hover .item-image img {
+  transform: scale(1.045);
+}
+
+.item-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 42px;
+  color: #8f989f;
+  font-size: 0.73rem;
+}
+
+.price-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: calc(100% - 28px);
+  min-height: 42px;
+  margin: 0 14px 14px;
+  color: #d7dce1;
+  background: #3a4555;
+}
+
+.price-button span {
+  color: #9aa4ad;
+  font-size: 0.74rem;
+}
+
+.price-button:hover {
+  color: #fff;
+  background: linear-gradient(180deg, #79a83b, #567b2a);
+}
+
+.market-empty {
+  display: grid;
+  min-height: 320px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  color: #778593;
+  background: rgba(17, 26, 35, 0.72);
+}
+
+.market-empty span {
+  font-size: 0.85rem;
+}
+
+.market-empty.compact {
+  min-height: 190px;
+}
+
+.steam-section {
+  overflow: hidden;
+  border: 1px solid #293745;
+  background: #15202b;
+}
+
+.steam-section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 90px;
+  padding: 18px 22px;
+  background: linear-gradient(90deg, #213548, #18232f);
+}
+
+.steam-section header span,
+.steam-section header h2 {
+  margin: 0;
+}
+
+.steam-section header span {
+  color: #7890a4;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.steam-section header h2 {
+  font-size: 1.25rem;
+}
+
+.steam-section header button,
+.transfer-search button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  color: #fff;
+  background: linear-gradient(180deg, #72a238, #4d7226);
+}
+
+.steam-rows {
+  display: grid;
+}
+
+.steam-rows article {
+  display: grid;
+  grid-template-columns: 48px minmax(220px, 1.7fr) minmax(150px, 1fr) 110px 110px 80px;
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  padding: 10px 18px;
+  border-bottom: 1px solid #293745;
+  color: #aeb8c2;
+}
+
+.steam-rows article:hover {
+  background: #1d2c3a;
+}
+
+.steam-rows article > button {
+  min-height: 32px;
+  background: #334455;
+}
+
+.row-art {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  color: #66c0f4;
+  background: #101923;
+}
+
+.row-main {
+  display: grid;
+  gap: 3px;
+}
+
+.row-main strong {
+  color: #fff;
+}
+
+.row-main span,
+.steam-rows time {
+  color: #758493;
+  font-size: 0.78rem;
+}
+
+.status-chip {
+  color: #b5d98d;
+}
+
+.trade-rows article {
+  grid-template-columns: 48px minmax(220px, 1.7fr) minmax(180px, 1fr) 100px 170px;
+}
+
+.transfer-rows article {
+  grid-template-columns: 48px minmax(220px, 1.7fr) minmax(240px, 1fr) 180px;
+}
+
+.section-foot {
+  margin: 0;
+  padding: 12px 18px;
+  color: #778593;
+  font-size: 0.8rem;
+  background: #111923;
+}
+
+.transfer-search {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) auto;
+  gap: 8px;
+}
+
+.order-overlay {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 8, 12, 0.78);
+  backdrop-filter: blur(5px);
+}
+
+.order-composer {
+  width: min(760px, 100%);
+  border: 1px solid #56616d;
+  background: #202a35;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.55);
+}
+
+.order-composer > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  background: linear-gradient(90deg, #314654, #202b36);
+}
+
+.order-composer header span {
+  color: #8e9aa6;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.order-composer header h2 {
+  margin: 2px 0 0;
+  font-size: 1.2rem;
+}
+
+.order-composer header button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  background: #17212b;
+}
+
+.composer-body {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.composer-item {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  min-height: 360px;
+  padding: 24px;
+  background: #171f29;
+}
+
+.composer-item img {
+  width: 100%;
+  height: 190px;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 14px rgba(0, 0, 0, 0.42));
+}
+
+.composer-item span {
+  color: #9b6cff;
+  font-size: 0.78rem;
+}
+
+.composer-item strong {
+  overflow-wrap: anywhere;
+  color: #8190a0;
+  font-size: 0.75rem;
+}
+
+.order-form {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 24px;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #151d26;
+}
+
+.segmented-control button {
+  min-height: 42px;
+  color: #8e99a4;
+  background: transparent;
+}
+
+.segmented-control button.active {
+  color: #fff;
+  background: #3a4a59;
+  box-shadow: inset 0 -3px #75a43b;
+}
+
+.order-form label span {
+  color: #9ca7b2;
+  font-size: 0.8rem;
+}
+
+.price-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 13px;
+  color: #8e9aa6;
+  background: #17212b;
+}
+
+.price-summary strong {
+  color: #fff;
+}
+
+.login-note {
+  margin: 0;
+  color: #e6b45c;
+  font-size: 0.82rem;
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.composer-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 15px;
+}
+
+.match-button {
+  background: #344454;
+}
+
+.submit-button {
+  color: #fff;
+  background: linear-gradient(180deg, #78a83b, #52782a);
+}
+
+.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1180px) {
+  .item-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+}
+
+@media (max-width: 900px) {
+  .market-hero,
+  .browse-layout,
+  .composer-body {
     grid-template-columns: 1fr;
   }
 
-  .market-top {
-    align-items: start;
+  .account-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .account-tabs button {
+    min-width: 0;
+    min-height: 52px;
+    padding: 8px 10px;
+  }
+
+  .account-tabs .refresh-button {
+    grid-column: 1 / -1;
+    margin-left: 0;
+  }
+
+  .filter-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-heading,
+  .sidebar-search,
+  .check-row,
+  .market-security {
+    grid-column: 1 / -1;
+  }
+
+  .category-list {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .item-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+
+  .steam-rows article,
+  .trade-rows article,
+  .transfer-rows article {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .steam-rows article > :not(.row-art, .row-main) {
+    grid-column: 2;
+  }
+
+  .composer-item {
+    min-height: 220px;
+  }
+}
+
+@media (max-width: 600px) {
+  .market-hero {
+    padding: 20px;
+  }
+
+  .hero-copy h1 {
+    font-size: 1.5rem;
+  }
+
+  .result-toolbar,
+  .steam-section > header {
+    align-items: stretch;
     flex-direction: column;
   }
 
-  .market-tabs,
-  .lookup {
-    flex-wrap: wrap;
+  .filter-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .category-list,
+  .item-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .item-image {
+    height: 210px;
+  }
+
+  .transfer-search {
+    grid-template-columns: 1fr;
+  }
+
+  .order-overlay {
+    align-items: end;
+    padding: 0;
+  }
+
+  .order-composer {
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+
+  .composer-actions {
+    flex-direction: column;
+  }
+
+  .composer-actions button {
+    justify-content: center;
   }
 }
 </style>
