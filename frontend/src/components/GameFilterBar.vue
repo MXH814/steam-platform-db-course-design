@@ -12,6 +12,29 @@
       <button type="submit" aria-label="搜索">⌕</button>
     </form>
 
+    <div class="filter-controls" aria-label="游戏筛选条件">
+      <label>
+        <span>类型</span>
+        <select v-model="draft.priceFilter" @change="emitChange">
+          <option value="all">全部</option>
+          <option value="free">免费</option>
+          <option value="paid">买断制</option>
+          <option value="discount">折扣中</option>
+          <option value="market">支持市场</option>
+          <option value="packages">有内容包</option>
+        </select>
+      </label>
+
+      <label>
+        <span>排序</span>
+        <select v-model="draft.sort" @change="emitChange">
+          <option value="default">推荐</option>
+          <option value="price">价格</option>
+          <option value="releaseDate">发行时间</option>
+          <option value="reputation">口碑</option>
+        </select>
+      </label>
+    </div>
   </section>
 </template>
 
@@ -39,7 +62,10 @@ const emit = defineEmits<{
 const route = useRoute();
 const navItems: NavItem[] = [
   { label: '浏览', section: 'store', to: { name: 'store' }, hasChildren: true },
-  { label: '特别栏目', section: 'specials', to: { name: 'store-collection' }, hasChildren: true }
+  { label: '推荐', section: 'recommend', to: { name: 'store-section', params: { section: 'recommend' } }, hasChildren: true },
+  { label: '类别', section: 'categories', to: { name: 'store-section', params: { section: 'categories' } }, hasChildren: true },
+  { label: '畅玩方式', section: 'playstyles', to: { name: 'store-section', params: { section: 'playstyles' } }, hasChildren: true },
+  { label: '特别栏目', section: 'specials', to: { name: 'store-section', params: { section: 'specials' } }, hasChildren: true }
 ];
 const draft = reactive<GameQuery>({ ...props.modelValue });
 let timer: number | undefined;
@@ -72,7 +98,7 @@ function queueChange() {
 <style scoped>
 .filter-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 640px);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 640px) auto;
   gap: 0.8rem;
   align-items: center;
   border: 1px solid rgba(102, 192, 244, 0.08);
@@ -81,12 +107,14 @@ function queueChange() {
 }
 
 .filter-links,
-.search-box {
+.search-box,
+.filter-controls {
   display: flex;
   align-items: center;
 }
 
-.filter-links {
+.filter-links,
+.filter-controls {
   gap: 0.75rem;
   flex-wrap: wrap;
 }
@@ -144,16 +172,35 @@ function queueChange() {
   font-weight: 900;
 }
 
+.filter-controls label {
+  display: grid;
+  gap: 0.24rem;
+}
+
+.filter-controls span {
+  color: var(--steam-muted);
+  font-size: 0.72rem;
+}
+
+.filter-controls select {
+  min-width: 136px;
+  height: 42px;
+  border: 1px solid rgba(151, 170, 195, 0.24);
+  border-radius: 4px;
+  color: var(--steam-text);
+  background: #0d1118;
+  font-weight: 800;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .filter-links a {
     transition: none;
   }
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1180px) {
   .filter-bar {
     grid-template-columns: 1fr;
   }
-
 }
 </style>

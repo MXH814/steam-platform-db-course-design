@@ -36,7 +36,7 @@
         <div v-if="games.length" class="game-grid">
           <GameCard v-for="game in games" :key="game.gameId" :game="game" />
         </div>
-        <PageState v-else kind="empty" title="当前栏目暂无游戏" message="特别栏目只保留免费和折扣区分，后续接入更多 GAME 数据后自动填充。" />
+        <PageState v-else kind="empty" title="当前栏目暂无游戏" message="换一个栏目、搜索词或筛选条件再试。" />
       </section>
     </template>
   </div>
@@ -45,8 +45,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { getApiError } from '../api/http';
 import { getGames } from '../api/games';
+import { getApiError } from '../api/http';
 import type { GameListItem, GameQuery } from '../api/types';
 import GameCard from '../components/GameCard.vue';
 import GameFilterBar from '../components/GameFilterBar.vue';
@@ -69,17 +69,55 @@ const isFallback = ref(false);
 const fallbackMessage = ref('');
 let retryTimer: number | undefined;
 
-const specialLinks: CollectionLink[] = [
-  { slug: 'discount', title: '折扣中', summary: '只显示买断制折扣游戏。', to: '/store/specials/discount', queryPatch: { priceFilter: 'discount' } },
-  { slug: 'free', title: '免费入库', summary: '只显示免费游戏。', to: '/store/specials/free', queryPatch: { priceFilter: 'free' } }
-];
+const collectionGroups: Record<string, CollectionLink[]> = {
+  recommend: [
+    { slug: 'featured', title: '精选推荐', summary: '按默认推荐顺序展示主演示游戏。', to: '/store/recommend/featured', queryPatch: { sort: 'default' } },
+    { slug: 'new', title: '最新发行', summary: '按发行时间查看游戏。', to: '/store/recommend/new', queryPatch: { sort: 'releaseDate' } },
+    { slug: 'reputation', title: '高口碑', summary: '按玩家口碑排序。', to: '/store/recommend/reputation', queryPatch: { sort: 'reputation' } }
+  ],
+  categories: [
+    { slug: 'competitive', title: '多人竞技', summary: '包含 CS2 竞技、市场与库存样板。', to: '/store/categories/competitive', queryPatch: { tag: '多人竞技' } },
+    { slug: 'survival', title: '生存合作', summary: '包含 DST 联机生存和内容包样板。', to: '/store/categories/survival', queryPatch: { tag: '生存' } },
+    { slug: 'market', title: '饰品市场', summary: '支持市场入口的游戏。', to: '/store/categories/market', queryPatch: { priceFilter: 'market' } },
+    { slug: 'packages', title: '内容包', summary: '带 DLC、皮肤箱或礼包的游戏。', to: '/store/categories/packages', queryPatch: { priceFilter: 'packages' } }
+  ],
+  playstyles: [
+    { slug: 'free-to-play', title: '免费开玩', summary: '可免费入库的游戏。', to: '/store/playstyles/free-to-play', queryPatch: { priceFilter: 'free' } },
+    { slug: 'premium', title: '买断制', summary: '一次购买进入游戏库的游戏。', to: '/store/playstyles/premium', queryPatch: { priceFilter: 'paid' } },
+    { slug: 'market-enabled', title: '支持市场', summary: '带库存、市场或饰品经济入口。', to: '/store/playstyles/market-enabled', queryPatch: { priceFilter: 'market' } },
+    { slug: 'content-packages', title: '有内容包', summary: '展示 DLC、皮肤箱或礼包。', to: '/store/playstyles/content-packages', queryPatch: { priceFilter: 'packages' } }
+  ],
+  specials: [
+    { slug: 'discount', title: '折扣中', summary: '只显示买断制折扣游戏。', to: '/store/specials/discount', queryPatch: { priceFilter: 'discount' } },
+    { slug: 'free', title: '免费入库', summary: '只显示免费游戏。', to: '/store/specials/free', queryPatch: { priceFilter: 'free' } }
+  ]
+};
+
+const sectionMeta: Record<string, { title: string; description: string }> = {
+  recommend: {
+    title: '推荐',
+    description: '保留 Steam 风格推荐栏目，用排序和口碑展示支撑商店浏览。'
+  },
+  categories: {
+    title: '类别',
+    description: '按项目已有标签和样板能力组织分类入口，不新增 README 范围外的复杂业务。'
+  },
+  playstyles: {
+    title: '畅玩方式',
+    description: '按免费、买断制、支持市场、有内容包等方式浏览游戏。'
+  },
+  specials: {
+    title: '特别栏目',
+    description: '聚合折扣中和免费入库等答辩演示需要的入口。'
+  }
+};
 
 const section = computed(() => String(route.params.section || 'specials'));
 const collectionId = computed(() => String(route.params.collectionId || ''));
-const availableCollections = computed(() => specialLinks);
+const availableCollections = computed(() => collectionGroups[section.value] || collectionGroups.specials);
 const activeCollection = computed(() => availableCollections.value.find((item) => item.slug === collectionId.value));
-const pageTitle = computed(() => '特别栏目');
-const pageDescription = computed(() => '这里不再维护复杂分类，只保留折扣中和免费入库两个验收需要的入口。');
+const pageTitle = computed(() => sectionMeta[section.value]?.title || sectionMeta.specials.title);
+const pageDescription = computed(() => sectionMeta[section.value]?.description || sectionMeta.specials.description);
 
 async function loadGames(options: { silent?: boolean } = {}) {
   if (!options.silent) loading.value = true;

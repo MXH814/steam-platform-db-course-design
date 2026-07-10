@@ -272,11 +272,11 @@ function normalizeDetail(raw: BackendGame | GameListItem): GameDetail {
   };
 }
 
-function applyLocalFilters(items: GameListItem[], query?: GameQuery): GameListItem[] {
+function applyLocalFilters(items: GameListItem[], query?: GameQuery, options: { includeKeyword?: boolean } = { includeKeyword: true }): GameListItem[] {
   let result = [...items];
   const keyword = (query?.keyword || query?.search || '').trim().toLowerCase();
 
-  if (keyword) {
+  if (options.includeKeyword !== false && keyword) {
     result = result.filter((game) =>
       [game.gameName, game.shortName, game.developerName, ...game.tags].some((text) => text.toLowerCase().includes(keyword))
     );
@@ -327,19 +327,29 @@ function hasLocalFilter(query?: GameQuery): boolean {
   );
 }
 
+function hasClientOnlyFilter(query?: GameQuery): boolean {
+  return Boolean(
+    (query?.priceFilter && query.priceFilter !== 'all') ||
+    query?.tag ||
+    (query?.sort && query.sort !== 'default')
+  );
+}
+
 export async function getGames(query?: GameQuery): Promise<FallbackAwarePagedResult<GameListItem>> {
   try {
     const response = await http.get<ApiEnvelope<PagedResult<BackendGame>>>('/api/games', {
       params: {
+        keyword: query?.keyword || query?.search || undefined,
         status: query?.status,
         page: query?.page || 1,
         pageSize: query?.pageSize || 50
       }
     });
     const page = unwrap(response.data);
-    const items = applyLocalFilters(page.items.map(normalizeGame), query);
+    const normalizedItems = page.items.map(normalizeGame);
+    const items = applyLocalFilters(normalizedItems, query, { includeKeyword: false });
     const demoMatches = applyLocalFilters(demoGames, query);
-    if (!items.length && hasLocalFilter(query) && demoMatches.length) {
+    if (!items.length && hasLocalFilter(query) && demoMatches.length && !page.total) {
       return {
         ...page,
         items: demoMatches,
@@ -352,6 +362,7 @@ export async function getGames(query?: GameQuery): Promise<FallbackAwarePagedRes
     return {
       ...page,
       items,
+      total: hasClientOnlyFilter(query) ? items.length : page.total,
       source: 'api'
     };
   } catch (error) {

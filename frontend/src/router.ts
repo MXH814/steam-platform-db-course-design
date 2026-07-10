@@ -26,10 +26,8 @@ export const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomeView },
     { path: '/store', name: 'store', component: StoreView },
-    { path: '/store/specials', name: 'store-collection', component: StoreCollectionView },
-    { path: '/store/specials/:collectionId', name: 'store-collection-detail', component: StoreCollectionView },
-    { path: '/store/:section(recommend|categories|playstyles)', redirect: '/store/specials' },
-    { path: '/store/:section(recommend|categories|playstyles)/:collectionId', redirect: '/store/specials' },
+    { path: '/store/:section(recommend|categories|playstyles|specials)', name: 'store-section', component: StoreCollectionView },
+    { path: '/store/:section(recommend|categories|playstyles|specials)/:collectionId', name: 'store-collection-detail', component: StoreCollectionView },
     { path: '/games/:gameId', name: 'game-detail', component: GameDetailView },
     { path: '/games/:gameId/store', name: 'game-store', redirect: (to) => ({ name: 'game-detail', params: { gameId: to.params.gameId } }) },
     { path: '/games/:gameId/community', name: 'game-community', component: GameCommunityView },
