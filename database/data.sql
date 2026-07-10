@@ -1,4 +1,4 @@
-﻿SET DEFINE OFF
+SET DEFINE OFF
 
 PROMPT Inserting Steam course seed data...
 
