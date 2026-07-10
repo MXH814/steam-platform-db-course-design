@@ -25,7 +25,13 @@
       </div>
     </header>
 
-    <main class="page" :class="{ 'page-wide': route.name === 'inventory' }">
+    <main
+      class="page"
+      :class="{
+        'page-wide': route.name === 'inventory',
+        'page-library': route.name === 'library' || route.name === 'game-library'
+      }"
+    >
       <RouterView />
     </main>
   </div>
