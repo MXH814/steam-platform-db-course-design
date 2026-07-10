@@ -1476,6 +1476,11 @@ Group D 与其他组的边界：
 - 表结构变更必须先改 `database/schema.sql`。
 - 初始化数据变更必须改 `database/data.sql`。
 - 验收逻辑变更必须改 `database/verify_phase1.sql`。
+- 已部署数据库的增量变更必须放入 `database/migrations/`，文件名使用 `YYYYMMDD_说明.sql`，并设计为可重复检查、尽量幂等。
+- 数据库迁移随普通组员 PR 一起审查；只有在 SQL 非破坏性、事务与约束处理正确、兼容当前 Oracle Schema，并通过可行测试后才能批准。
+- 需要该迁移才能完成联调的 PR 在批准并合并后，由总负责人或其授权的 Codex 部署到腾讯云 Oracle，并核对 SQL 结果、关键业务数据和公网 API。
+- `database/admin/` 只存放人工管理、修复或清理脚本，不随普通迁移自动执行；需要执行时必须单独确认目的和影响范围。
+- 迁移执行失败必须回滚或停止后续部署，不得在未验收的情况下宣称数据库已更新。
 - 不允许绕过 README 决策恢复 `PLAYER.wallet_balance`。
 - 新增表必须有主键。
 - 关键外键必须写约束。
@@ -1742,6 +1747,7 @@ Phase 1 database verification passed
 - 已在腾讯云服务器 Oracle 环境完成数据库部署和基础验收。
 - 已从公网访问 API，确认应用服务器可连接云端 Oracle。
 - 2026-07-08 已执行 `database/migrations/20260708_developer_login_backend_completion.sql`，并将后端补全版本部署到云端。
+- 2026-07-10 已执行 `database/migrations/20260709_cs2_item_template_image_assets.sql`：云端 CS2 饰品模板为 27 条且图片资源全部可访问，DST 模板图片路径已按设计清空；库存、挂单和成交数据均保留。
 
 ## 22. 当前决策记录
 
