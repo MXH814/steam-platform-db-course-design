@@ -4,19 +4,17 @@
 
     <main class="game-library-page" :style="heroStyle">
       <header class="game-hero">
-        <div class="hero-spacer" />
-
         <section class="game-command-bar">
           <button class="play-button" type="button" :disabled="playing || !ownedEntry" @click="playGame">
             <Play :size="25" fill="currentColor" />
-            <span>{{ playing ? '记录中...' : '开始游戏' }}</span>
+            <span>{{ playing ? '记录中...' : ownedEntry ? '开始游戏' : '尚未入库' }}</span>
           </button>
           <button class="play-menu" type="button" title="启动选项" aria-label="启动选项">
             <ChevronDown :size="18" />
           </button>
 
           <div class="game-identity">
-            <img :src="game.coverImage" alt="" />
+            <img :src="game.coverImage" :alt="game.title" />
             <div>
               <strong>{{ game.title }}</strong>
               <span>{{ ownedEntry ? '已在库中' : '尚未入库' }}</span>
@@ -39,20 +37,27 @@
           </dl>
 
           <div class="command-tools">
-            <button type="button" title="设置" aria-label="设置"><Settings :size="19" /></button>
-            <button type="button" title="游戏信息" aria-label="游戏信息"><Info :size="19" /></button>
-            <button type="button" title="收藏" aria-label="收藏"><Heart :size="20" fill="currentColor" /></button>
+            <button type="button" title="设置" aria-label="设置">
+              <Settings :size="19" />
+            </button>
+            <RouterLink :to="{ name: 'game-detail', params: { gameId } }" title="商店页面" aria-label="商店页面">
+              <Info :size="19" />
+            </RouterLink>
+            <RouterLink :to="{ name: 'game-community', params: { gameId } }" title="社区中心" aria-label="社区中心">
+              <Heart :size="20" fill="currentColor" />
+            </RouterLink>
           </div>
         </section>
 
         <nav class="game-subnav" aria-label="游戏库功能">
           <RouterLink :to="{ name: 'game-detail', params: { gameId } }">商店页面</RouterLink>
-          <RouterLink v-if="isDst" :to="{ name: 'game-detail', params: { gameId }, hash: '#packages' }">DLC</RouterLink>
           <RouterLink :to="{ name: 'game-community', params: { gameId } }">社区中心</RouterLink>
-          <RouterLink :to="{ name: 'game-community', params: { gameId } }">讨论区</RouterLink>
-          <RouterLink :to="{ name: 'game-community', params: { gameId }, query: { tab: 'achievements' } }">指南</RouterLink>
+          <RouterLink :to="{ name: 'game-community', params: { gameId }, query: { tab: 'achievements' } }">我的成就</RouterLink>
           <RouterLink v-if="isCs2" :to="{ name: 'inventory', query: { gameId } }">库存</RouterLink>
           <RouterLink v-if="isCs2" :to="{ name: 'market', query: { gameId } }">市场</RouterLink>
+          <RouterLink v-if="isCs2" :to="{ name: 'game-community', params: { gameId }, query: { section: 'workshop' } }">创意工坊</RouterLink>
+          <RouterLink v-if="isDst" :to="{ name: 'game-detail', params: { gameId }, hash: '#packages' }">DLC / 礼包</RouterLink>
+          <RouterLink v-if="isDst" :to="{ name: 'game-community', params: { gameId }, query: { section: 'workshop' } }">创意工坊</RouterLink>
         </nav>
       </header>
 
@@ -70,10 +75,35 @@
             </div>
           </article>
 
+          <section class="owned-data-panel">
+            <header>
+              <h2>我的游戏数据</h2>
+              <RouterLink :to="{ name: 'game-detail', params: { gameId } }">查看商店详情</RouterLink>
+            </header>
+            <dl>
+              <div>
+                <dt>总游玩时长</dt>
+                <dd>{{ minutesText(ownedEntry?.playMinutes || 0) }}</dd>
+              </div>
+              <div>
+                <dt>最近游玩</dt>
+                <dd>{{ fullDate(ownedEntry?.lastPlayTime) }}</dd>
+              </div>
+              <div>
+                <dt>入库方式</dt>
+                <dd>{{ ownedEntry?.acquireWay || '未入库' }}</dd>
+              </div>
+              <div>
+                <dt>库状态</dt>
+                <dd>{{ ownedEntry?.status || '等待入库' }}</dd>
+              </div>
+            </dl>
+          </section>
+
           <section class="activity-composer">
             <h2>动态</h2>
             <RouterLink :to="{ name: 'game-community', params: { gameId } }">
-              将此游戏介绍给您的好友...
+              将此游戏介绍给你的好友...
               <MessageSquare :size="16" />
             </RouterLink>
           </section>
@@ -81,7 +111,9 @@
           <article v-for="update in game.updates" :key="update.title" class="timeline-update">
             <time>{{ update.date }}</time>
             <div>
-              <span class="update-icon"><Wrench :size="29" /></span>
+              <span class="update-icon">
+                <Wrench :size="29" />
+              </span>
               <section>
                 <small>{{ update.type }}</small>
                 <h2>{{ update.title }}</h2>
@@ -113,12 +145,13 @@
 
           <section class="sidebar-section achievements-panel">
             <div class="sidebar-heading">
-              <h2>成就</h2>
-              <RouterLink :to="{ name: 'game-community', params: { gameId } }">查看全部</RouterLink>
+              <h2>我的成就</h2>
+              <RouterLink :to="{ name: 'game-community', params: { gameId }, query: { tab: 'achievements' } }">查看全部</RouterLink>
             </div>
             <p>已解锁 {{ unlockedCount }}/{{ achievements.length }}（{{ achievementPercent }}%）</p>
             <div class="achievement-progress"><i :style="{ width: achievementPercent + '%' }" /></div>
             <div v-if="loading" class="sidebar-state">正在加载...</div>
+            <div v-else-if="!achievements.length" class="sidebar-state">暂无成就数据</div>
             <div v-else class="achievement-row">
               <span
                 v-for="achievement in achievementPreview"
@@ -132,10 +165,21 @@
           </section>
 
           <section class="sidebar-section links-panel">
-            <RouterLink v-if="isCs2" :to="{ name: 'inventory', query: { gameId } }"><Boxes :size="16" /> 我的库存</RouterLink>
-            <RouterLink v-if="isCs2" :to="{ name: 'market', query: { gameId } }"><ShoppingCart :size="16" /> 饰品市场</RouterLink>
-            <RouterLink :to="{ name: 'game-detail', params: { gameId } }"><ExternalLink :size="16" /> 商店页面</RouterLink>
-            <RouterLink :to="{ name: 'game-community', params: { gameId } }"><Users :size="16" /> 社区中心</RouterLink>
+            <RouterLink v-if="isCs2" :to="{ name: 'inventory', query: { gameId } }">
+              <Boxes :size="16" /> 我的库存
+            </RouterLink>
+            <RouterLink v-if="isCs2" :to="{ name: 'market', query: { gameId } }">
+              <ShoppingCart :size="16" /> 饰品市场
+            </RouterLink>
+            <RouterLink v-if="isDst" :to="{ name: 'game-detail', params: { gameId }, hash: '#packages' }">
+              <PackageOpen :size="16" /> DLC / 礼包
+            </RouterLink>
+            <RouterLink :to="{ name: 'game-detail', params: { gameId } }">
+              <ExternalLink :size="16" /> 商店页面
+            </RouterLink>
+            <RouterLink :to="{ name: 'game-community', params: { gameId } }">
+              <Users :size="16" /> 社区中心
+            </RouterLink>
           </section>
         </aside>
       </section>
@@ -155,6 +199,7 @@ import {
   Info,
   MessageSquare,
   NotebookPen,
+  PackageOpen,
   Play,
   Settings,
   ShoppingCart,
@@ -169,7 +214,7 @@ import { getApiError } from '../api/http';
 import type { AchievementListItem } from '../api/types';
 import LibraryRail from '../components/LibraryRail.vue';
 import { getGameMeta } from '../data/gameCatalog';
-import { minutesText } from '../utils/format';
+import { dateTime, minutesText } from '../utils/format';
 
 const route = useRoute();
 const gameId = computed(() => String(route.params.gameId || 'GAME_DST'));
@@ -192,16 +237,20 @@ const unlockedCount = computed(() => achievements.value.filter((achievement) => 
 const achievementPercent = computed(() => achievements.value.length === 0 ? 0 : Math.round((unlockedCount.value / achievements.value.length) * 100));
 const achievementPreview = computed(() => achievements.value.slice(0, 5));
 
-watch(gameId, loadLibrary, { immediate: true });
+watch(gameId, loadLibraryDetail, { immediate: true });
 
-async function loadLibrary() {
+async function loadLibraryDetail() {
   loading.value = true;
   notice.value = '';
   noteSaved.value = false;
   noteDraft.value = localStorage.getItem(noteStorageKey()) || '';
 
   try {
-    library.value = await getLibrary();
+    const libraryRows = await getLibrary();
+    library.value = libraryRows;
+    if (!libraryRows.some((entry) => entry.gameId === gameId.value)) {
+      notice.value = '当前账号暂未确认拥有此游戏。请返回商店详情查看购买或入库入口。';
+    }
   } catch (error) {
     notice.value = getApiError(error);
   }
@@ -237,6 +286,10 @@ function compactDate(value?: string | null) {
   return new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric' }).format(new Date(value));
 }
 
+function fullDate(value?: string | null) {
+  return value ? dateTime(value) : '暂无记录';
+}
+
 function noteStorageKey() {
   return `steam-platform-library-note:${gameId.value}`;
 }
@@ -269,10 +322,6 @@ function saveNote() {
   padding-top: 318px;
 }
 
-.hero-spacer {
-  display: none;
-}
-
 .game-command-bar {
   display: grid;
   grid-template-columns: 190px 34px minmax(180px, 1fr) auto auto;
@@ -299,6 +348,7 @@ function saveNote() {
   justify-content: center;
   margin-left: 8px;
   font-size: 1.08rem;
+  font-weight: 800;
 }
 
 .play-menu {
@@ -309,6 +359,7 @@ function saveNote() {
 }
 
 .play-button:disabled {
+  cursor: not-allowed;
   filter: grayscale(0.8);
 }
 
@@ -360,7 +411,6 @@ function saveNote() {
   gap: 5px;
   align-items: center;
   margin: 0;
-  text-transform: none;
   white-space: nowrap;
 }
 
@@ -372,6 +422,7 @@ function saveNote() {
 .play-stats dd {
   color: #b8bec8;
   font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .command-tools {
@@ -380,7 +431,8 @@ function saveNote() {
   padding-right: 9px;
 }
 
-.command-tools button {
+.command-tools button,
+.command-tools a {
   display: grid;
   width: 34px;
   height: 34px;
@@ -392,7 +444,7 @@ function saveNote() {
   cursor: pointer;
 }
 
-.command-tools button:last-child {
+.command-tools a:last-child {
   color: #66c0f4;
 }
 
@@ -410,6 +462,7 @@ function saveNote() {
   place-items: center;
   color: #8994a2;
   font-size: 0.78rem;
+  text-decoration: none;
 }
 
 .game-subnav a:hover {
@@ -466,17 +519,21 @@ function saveNote() {
   object-fit: cover;
 }
 
-.featured-copy {
+.featured-copy,
+.owned-data-panel {
   padding: 12px 14px;
 }
 
 .featured-copy small,
-.featured-copy p {
+.featured-copy p,
+.owned-data-panel dt {
   color: #8995a3;
 }
 
 .featured-copy h1,
-.featured-copy p {
+.featured-copy p,
+.owned-data-panel h2,
+.owned-data-panel dl {
   margin: 0;
 }
 
@@ -492,6 +549,51 @@ function saveNote() {
   font-size: 0.82rem;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
+}
+
+.owned-data-panel {
+  display: grid;
+  gap: 12px;
+  background: rgba(35, 44, 56, 0.86);
+}
+
+.owned-data-panel header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.owned-data-panel h2 {
+  color: #dfe4ea;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.owned-data-panel a {
+  color: #66c0f4;
+  font-size: 0.78rem;
+}
+
+.owned-data-panel dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.owned-data-panel div {
+  padding: 10px;
+  background: rgba(13, 18, 24, 0.48);
+}
+
+.owned-data-panel dd {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: #dfe4ea;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .activity-composer {
@@ -513,6 +615,7 @@ function saveNote() {
   color: #718091;
   background: rgba(18, 25, 34, 0.9);
   font-size: 0.8rem;
+  text-decoration: none;
 }
 
 .timeline-update > time {
@@ -577,7 +680,8 @@ function saveNote() {
 }
 
 .sidebar-section p,
-.sidebar-section small {
+.sidebar-section small,
+.sidebar-state {
   color: #818c99;
   font-size: 0.78rem;
 }
@@ -684,6 +788,7 @@ function saveNote() {
   color: #a7b1bd;
   background: rgba(42, 55, 69, 0.76);
   font-size: 0.8rem;
+  text-decoration: none;
 }
 
 @media (max-width: 1120px) {
@@ -751,6 +856,16 @@ function saveNote() {
 
   .featured-update img {
     max-height: 190px;
+  }
+
+  .owned-data-panel dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .owned-data-panel dl {
+    grid-template-columns: 1fr;
   }
 }
 </style>

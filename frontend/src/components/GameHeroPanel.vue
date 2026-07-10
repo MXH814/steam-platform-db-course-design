@@ -1,10 +1,11 @@
 <template>
   <section class="hero-panel">
     <div class="hero-copy">
-      <p>Steam 风格精选</p>
-      <h1>精选深度折扣</h1>
-      <span>经典中的经典，特惠加上特惠</span>
+      <p>Group B 商店演示</p>
+      <h1>CS2 免费入库与 DST 折扣买断</h1>
+      <span>首屏只突出课程设计中需要验收的两款主演示游戏。</span>
     </div>
+
     <div class="hero-games">
       <RouterLink v-for="game in featured" :key="game.gameId" class="hero-tile" :to="{ name: 'game-detail', params: { gameId: game.gameId } }">
         <div class="hero-art" :class="`tone-${game.coverTone}`">
@@ -13,8 +14,9 @@
         <GamePriceBlock :base-price="game.basePrice" :final-price="game.finalPrice" :discount-rate="game.discountRate" compact />
       </RouterLink>
     </div>
+
     <div class="hero-actions">
-      <button type="button">查看全部</button>
+      <RouterLink to="/store">查看全部</RouterLink>
       <div class="dots" aria-hidden="true">
         <span class="active"></span>
         <span></span>
@@ -33,7 +35,10 @@ const props = defineProps<{
   games: GameListItem[];
 }>();
 
-const featured = computed(() => props.games.slice(0, 2));
+const featured = computed(() => {
+  const priority = ['GAME_CS2', 'GAME_DST'];
+  return [...props.games].sort((a, b) => priority.indexOf(b.gameId) - priority.indexOf(a.gameId)).slice(0, 2);
+});
 </script>
 
 <style scoped>
@@ -75,6 +80,7 @@ const featured = computed(() => props.games.slice(0, 2));
   margin-top: 0.38rem;
   color: #c7d5e0;
   font-size: 1.05rem;
+  text-wrap: pretty;
 }
 
 .hero-games {
@@ -89,6 +95,7 @@ const featured = computed(() => props.games.slice(0, 2));
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 4px;
   background: #101822;
+  transition: border-color 160ms ease-out;
 }
 
 .hero-tile:hover {
@@ -128,15 +135,15 @@ const featured = computed(() => props.games.slice(0, 2));
   justify-items: center;
 }
 
-.hero-actions button {
+.hero-actions a {
   min-width: 112px;
-  border: 0;
   border-radius: 4px;
   padding: 0.65rem 1rem;
   color: #1b2838;
   background: #d7dadd;
   cursor: pointer;
   font-weight: 900;
+  text-align: center;
 }
 
 .dots {
@@ -153,6 +160,12 @@ const featured = computed(() => props.games.slice(0, 2));
 
 .dots .active {
   background: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-tile {
+    transition: none;
+  }
 }
 
 @media (max-width: 900px) {
