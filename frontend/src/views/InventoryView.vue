@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import {
   ArrowLeftRight,
   Boxes,
@@ -24,6 +24,7 @@ import {
   type ItemTemplate,
   type ItemTransfer
 } from '../api/inventoryApi';
+import { createOrder } from '../api/marketApi';
 import { useAuthStore } from '../stores/auth';
 
 const games: Array<{ id: InventoryGameId; label: string; shortName: string; accent: string }> = [
@@ -33,10 +34,9 @@ const games: Array<{ id: InventoryGameId; label: string; shortName: string; acce
 
 const pageSize = 25;
 
-const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
-const activeGameId = ref<InventoryGameId>(normalizeGameId(route.query.gameId));
+const activeGameId = ref<InventoryGameId>('GAME_CS2');
 const searchTerm = ref('');
 const templates = ref<ItemTemplate[]>([]);
 const inventory = ref<InventoryItem[]>([]);
@@ -50,6 +50,8 @@ const errorMessage = ref('');
 const successMessage = ref('');
 const droppedItem = ref<InventoryItem | null>(null);
 const missingImageKeys = ref<Set<string>>(new Set());
+const sellPrice = ref(50);
+const showSellDialog = ref(false);
 
 const activeGame = computed(() => games.find((game) => game.id === activeGameId.value) ?? games[0]);
 const activeTemplates = computed(() => templates.value.filter((template) => template.gameId === activeGameId.value));
@@ -86,22 +88,10 @@ const gameCounts = computed(() =>
   }, { GAME_CS2: 0, GAME_DST: 0 })
 );
 
-function normalizeGameId(value: unknown): InventoryGameId {
-  const raw = Array.isArray(value) ? value[0] : value;
-  return raw === 'GAME_DST' ? 'GAME_DST' : 'GAME_CS2';
-}
-
 watch([activeGameId, searchTerm], () => {
   currentPage.value = 1;
   selectFirstVisibleItem();
 });
-
-watch(
-  () => route.query.gameId,
-  (value) => {
-    activeGameId.value = normalizeGameId(value);
-  }
-);
 
 watch(selectedItem, async (item) => {
   transfers.value = [];
@@ -135,11 +125,6 @@ async function refreshInventory() {
 }
 
 async function simulateDrop() {
-  const confirmed = window.confirm('模拟掉落会真实写入云端数据库并新增库存记录，确定继续吗？');
-  if (!confirmed) {
-    return;
-  }
-
   actionLoading.value = true;
   errorMessage.value = '';
   successMessage.value = '';
@@ -197,18 +182,64 @@ function nextPage() {
   selectFirstVisibleItem();
 }
 
-function openSellPage() {
+function openSellDialog() {
   if (!selectedItem.value) {
     return;
   }
 
-  router.push({
-    path: '/market/orders',
-    query: {
-      itemId: selectedItem.value.itemId,
-      templateId: selectedItem.value.templateId
-    }
-  });
+  if (selectedItem.value.status !== 'NORMAL') {
+    errorMessage.value = '只有正常状态的库存物品可以出售。';
+    return;
+  }
+
+  if (!auth.isAuthenticated) {
+    errorMessage.value = '请先登录玩家账号后再出售物品。';
+    return;
+  }
+
+  errorMessage.value = '';
+  successMessage.value = '';
+  showSellDialog.value = true;
+}
+
+async function sellSelectedItem() {
+  if (!selectedItem.value) {
+    return;
+  }
+
+  if (selectedItem.value.status !== 'NORMAL') {
+    errorMessage.value = '只有正常状态的库存物品可以出售。';
+    showSellDialog.value = false;
+    return;
+  }
+
+  const targetPrice = Number(sellPrice.value);
+  if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
+    errorMessage.value = '出售价格必须大于 0。';
+    return;
+  }
+
+  actionLoading.value = true;
+  errorMessage.value = '';
+  successMessage.value = '';
+
+  try {
+    const item = selectedItem.value;
+    await createOrder({
+      orderType: 'SELL',
+      templateId: item.templateId,
+      itemId: item.itemId,
+      targetPrice
+    });
+    successMessage.value = `已为 ${item.itemName} 创建出售挂单。`;
+    showSellDialog.value = false;
+    await refreshInventory();
+    selectedItemId.value = item.itemId;
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '出售挂单创建失败';
+  } finally {
+    actionLoading.value = false;
+  }
 }
 
 function openMarket() {
@@ -232,7 +263,7 @@ function imageKey(item: Pick<InventoryItem, 'itemId' | 'templateId'>) {
 
 function versionedImageUrl(value?: string | null) {
   if (!value) return '';
-  return `${value}${value.includes('?') ? '&' : '?'}v=7787514-transparent`;
+  return `${value}${value.includes('?') ? '&' : '?'}v=7d7c765-main`;
 }
 
 function shouldShowImage(item: Pick<InventoryItem, 'itemId' | 'templateId' | 'imageUrl'>) {
@@ -419,7 +450,12 @@ function transferParty(value?: string | null) {
                   <ExternalLink :size="16" />
                   在社区市场中查看
                 </button>
-                <button class="sell-button" type="button" :disabled="selectedItem.status !== 'NORMAL'" @click="openSellPage">
+                <button
+                  class="sell-button"
+                  type="button"
+                  :disabled="selectedItem.status !== 'NORMAL' || actionLoading || !auth.isAuthenticated"
+                  @click="openSellDialog"
+                >
                   <Tag :size="16" />
                   出售
                 </button>
@@ -456,6 +492,55 @@ function transferParty(value?: string | null) {
         </section>
       </section>
     </section>
+
+    <div v-if="showSellDialog && selectedItem" class="sell-dialog-backdrop" @click.self="showSellDialog = false">
+      <section class="sell-dialog" role="dialog" aria-modal="true" aria-labelledby="sell-dialog-title">
+        <header>
+          <div>
+            <span>出售库存物品</span>
+            <h2 id="sell-dialog-title">{{ selectedItem.itemName }}</h2>
+          </div>
+          <button type="button" aria-label="关闭出售窗口" @click="showSellDialog = false">×</button>
+        </header>
+
+        <div class="sell-dialog-body">
+          <div class="sell-dialog-art" :class="rarityClass(selectedItem.rarity)">
+            <img
+              v-if="shouldShowImage(selectedItem)"
+              :src="versionedImageUrl(selectedItem.imageUrl)"
+              :alt="selectedItem.itemName"
+              @error="markImageMissing(selectedItem)"
+            />
+            <span v-else>{{ selectedItem.itemName.slice(0, 2).toUpperCase() }}</span>
+          </div>
+
+          <form class="sell-order-form" @submit.prevent="sellSelectedItem">
+            <dl>
+              <div>
+                <dt>饰品实例</dt>
+                <dd>{{ selectedItem.itemId }}</dd>
+              </div>
+              <div>
+                <dt>图案模板</dt>
+                <dd>{{ selectedItem.templateId }}</dd>
+              </div>
+            </dl>
+            <label>
+              <span>出售价格</span>
+              <input v-model.number="sellPrice" type="number" min="0.01" step="0.01" autofocus />
+            </label>
+            <div class="sell-dialog-actions">
+              <button type="button" class="cancel-button" @click="showSellDialog = false">取消</button>
+              <button class="sell-button" type="submit" :disabled="actionLoading">
+                <LoaderCircle v-if="actionLoading" class="spin" :size="16" />
+                <Tag v-else :size="16" />
+                确认出售
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
 
@@ -884,6 +969,7 @@ function transferParty(value?: string | null) {
 }
 
 .sell-button {
+  min-height: 34px;
   width: fit-content;
   color: #203000;
   background: #8bc53f;
@@ -891,6 +977,129 @@ function transferParty(value?: string | null) {
 
 .sell-button:hover {
   background: #a2d958;
+}
+
+.sell-dialog-backdrop {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 8, 13, 0.74);
+}
+
+.sell-dialog {
+  width: min(680px, 100%);
+  border: 1px solid #56616d;
+  background: #202a35;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.58);
+}
+
+.sell-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  background: linear-gradient(90deg, #314654, #202b36);
+}
+
+.sell-dialog header span {
+  color: #8e9aa6;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.sell-dialog header h2 {
+  margin: 2px 0 0;
+  color: #eef4fa;
+  font-size: 1.18rem;
+}
+
+.sell-dialog header button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  background: #17212b;
+}
+
+.sell-dialog-body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+}
+
+.sell-dialog-art {
+  display: grid;
+  min-height: 270px;
+  place-items: center;
+  padding: 20px;
+  background: #171f29;
+}
+
+.sell-dialog-art img {
+  width: 100%;
+  height: 190px;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 14px rgba(0, 0, 0, 0.42));
+}
+
+.sell-dialog-art span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 3rem;
+  font-weight: 900;
+}
+
+.sell-order-form {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 22px;
+}
+
+.sell-order-form dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  background: #17212b;
+}
+
+.sell-order-form dt {
+  color: #748290;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.sell-order-form dd {
+  margin: 0;
+  color: #c7d5e0;
+  overflow-wrap: anywhere;
+}
+
+.sell-order-form label {
+  display: grid;
+  gap: 6px;
+  color: #96a6b5;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.sell-order-form input {
+  min-height: 38px;
+}
+
+.sell-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.cancel-button {
+  min-height: 34px;
+  padding: 0 14px;
+  background: #3a4555;
 }
 
 .transfer-panel {
@@ -1022,6 +1231,19 @@ button:disabled {
 
   .detail-list {
     grid-template-columns: 1fr;
+  }
+
+  .sell-dialog-body {
+    grid-template-columns: 1fr;
+  }
+
+  .sell-dialog-actions {
+    flex-direction: column;
+  }
+
+  .sell-dialog-actions button {
+    justify-content: center;
+    width: 100%;
   }
 }
 </style>
