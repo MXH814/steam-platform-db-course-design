@@ -111,7 +111,7 @@ GitHub 仓库已对 `main` 分支启用保护规则：
 
 - 文档、接口、种子数据和页面标题中统一写 `Counter-Strike 2`，简称可写 `CS2`。
 - 文档、接口、种子数据和页面标题中统一写 `Don't Starve Together / 饥荒联机版`，简称可写 `DST`。
-- 数据库主键或业务编码建议使用稳定编码：`GAME_CS2`、`GAME_DST`。
+- 数据库主键或业务编码统一使用稳定编码：`GAME_CS2`、`GAME_DST`。
 - 不再使用 `Team Fortress 2` 作为演示主线或种子数据主样板。
 - 不再临时增加第三款主演示游戏；如果确需增加，只能作为少量背景数据，必须先更新 README。
 
@@ -203,12 +203,12 @@ _local_tools_archive/
 - WinForms/WPF 做 Steam 风格界面工作量更大。
 - 客户端部署、版本更新和答辩演示都更麻烦。
 
-## 4. 推荐技术栈
+## 4. 项目技术栈
 
 | 层级 | 选型 | 说明 |
 |---|---|---|
 | 云平台 | 腾讯云轻量应用服务器 | 运行 Oracle、ASP.NET Core API、Nginx、前端静态文件 |
-| 操作系统 | Ubuntu 24.04 LTS 或 Ubuntu 22.04 LTS | 轻量、资料多、适合 Nginx + Kestrel 部署 |
+| 操作系统 | Ubuntu Server 22.04 LTS 64-bit | 当前腾讯云轻量应用服务器系统镜像 |
 | 数据库 | Oracle Database Free / Oracle 26ai Free，满足 Oracle 18c+ 要求 | 课程要求 Oracle 18c 或更高版本 |
 | 后端语言 | C# | 课程提纲硬要求 |
 | 应用服务器 | ASP.NET Core Web API on .NET 10 LTS | C# Web API，运行于 Kestrel，前置 Nginx 反向代理 |
@@ -221,13 +221,13 @@ _local_tools_archive/
 | 前端状态 | Pinia | 登录状态、用户信息、钱包、购物车等 |
 | 前端路由 | Vue Router | 页面路由 |
 | 前端请求 | Axios | 调用 ASP.NET Core API |
-| UI 组件 | Naive UI | 暗色主题定制友好 |
-| CSS | Tailwind CSS + 自定义 Steam 主题 | 游戏商城、库存、市场等视觉效果 |
+| UI 组件 | 自定义 Vue 组件 | 与 Steam 风格页面保持一致，避免引入额外大型 UI 框架 |
+| CSS | 自定义 Steam 深色主题 CSS | 游戏商城、库存、市场等视觉效果 |
 | Web Server | Nginx | 托管前端静态文件并反向代理 `/api` |
 | API 调试 | Apifox 或 Postman | 接口测试 |
 | 版本管理 | Git + GitHub | 代码提交、协作、考勤依据 |
 
-建议 NuGet 包版本：
+NuGet 包版本基线：
 
 ```text
 Oracle.EntityFrameworkCore     10.23.26200
@@ -247,7 +247,7 @@ dotnet-ef                      10.0.9
 
 团队成员开发环境应尽量保持一致，避免因工具版本差异导致接口、依赖或构建结果不一致。
 
-推荐开发工具：
+开发工具基线：
 
 | 工具 | 要求 |
 |---|---|
@@ -258,7 +258,7 @@ dotnet-ef                      10.0.9
 | Node.js | 使用当前 LTS 或团队统一指定版本 |
 | npm | 随 Node.js 安装，使用团队统一镜像源策略 |
 | Git | 用于代码版本管理 |
-| Oracle 客户端工具 | 推荐 SQL*Plus、SQL Developer 或 DataGrip，至少保证能连接 Oracle 并执行脚本 |
+| Oracle 客户端工具 | 使用 SQL*Plus、SQL Developer 或 DataGrip，至少保证能连接 Oracle 并执行脚本 |
 | API 调试工具 | Apifox 或 Postman |
 
 环境自查命令：
@@ -292,16 +292,19 @@ sqlplus -V
 
 当前项目最终云平台是腾讯云。部署、联调和文档说明都以腾讯云轻量应用服务器为准。
 
-推荐实例：
+已确定云服务器配置：
 
 ```text
-最低配置：2 核 4G，80GB 云盘，3Mbps 公网带宽
-推荐配置：4 核 8G，100GB 云盘，3-5Mbps 公网带宽
-地域：华东 2 上海，或华东 1 杭州
-系统：Ubuntu 24.04 LTS 或 Ubuntu 22.04 LTS
+规格：4 核 CPU，4GB 内存
+系统盘：40GB SSD
+公网带宽：3Mbps
+月流量包：300GB
+地域：上海
+系统：Ubuntu Server 22.04 LTS 64-bit
+购买时长：1 年
 ```
 
-本项目更推荐 4 核 8G，因为 Oracle 与 ASP.NET Core 同机部署时，4G 内存会比较紧。
+本项目按该实例完成 Oracle、ASP.NET Core API、Nginx 和 Vue 静态前端的同机部署。开发和演示阶段必须控制内存占用，避免同时运行不必要的后台服务。
 
 云服务器部署结构：
 
@@ -320,7 +323,7 @@ sqlplus -V
 公网开放端口：
 
 ```text
-22    SSH，建议限制来源 IP 或使用密钥登录
+22    SSH，仅管理员维护使用；公网安全组保持最小授权，长期维护以密钥登录为准
 80    HTTP
 443   HTTPS，后续有域名后启用
 ```
@@ -332,7 +335,7 @@ sqlplus -V
 5000  ASP.NET Core Kestrel，只允许 Nginx 在服务器内部反向代理
 ```
 
-Nginx 路由建议：
+Nginx 路由配置：
 
 ```text
 /        -> Vue 前端静态文件
@@ -360,7 +363,7 @@ Domain / Model 模型层
   Entity、DTO、Request、Response、Enum、领域模型
 ```
 
-推荐后端目录：
+后端目录结构：
 
 ```text
 backend/
@@ -557,7 +560,7 @@ PLAYER_LIBRARY
 
 目标：前台页面要接近 Steam，而不是普通后台管理系统。
 
-建议色彩：
+色彩规范：
 
 ```text
 页面背景：#171a21
@@ -645,7 +648,7 @@ POST   /api/admin/refunds/{refundId}/approve
 }
 ```
 
-建议 HTTP 状态：
+HTTP 状态约定：
 
 - `200`：请求成功。
 - `400`：参数错误。
@@ -663,7 +666,7 @@ POST   /api/admin/refunds/{refundId}/approve
 PLAYER      玩家
 DEVELOPER   开发商
 ADMIN       管理员
-AUDITOR     审计员，可选
+AUDITOR     审计员，预留角色
 ```
 
 安全原则：
@@ -800,7 +803,7 @@ DEVELOPER   klei@example.com / klei
 ### 第 10 阶段：Vue 前端与 Steam 风格
 
 - 创建 Vue 3 + Vite + TypeScript 项目。
-- 配置 Naive UI、Tailwind、Pinia、Vue Router、Axios。
+- 配置 Pinia、Vue Router、Axios、自定义 Vue 组件和 Steam 深色主题 CSS。
 - 商店首页。
 - 游戏详情。
 - 游戏库。
@@ -978,7 +981,7 @@ PUT    /api/admin/notices/{noticeId}
 /developer/profile
 ```
 
-组内建议细分：
+组内分工细则：
 
 - 李胤龙：认证、JWT、角色权限、后端接口。
 - 元梓浩：登录注册页面、公告页面、前端路由守卫、接口联调。
@@ -1050,7 +1053,7 @@ POST   /api/admin/games/{gameId}/offline
 /admin/games
 ```
 
-组内建议细分：
+组内分工细则：
 
 - 周力扬：游戏、开发商、管理员游戏管理后端接口。
 - 王子轩：商店首页、游戏列表、详情页、Steam 风格 UI。
@@ -1166,7 +1169,7 @@ POST   /api/cdkeys/redeem
 /games/:id 的购买区域
 ```
 
-组内建议细分：
+组内分工细则：
 
 - 马祥珲：核心交易总设计、购买事务、统一接口/代码规范、最终集成。
 - 胡知鱼：钱包、充值、资金流水、金额校验、余额展示页面。
@@ -1300,7 +1303,7 @@ GET    /api/market/items/{itemId}/transfers
 /market/trades
 ```
 
-组内建议细分：
+组内分工细则：
 
 - 靳岱泽：评价、评价版本、成就解锁、相关前端。
 - 郭炫君：饰品模板、饰品实例、玩家库存、掉落模拟、相关前端。
@@ -1418,7 +1421,7 @@ Group D 与其他组的边界：
 - Review 时如果发现疑似乱码，必须用可靠方式确认文件真实内容，例如编辑器编码状态、浏览器渲染、UTF-8 原始字节或 Unicode 码点检查。
 - 只有文件真实存储内容错误时，才能以乱码为理由要求修改。
 - 不要把同一个文件在 GBK、ANSI、UTF-8 之间反复转换。
-- 新建文本文件时优先使用 UTF-8；如果工具允许，建议显式选择 `UTF-8`。
+- 新建文本文件时必须使用 UTF-8；工具允许时必须显式选择 `UTF-8`。
 - Markdown 文档可使用 UTF-8 with BOM 以兼容 Windows 中文显示；代码文件不强制 BOM，但必须能被 .NET、Node、Vite、GitHub 正确按 UTF-8 读取。
 
 ### 17.1 C# 后端规范
@@ -1480,7 +1483,7 @@ Group D 与其他组的边界：
 - 样式变量和主题放在 `src/styles/`。
 - 组件名使用 `PascalCase`。
 - API 文件使用 `camelCase`，例如 `gameApi.ts`。
-- 不在组件里硬编码重复的颜色值，优先使用主题变量或 Tailwind 配置。
+- 不在组件里硬编码重复的颜色值，统一使用主题变量或公共样式类。
 - 不提交无用 console 调试输出。
 
 ### 17.4 API 规范
