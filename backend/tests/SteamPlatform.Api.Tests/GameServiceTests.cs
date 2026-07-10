@@ -88,6 +88,43 @@ public sealed class GameServiceTests
     }
 
     [Fact]
+    public async Task Delete_rejects_online_games_before_repository_write()
+    {
+        var repository = new RecordingGameRepository { ExistingStatus = "ONLINE" };
+        var service = new GameService(repository);
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.DeleteAsync("G001", "DEV001", CancellationToken.None));
+
+        Assert.Equal("GAME_DELETE_REQUIRES_OFFLINE", exception.Code);
+        Assert.False(repository.DeleteCalled);
+    }
+
+    [Fact]
+    public async Task Delete_rejects_games_owned_by_other_developer_before_repository_write()
+    {
+        var repository = new RecordingGameRepository { ExistingDeveloperId = "DEV002", ExistingStatus = "OFFLINE" };
+        var service = new GameService(repository);
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.DeleteAsync("G001", "DEV001", CancellationToken.None));
+
+        Assert.Equal("GAME_DEVELOPER_MISMATCH", exception.Code);
+        Assert.False(repository.DeleteCalled);
+    }
+
+    [Fact]
+    public async Task Delete_allows_offline_games_owned_by_developer()
+    {
+        var repository = new RecordingGameRepository { ExistingStatus = "OFFLINE" };
+        var service = new GameService(repository);
+
+        await service.DeleteAsync("G001", "DEV001", CancellationToken.None);
+
+        Assert.True(repository.DeleteCalled);
+    }
+
+    [Fact]
     public async Task Admin_status_action_can_change_game_status()
     {
         var repository = new RecordingGameRepository();
@@ -107,6 +144,7 @@ public sealed class GameServiceTests
         public string? LastUpdatedGameStatus { get; private set; }
         public string? LastAdminStatus { get; private set; }
         public bool UpdateCalled { get; private set; }
+        public bool DeleteCalled { get; private set; }
         public GameListQuery? LastListQuery { get; private set; }
 
         public Task<PagedResponse<GameListItemResponse>> ListAsync(GameListQuery query, CancellationToken cancellationToken)
@@ -143,6 +181,12 @@ public sealed class GameServiceTests
         {
             UpdateCalled = true;
             LastUpdatedGameStatus = ExistingStatus;
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> DeleteAsync(string gameId, string developerId, CancellationToken cancellationToken)
+        {
+            DeleteCalled = true;
             return Task.FromResult(true);
         }
 

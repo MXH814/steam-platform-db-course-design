@@ -122,6 +122,29 @@ public sealed class GameService(IGameRepository repository) : IGameService
         return await GetDetailAsync(normalizedGameId, cancellationToken);
     }
 
+    public async Task DeleteAsync(string gameId, string developerId, CancellationToken cancellationToken)
+    {
+        var normalizedGameId = NormalizeRequired(gameId, nameof(gameId));
+        var normalizedDeveloperId = NormalizeRequired(developerId, nameof(developerId));
+        var existing = await GetDetailAsync(normalizedGameId, cancellationToken);
+
+        if (!string.Equals(existing.DeveloperId, normalizedDeveloperId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BusinessRuleException("GAME_DEVELOPER_MISMATCH", "Developer can only delete games owned by itself.");
+        }
+
+        if (!string.Equals(existing.Status, "OFFLINE", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BusinessRuleException("GAME_DELETE_REQUIRES_OFFLINE", "Only offline games can be deleted.");
+        }
+
+        var affected = await _repository.DeleteAsync(normalizedGameId, normalizedDeveloperId, cancellationToken);
+        if (!affected)
+        {
+            throw new ResourceNotFoundException("Game does not exist.");
+        }
+    }
+
     public async Task<GameDetailResponse> SetStatusAsync(string gameId, string status, CancellationToken cancellationToken)
     {
         var normalizedGameId = NormalizeRequired(gameId, nameof(gameId));

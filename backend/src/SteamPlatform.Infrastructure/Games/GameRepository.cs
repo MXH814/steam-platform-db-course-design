@@ -362,6 +362,22 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
         return affected > 0;
     }
 
+    public async Task<bool> DeleteAsync(string gameId, string developerId, CancellationToken cancellationToken)
+    {
+        await using var connection = _connectionFactory.CreateConnection();
+        var affected = await connection.ExecuteAsync(new CommandDefinition(
+            """
+            delete from game
+             where game_id = :GameId
+               and dev_id = :DeveloperId
+               and status = 'OFFLINE'
+            """,
+            new { GameId = gameId, DeveloperId = developerId },
+            cancellationToken: cancellationToken));
+
+        return affected > 0;
+    }
+
     public async Task<bool> SetStatusAsync(string gameId, string status, CancellationToken cancellationToken)
     {
         await using var connection = _connectionFactory.CreateConnection();

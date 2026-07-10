@@ -27,7 +27,7 @@ const props = withDefaults(
 );
 
 const isFree = computed(() => props.finalPrice <= 0);
-const discountPercent = computed(() => Math.round(props.discountRate * 100));
+const discountPercent = computed(() => Math.round((1 - props.discountRate) * 100));
 
 function money(value: number): string {
   return value.toFixed(2);
