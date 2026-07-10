@@ -122,6 +122,11 @@ async function refreshInventory() {
 }
 
 async function simulateDrop() {
+  const confirmed = window.confirm('模拟掉落会真实写入云端数据库并新增库存记录，确定继续吗？');
+  if (!confirmed) {
+    return;
+  }
+
   actionLoading.value = true;
   errorMessage.value = '';
   successMessage.value = '';

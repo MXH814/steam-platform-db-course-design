@@ -41,32 +41,6 @@ WHEN MATCHED THEN UPDATE SET
 WHEN NOT MATCHED THEN INSERT (template_id, game_id, item_name, rarity, image_url)
 VALUES (s.template_id, s.game_id, s.item_name, s.rarity, s.image_url);
 
-PROMPT Clearing alice inventory demo data...
-
-DELETE FROM ITEM_TRANSFER_LEDGER
- WHERE item_id IN (
-   SELECT item_id
-     FROM INVENTORY_ITEM
-    WHERE user_id = (SELECT user_id FROM PLAYER WHERE account = 'alice')
- );
-
-DELETE FROM MARKET_TRADE
- WHERE item_id IN (
-   SELECT item_id
-     FROM INVENTORY_ITEM
-    WHERE user_id = (SELECT user_id FROM PLAYER WHERE account = 'alice')
- );
-
-DELETE FROM MARKET_ORDER
- WHERE item_id IN (
-   SELECT item_id
-     FROM INVENTORY_ITEM
-    WHERE user_id = (SELECT user_id FROM PLAYER WHERE account = 'alice')
- );
-
-DELETE FROM INVENTORY_ITEM
- WHERE user_id = (SELECT user_id FROM PLAYER WHERE account = 'alice');
-
 UPDATE ITEM_TEMPLATE
    SET image_url = NULL
  WHERE game_id = 'GAME_DST';
