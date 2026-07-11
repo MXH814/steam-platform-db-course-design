@@ -35,7 +35,7 @@ public static class ApiExceptionHandlingExtensions
         return exception switch
         {
             ArgumentException argumentException => (StatusCodes.Status400BadRequest, ApiResponse<object?>.Failure(40001, argumentException.Message)),
-            BusinessRuleException businessRuleException => (StatusCodes.Status409Conflict, ApiResponse<object?>.Failure(40900, businessRuleException.Message)),
+            BusinessRuleException businessRuleException => (StatusCodes.Status409Conflict, new ApiResponse<object?>(40900, businessRuleException.Message, businessRuleException.Code)),
             ResourceNotFoundException resourceNotFoundException => (StatusCodes.Status404NotFound, ApiResponse<object?>.Failure(40401, resourceNotFoundException.Message)),
             ForbiddenException forbiddenException => (StatusCodes.Status403Forbidden, ApiResponse<object?>.Failure(40301, forbiddenException.Message)),
             InvalidOperationException => (StatusCodes.Status500InternalServerError, ApiResponse<object?>.Failure(50001, "服务器配置错误。")),

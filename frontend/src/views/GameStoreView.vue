@@ -2,7 +2,7 @@
   <section class="steam-store-page">
     <nav class="store-blue-nav" aria-label="商店导航">
       <RouterLink to="/">您的商店</RouterLink>
-      <RouterLink :to="`/games/${gameId}/store`">游戏详情</RouterLink>
+      <RouterLink :to="`/games/${gameId}`">游戏详情</RouterLink>
       <RouterLink :to="`/games/${gameId}/community`">社区评测</RouterLink>
       <RouterLink :to="`/library/${gameId}`">库内查看</RouterLink>
     </nav>

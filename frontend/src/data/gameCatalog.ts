@@ -8,6 +8,9 @@ export interface GameCatalogItem {
   libraryLine: string;
   capsuleLabel: string;
   heroTone: string;
+  heroImage: string;
+  coverImage: string;
+  headerImage: string;
   tags: string[];
   links: string[];
   updates: Array<{
@@ -28,6 +31,9 @@ const fallbackGame: GameCatalogItem = {
   libraryLine: '已加入游戏库后，玩家可以发表评价、查看版本历史并解锁自定义成就。',
   capsuleLabel: 'DST',
   heroTone: 'survival',
+  heroImage: '/assets/games/dst-library-hero.jpg',
+  coverImage: '/assets/games/dst-library-cover.jpg',
+  headerImage: '/assets/games/dst-header.jpg',
   tags: ['多人联机', '生存', '合作', '冒险', '成就'],
   links: ['访问网站', '查看更新记录', '阅读相关新闻', '查看讨论'],
   updates: [
@@ -58,6 +64,9 @@ export const gameCatalog: Record<string, GameCatalogItem> = {
     libraryLine: '库内重点展示库存、掉落和市场入口；评价与成就主链路优先围绕 GAME_DST。',
     capsuleLabel: 'CS2',
     heroTone: 'tactical',
+    heroImage: '/assets/games/cs2-library-hero.jpg',
+    coverImage: '/assets/games/cs2-library-cover.jpg',
+    headerImage: '/assets/games/cs2-header.jpg',
     tags: ['免费游玩', '射击', '饰品', '市场', '库存'],
     links: ['访问网站', '查看库存', '进入市场', '查看交易记录'],
     updates: [

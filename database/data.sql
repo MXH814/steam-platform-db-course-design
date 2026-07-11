@@ -105,55 +105,79 @@ INSERT INTO PLAYER_ACHIEVEMENT (unlock_id, user_id, ach_id, unlock_time)
 VALUES ('PA_DST_001', 'P001', 'ACH_DST_SURVIVE_001', TIMESTAMP '2026-07-05 12:30:00');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_AK_REDLINE', 'GAME_CS2', 'AK-47 | Redline', 'EPIC', '/assets/items/cs2-ak-redline.png');
+VALUES ('ITPL_CS2_AK_REDLINE', 'GAME_CS2', 'AK-47 | Redline', 'EPIC', '/assets/items/cs2/cs2-ak-redline.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_AWP_ASIIMOV', 'GAME_CS2', 'AWP | Asiimov', 'LEGENDARY', '/assets/items/cs2-awp-asiimov.png');
+VALUES ('ITPL_CS2_AWP_ASIIMOV', 'GAME_CS2', 'AWP | Asiimov', 'LEGENDARY', '/assets/items/cs2/cs2-awp-asiimov.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_M4A1_PRINTSTREAM', 'GAME_CS2', 'M4A1-S | Printstream', 'LEGENDARY', '/assets/items/cs2-m4a1-printstream.png');
+VALUES ('ITPL_CS2_M4A1_PRINTSTREAM', 'GAME_CS2', 'M4A1-S | Printstream', 'LEGENDARY', '/assets/items/cs2/cs2-m4a1-printstream.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_GLOCK_WATER', 'GAME_CS2', 'Glock-18 | Water Elemental', 'RARE', '/assets/items/cs2-glock-water.png');
+VALUES ('ITPL_CS2_GLOCK_WATER', 'GAME_CS2', 'Glock-18 | Water Elemental', 'RARE', '/assets/items/cs2/cs2-glock-water.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_USP_TRAITOR', 'GAME_CS2', 'USP-S | The Traitor', 'EPIC', '/assets/items/cs2-usp-traitor.png');
+VALUES ('ITPL_CS2_USP_TRAITOR', 'GAME_CS2', 'USP-S | The Traitor', 'EPIC', '/assets/items/cs2/cs2-usp-traitor.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_DEAGLE_BLAZE', 'GAME_CS2', 'Desert Eagle | Blaze', 'LEGENDARY', '/assets/items/cs2-deagle-blaze.png');
+VALUES ('ITPL_CS2_DEAGLE_BLAZE', 'GAME_CS2', 'Desert Eagle | Blaze', 'LEGENDARY', '/assets/items/cs2/cs2-deagle-blaze.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_FAMAS_MECHA', 'GAME_CS2', 'FAMAS | Mecha Industries', 'RARE', '/assets/items/cs2-famas-mecha.png');
+VALUES ('ITPL_CS2_FAMAS_MECHA', 'GAME_CS2', 'FAMAS | Mecha Industries', 'RARE', '/assets/items/cs2/cs2-famas-mecha.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_GALIL_PHOENIX', 'GAME_CS2', 'Galil AR | Phoenix Blacklight', 'RARE', '/assets/items/cs2-galil-phoenix.png');
+VALUES ('ITPL_CS2_GALIL_PHOENIX', 'GAME_CS2', 'Galil AR | Phoenix Blacklight', 'RARE', '/assets/items/cs2/cs2-galil-phoenix.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_M4A4_TOOTH_FAIRY', 'GAME_CS2', 'M4A4 | Tooth Fairy', 'EPIC', '/assets/items/cs2-m4a4-tooth-fairy.png');
+VALUES ('ITPL_CS2_M4A4_TOOTH_FAIRY', 'GAME_CS2', 'M4A4 | Tooth Fairy', 'EPIC', '/assets/items/cs2/cs2-m4a4-tooth-fairy.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_MP9_DARK_TIDE', 'GAME_CS2', 'MP9 | Dark Tide', 'UNCOMMON', '/assets/items/cs2-mp9-dark-tide.png');
+VALUES ('ITPL_CS2_MP9_DARK_TIDE', 'GAME_CS2', 'MP9 | Dark Tide', 'UNCOMMON', '/assets/items/cs2/cs2-mp9-dark-tide.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_P250_CYBER_SHELL', 'GAME_CS2', 'P250 | Cyber Shell', 'UNCOMMON', '/assets/items/cs2-p250-cyber-shell.png');
+VALUES ('ITPL_CS2_P250_CYBER_SHELL', 'GAME_CS2', 'P250 | Cyber Shell', 'UNCOMMON', '/assets/items/cs2/cs2-p250-cyber-shell.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_P90_ELITE_BUILD', 'GAME_CS2', 'P90 | Elite Build', 'COMMON', '/assets/items/cs2-p90-elite-build.png');
+VALUES ('ITPL_CS2_P90_ELITE_BUILD', 'GAME_CS2', 'P90 | Elite Build', 'COMMON', '/assets/items/cs2/cs2-p90-elite-build.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_CS2_TEC9_NUCLEAR', 'GAME_CS2', 'Tec-9 | Nuclear Threat', 'EPIC', '/assets/items/cs2-tec9-nuclear-threat.png');
+VALUES ('ITPL_CS2_TEC9_NUCLEAR', 'GAME_CS2', 'Tec-9 | Nuclear Threat', 'EPIC', '/assets/items/cs2/cs2-tec9-nuclear-threat.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_DST_HOLLY_WREATH', 'GAME_DST', 'Holly Wreath', 'COMMON', NULL);
+VALUES ('ITPL_DST_HOLLY_WREATH', 'GAME_DST', 'Holly Wreath', 'COMMON', '/assets/items/dst/dst-holly-wreath.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_DST_NIGHTGOWN', 'GAME_DST', 'Distinguished Nightgown', 'RARE', NULL);
+VALUES ('ITPL_DST_NIGHTGOWN', 'GAME_DST', 'Distinguished Nightgown', 'RARE', '/assets/items/dst/dst-distinguished-nightgown.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_DST_GUEST_HONOR', 'GAME_DST', 'Elegant Guest of Honor', 'EPIC', NULL);
+VALUES ('ITPL_DST_GUEST_HONOR', 'GAME_DST', 'Elegant Guest of Honor', 'EPIC', '/assets/items/dst/dst-guest-of-honor.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
-VALUES ('ITPL_DST_STARTER_PACK', 'GAME_DST', 'Starter Pack 2025 Chest', 'UNCOMMON', NULL);
+VALUES ('ITPL_DST_STARTER_PACK', 'GAME_DST', 'Starter Pack 2025 Chest', 'UNCOMMON', '/assets/items/dst/dst-starter-pack-chest.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_DST_LUNAR_WINGS', 'GAME_DST', 'Lunar Moth Wings', 'RARE', '/assets/items/dst/dst-lunar-moth-wings.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_DST_CELESTIAL_GOBLET', 'GAME_DST', 'Celestial Goblet', 'EPIC', '/assets/items/dst/dst-celestial-goblet.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_DST_CRYSTAL_AXE', 'GAME_DST', 'Crystal Axe', 'RARE', '/assets/items/dst/dst-crystal-axe.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_DST_ICE_CROWN', 'GAME_DST', 'Ice Crown', 'EPIC', '/assets/items/dst/dst-ice-crown.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_DST_SHROOM_HAT', 'GAME_DST', 'Shroom Hat', 'UNCOMMON', '/assets/items/dst/dst-shroom-hat.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_DST_PUMPKIN_LANTERN', 'GAME_DST', 'Pumpkin Lantern', 'UNCOMMON', '/assets/items/dst/dst-pumpkin-lantern.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_DST_MOON_STAFF', 'GAME_DST', 'Moon Staff', 'LEGENDARY', '/assets/items/dst/dst-moon-staff.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_DST_GHOST_COSTUME', 'GAME_DST', 'Ghost Costume', 'COMMON', '/assets/items/dst/dst-ghost-costume.png');
 
 INSERT INTO INVENTORY_ITEM (item_id, template_id, user_id, wear_rating, status, acquire_time, version)
 VALUES ('ITEM_CS2_001', 'ITPL_CS2_AK_REDLINE', 'P001', 0.1250, 'IN_MARKET', TIMESTAMP '2026-07-05 12:40:00', 1);

@@ -130,6 +130,12 @@ a {
   width: min(1440px, calc(100% - 32px));
 }
 
+.page.page-library {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
 .view-stack,
 .admin-layout {
   display: grid;
@@ -678,6 +684,11 @@ tbody tr:hover {
   .page {
     width: min(100% - 24px, 1500px);
     padding-top: 24px;
+  }
+
+  .page.page-library {
+    width: 100%;
+    padding: 0;
   }
 
   .admin-layout,

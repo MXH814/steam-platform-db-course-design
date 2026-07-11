@@ -91,6 +91,10 @@ WindowsFormsApp1/
 # Local third-party tools and installers, not part of the submitted project
 _local_tools_archive/
 
+# Local Codex / browser review artifacts
+.codex_work/
+.playwright-cli/
+
 # Tracked project archive for old project files
 !_archive/
 !_archive/**
