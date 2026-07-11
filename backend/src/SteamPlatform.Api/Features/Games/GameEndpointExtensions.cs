@@ -119,6 +119,21 @@ public static class GameEndpointExtensions
             return Results.Ok(ApiResponse<GameDetailResponse>.Success(result));
         });
 
+        developerGames.MapDelete("{gameId}", async (
+            string gameId,
+            IGameService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "DEVELOPER") is { } denied)
+            {
+                return denied;
+            }
+
+            await service.DeleteAsync(gameId, claims!.PrincipalId, cancellationToken);
+            return Results.NoContent();
+        });
+
         var adminGames = app.MapGroup("/api/admin/games").WithTags("Admin Games");
 
         adminGames.MapPost("{gameId}/online", async (

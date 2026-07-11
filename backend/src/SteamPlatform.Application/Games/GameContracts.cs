@@ -114,6 +114,7 @@ public interface IGameService
     Task<GameItemSummaryResponse> GetItemSummaryAsync(string gameId, CancellationToken cancellationToken);
     Task<GameDetailResponse> CreateAsync(CreateGameRequest request, CancellationToken cancellationToken);
     Task<GameDetailResponse> UpdateAsync(string gameId, string developerId, UpdateGameRequest request, CancellationToken cancellationToken);
+    Task DeleteAsync(string gameId, string developerId, CancellationToken cancellationToken);
     Task<GameDetailResponse> SetStatusAsync(string gameId, string status, CancellationToken cancellationToken);
 }
 
@@ -128,5 +129,6 @@ public interface IGameRepository
     Task<bool> DeveloperExistsAsync(string developerId, CancellationToken cancellationToken);
     Task<GameDetailResponse> CreateAsync(string gameId, CreateGameRequest request, CancellationToken cancellationToken);
     Task<bool> UpdateAsync(string gameId, string developerId, UpdateGameRequest request, CancellationToken cancellationToken);
+    Task<bool> DeleteAsync(string gameId, string developerId, CancellationToken cancellationToken);
     Task<bool> SetStatusAsync(string gameId, string status, CancellationToken cancellationToken);
 }

@@ -4,12 +4,14 @@ import type {
   FallbackAwarePagedResult,
   GameAchievementSummary,
   GameContentPackage,
+  CreateGameRequest,
   GameDetail,
   GameItemSummary,
   GameListItem,
   GameQuery,
   GameReviewSummary,
   PagedResult,
+  UpdateGameRequest,
 } from './types';
 
 type LibraryEntry = {
@@ -286,6 +288,26 @@ function applyLocalFilters(items: GameListItem[], query?: GameQuery, options: { 
     result = result.filter((game) => game.tags.includes(query.tag || ''));
   }
 
+  if (query?.status) {
+    result = result.filter((game) => game.status.toUpperCase() === query.status?.toUpperCase());
+  }
+
+  if (query?.developerId) {
+    result = result.filter((game) => game.developerId === query.developerId);
+  }
+
+  if (query?.reputation) {
+    result = result.filter((game) => game.reputation === query.reputation);
+  }
+
+  if (typeof query?.minPrice === 'number') {
+    result = result.filter((game) => game.finalPrice >= (query.minPrice || 0));
+  }
+
+  if (typeof query?.maxPrice === 'number') {
+    result = result.filter((game) => game.finalPrice <= (query.maxPrice || 0));
+  }
+
   switch (query?.priceFilter) {
     case 'free':
       result = result.filter((game) => game.finalPrice <= 0);
@@ -341,6 +363,10 @@ export async function getGames(query?: GameQuery): Promise<FallbackAwarePagedRes
       params: {
         keyword: query?.keyword || query?.search || undefined,
         status: query?.status,
+        developerId: query?.developerId,
+        minPrice: query?.minPrice,
+        maxPrice: query?.maxPrice,
+        reputation: query?.reputation,
         page: query?.page || 1,
         pageSize: query?.pageSize || 50
       }
@@ -446,6 +472,30 @@ export async function getGameAchievementSummary(gameId: string): Promise<GameAch
     if (!isRecoverableNetworkError(error)) throw new Error(getApiError(error));
     return demoAchievementSummary[gameId] || { achievementCount: 0, averageGlobalRate: null, achievements: [] };
   }
+}
+
+export async function createDeveloperGame(request: CreateGameRequest): Promise<GameDetail> {
+  const response = await http.post<ApiEnvelope<BackendGame>>('/api/developer/games', request);
+  return normalizeDetail(unwrap(response.data));
+}
+
+export async function updateDeveloperGame(gameId: string, request: UpdateGameRequest): Promise<GameDetail> {
+  const response = await http.put<ApiEnvelope<BackendGame>>(`/api/developer/games/${encodeURIComponent(gameId)}`, request);
+  return normalizeDetail(unwrap(response.data));
+}
+
+export async function deleteDeveloperGame(gameId: string): Promise<void> {
+  await http.delete(`/api/developer/games/${encodeURIComponent(gameId)}`);
+}
+
+export async function setGameOnline(gameId: string): Promise<GameDetail> {
+  const response = await http.post<ApiEnvelope<BackendGame>>(`/api/admin/games/${encodeURIComponent(gameId)}/online`);
+  return normalizeDetail(unwrap(response.data));
+}
+
+export async function setGameOffline(gameId: string): Promise<GameDetail> {
+  const response = await http.post<ApiEnvelope<BackendGame>>(`/api/admin/games/${encodeURIComponent(gameId)}/offline`);
+  return normalizeDetail(unwrap(response.data));
 }
 
 export async function getGameOwnership(gameId: string): Promise<GameOwnershipInfo> {
