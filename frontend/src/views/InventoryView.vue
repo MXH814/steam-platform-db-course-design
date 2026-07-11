@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import {
   ArrowLeftRight,
   Boxes,
@@ -33,9 +33,10 @@ const games: Array<{ id: InventoryGameId; label: string; shortName: string; acce
 
 const pageSize = 25;
 
+const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
-const activeGameId = ref<InventoryGameId>('GAME_CS2');
+const activeGameId = ref<InventoryGameId>(normalizeGameId(route.query.gameId));
 const searchTerm = ref('');
 const templates = ref<ItemTemplate[]>([]);
 const inventory = ref<InventoryItem[]>([]);
@@ -85,10 +86,22 @@ const gameCounts = computed(() =>
   }, { GAME_CS2: 0, GAME_DST: 0 })
 );
 
+function normalizeGameId(value: unknown): InventoryGameId {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw === 'GAME_DST' ? 'GAME_DST' : 'GAME_CS2';
+}
+
 watch([activeGameId, searchTerm], () => {
   currentPage.value = 1;
   selectFirstVisibleItem();
 });
+
+watch(
+  () => route.query.gameId,
+  (value) => {
+    activeGameId.value = normalizeGameId(value);
+  }
+);
 
 watch(selectedItem, async (item) => {
   transfers.value = [];

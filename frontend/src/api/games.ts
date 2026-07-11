@@ -1,11 +1,11 @@
 import { getApiError, http } from './http';
 import type {
   ApiEnvelope,
+  FallbackAwarePagedResult,
   GameAchievementSummary,
   GameContentPackage,
   CreateGameRequest,
   GameDetail,
-  FallbackAwarePagedResult,
   GameItemSummary,
   GameListItem,
   GameQuery,
@@ -13,6 +13,21 @@ import type {
   PagedResult,
   UpdateGameRequest,
 } from './types';
+
+type LibraryEntry = {
+  libId?: string;
+  gameId: string;
+  gameName?: string;
+  acquireWay?: string;
+  status?: string;
+  playMinutes?: number;
+  lastPlayTime?: string | null;
+};
+
+export interface GameOwnershipInfo {
+  owned: boolean;
+  entry: LibraryEntry | null;
+}
 
 type BackendGame = {
   gameId: string;
@@ -35,7 +50,7 @@ const demoGames: GameListItem[] = [
     developerId: 'DEV_VALVE',
     developerName: 'Valve',
     coverTone: 'cs2',
-    tags: ['FPS', '多人竞技', '饰品市场', '免费入库'],
+    tags: ['免费开玩', '多人竞技', '饰品市场', '库存'],
     basePrice: 0,
     discountRate: 0,
     finalPrice: 0,
@@ -44,7 +59,7 @@ const demoGames: GameListItem[] = [
     status: 'ONLINE',
     supportsMarket: true,
     hasContentPackages: false,
-    summary: '免费团队竞技射击游戏，用于展示 CS2 饰品库存、市场挂单、撮合成交和价格历史。'
+    summary: '免费团队竞技射击游戏，用于展示 CS2 免费入库、库存、饰品市场和成交价格摘要。'
   },
   {
     gameId: 'GAME_DST',
@@ -62,17 +77,17 @@ const demoGames: GameListItem[] = [
     status: 'ONLINE',
     supportsMarket: false,
     hasContentPackages: true,
-    summary: '买断制联机生存游戏，用于展示 DST 购买、内容包、评价和自定义成就。'
+    summary: '买断制联机生存游戏，用于展示 DST 购买入口、DLC/礼包、评价概览和成就概览。'
   }
 ];
 
 const demoPackages: Record<string, GameContentPackage[]> = {
   GAME_DST: [
     {
-      packageId: 'PKG_DST_STARTER',
+      packageId: 'PKG_DST_DLC',
       gameId: 'GAME_DST',
-      packageName: 'Survivor Starter Pack',
-      packageType: '礼包',
+      packageName: 'A New Reign Content Pack',
+      packageType: 'DLC',
       basePrice: 18,
       discountRate: 0.25,
       finalPrice: 13.5,
@@ -82,11 +97,22 @@ const demoPackages: Record<string, GameContentPackage[]> = {
     {
       packageId: 'PKG_DST_CHEST',
       gameId: 'GAME_DST',
-      packageName: 'Forest Skin Chest',
+      packageName: 'Forest Survivors Skin Chest',
       packageType: '皮肤箱',
       basePrice: 12,
       discountRate: 0,
       finalPrice: 12,
+      imageUrl: null,
+      sourceKind: 'DEMO'
+    },
+    {
+      packageId: 'PKG_DST_BUNDLE',
+      gameId: 'GAME_DST',
+      packageName: 'Survival Starter Bundle',
+      packageType: '礼包',
+      basePrice: 36,
+      discountRate: 0.35,
+      finalPrice: 23.4,
       imageUrl: null,
       sourceKind: 'DEMO'
     }
@@ -106,7 +132,7 @@ const demoItemSummary: Record<string, GameItemSummary> = {
     lastTradePrice: 78,
     items: [
       {
-        templateId: 'TPL_AK_REDLINE',
+        templateId: 'ITPL_CS2_AK_REDLINE',
         itemName: 'AK-47 | Redline',
         rarity: 'Classified',
         imageUrl: null,
@@ -127,19 +153,37 @@ const demoReviewSummary: Record<string, GameReviewSummary> = {
     reviewCount: 120000,
     recommendCount: 104400,
     recommendRate: 87,
-    latestReviewContent: '适合展示库存和饰品市场交易。',
+    latestReviewContent: '适合展示库存、饰品市场入口和玩家评价概览。',
     ratingText: '特别好评'
   },
   GAME_DST: {
     reviewCount: 98000,
     recommendCount: 93100,
     recommendRate: 95,
-    latestReviewContent: '适合展示买断制购买、评价和成就。',
+    latestReviewContent: '适合展示买断制购买、内容包、评价和成就。',
     ratingText: '好评如潮'
   }
 };
 
 const demoAchievementSummary: Record<string, GameAchievementSummary> = {
+  GAME_CS2: {
+    achievementCount: 3,
+    averageGlobalRate: 42,
+    achievements: [
+      {
+        achievementId: 'ACH_CS2_FIRST_MATCH',
+        achievementName: '完成第一场比赛',
+        description: '完成一次 CS2 演示对局。',
+        globalRate: 68
+      },
+      {
+        achievementId: 'ACH_CS2_FIRST_DROP',
+        achievementName: '首次掉落',
+        description: '获得一件饰品掉落。',
+        globalRate: 31
+      }
+    ]
+  },
   GAME_DST: {
     achievementCount: 4,
     averageGlobalRate: 36,
@@ -200,7 +244,7 @@ function normalizeGame(raw: BackendGame | GameListItem): GameListItem {
     developerId: raw.developerId,
     developerName: raw.developerName,
     coverTone: isCs2 ? 'cs2' : isDst ? 'dst' : 'background',
-    tags: isCs2 ? ['FPS', '多人竞技', '饰品市场', '免费入库'] : isDst ? ['生存', '联机合作', '买断制', '内容包'] : ['商店游戏'],
+    tags: isCs2 ? ['免费开玩', '多人竞技', '饰品市场', '库存'] : isDst ? ['生存', '联机合作', '买断制', '内容包'] : ['商店游戏'],
     basePrice: toNumber(raw.basePrice),
     discountRate: toNumber(raw.discountRate),
     finalPrice: toNumber(raw.finalPrice),
@@ -210,10 +254,10 @@ function normalizeGame(raw: BackendGame | GameListItem): GameListItem {
     supportsMarket: isCs2,
     hasContentPackages: isDst,
     summary: isCs2
-      ? '免费团队竞技射击游戏，用于展示 CS2 饰品库存、市场挂单、撮合成交和价格历史。'
+      ? '免费团队竞技射击游戏，用于展示 CS2 免费入库、库存和饰品市场。'
       : isDst
-        ? '买断制联机生存游戏，用于展示 DST 购买、内容包、评价和自定义成就。'
-        : '课程设计商店背景数据。'
+        ? '买断制联机生存游戏，用于展示 DST 购买、内容包、评价和成就。'
+        : '课程设计商店游戏数据。'
   };
 }
 
@@ -223,18 +267,18 @@ function normalizeDetail(raw: BackendGame | GameListItem): GameDetail {
     ...game,
     description:
       game.shortName === 'CS2'
-        ? 'Counter-Strike 2 在本系统中用于展示免费入库、玩家库存、饰品市场、挂单撮合和价格历史。'
+        ? 'Counter-Strike 2 在本系统中用于展示免费入库、玩家库存、饰品市场、挂单成交和价格摘要。详情页只保留跳转入口，具体库存和市场业务由 Group D 页面承接。'
         : game.shortName === 'DST'
-          ? "Don't Starve Together / 饥荒联机版在本系统中用于展示买断制购买、钱包扣款、内容包、评价和成就。"
+          ? "Don't Starve Together / 饥荒联机版在本系统中用于展示买断制购买、内容包、公告、社区评价和成就。真实扣款和订单由 Group C 承接。"
           : game.summary
   };
 }
 
-function applyLocalFilters(items: GameListItem[], query?: GameQuery): GameListItem[] {
+function applyLocalFilters(items: GameListItem[], query?: GameQuery, options: { includeKeyword?: boolean } = { includeKeyword: true }): GameListItem[] {
   let result = [...items];
   const keyword = (query?.keyword || query?.search || '').trim().toLowerCase();
 
-  if (keyword) {
+  if (options.includeKeyword !== false && keyword) {
     result = result.filter((game) =>
       [game.gameName, game.shortName, game.developerName, ...game.tags].some((text) => text.toLowerCase().includes(keyword))
     );
@@ -297,6 +341,22 @@ function applyLocalFilters(items: GameListItem[], query?: GameQuery): GameListIt
   return result;
 }
 
+function hasLocalFilter(query?: GameQuery): boolean {
+  return Boolean(
+    (query?.keyword || query?.search || '').trim() ||
+    (query?.priceFilter && query.priceFilter !== 'all') ||
+    query?.tag
+  );
+}
+
+function hasClientOnlyFilter(query?: GameQuery): boolean {
+  return Boolean(
+    (query?.priceFilter && query.priceFilter !== 'all') ||
+    query?.tag ||
+    (query?.sort && query.sort !== 'default')
+  );
+}
+
 export async function getGames(query?: GameQuery): Promise<FallbackAwarePagedResult<GameListItem>> {
   try {
     const response = await http.get<ApiEnvelope<PagedResult<BackendGame>>>('/api/games', {
@@ -312,9 +372,23 @@ export async function getGames(query?: GameQuery): Promise<FallbackAwarePagedRes
       }
     });
     const page = unwrap(response.data);
+    const normalizedItems = page.items.map(normalizeGame);
+    const items = applyLocalFilters(normalizedItems, query, { includeKeyword: false });
+    const demoMatches = applyLocalFilters(demoGames, query);
+    if (!items.length && hasLocalFilter(query) && demoMatches.length && !page.total) {
+      return {
+        ...page,
+        items: demoMatches,
+        total: demoMatches.length,
+        source: 'fallback',
+        warning: '后端当前列表没有匹配结果，已使用前端内置演示数据补足搜索展示。'
+      };
+    }
+
     return {
       ...page,
-      items: applyLocalFilters(page.items.map(normalizeGame), query),
+      items,
+      total: hasClientOnlyFilter(query) ? items.length : page.total,
       source: 'api'
     };
   } catch (error) {
@@ -422,4 +496,17 @@ export async function setGameOnline(gameId: string): Promise<GameDetail> {
 export async function setGameOffline(gameId: string): Promise<GameDetail> {
   const response = await http.post<ApiEnvelope<BackendGame>>(`/api/admin/games/${encodeURIComponent(gameId)}/offline`);
   return normalizeDetail(unwrap(response.data));
+}
+
+export async function getGameOwnership(gameId: string): Promise<GameOwnershipInfo> {
+  try {
+    const response = await http.get<LibraryEntry[]>('/api/library');
+    const entry = response.data.find((item) => item.gameId === gameId && item.status !== 'REMOVED') || null;
+    return {
+      owned: Boolean(entry),
+      entry
+    };
+  } catch (error) {
+    throw new Error(getApiError(error));
+  }
 }

@@ -9,7 +9,6 @@ import DeveloperGamesView from './views/DeveloperGamesView.vue';
 import GameCommunityView from './views/GameCommunityView.vue';
 import GameDetailView from './views/GameDetailView.vue';
 import GameLibraryView from './views/GameLibraryView.vue';
-import GameStoreView from './views/GameStoreView.vue';
 import HomeView from './views/HomeView.vue';
 import InventoryView from './views/InventoryView.vue';
 import LibraryView from './views/LibraryView.vue';
@@ -29,10 +28,10 @@ export const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomeView },
     { path: '/store', name: 'store', component: StoreView },
-    { path: '/store/:section(recommend|categories|playstyles|specials)', name: 'store-collection', component: StoreCollectionView },
-    { path: '/store/:section(categories|playstyles|specials)/:collectionId', name: 'store-collection-detail', component: StoreCollectionView },
+    { path: '/store/:section(recommend|categories|playstyles|specials)', name: 'store-section', component: StoreCollectionView },
+    { path: '/store/:section(recommend|categories|playstyles|specials)/:collectionId', name: 'store-collection-detail', component: StoreCollectionView },
     { path: '/games/:gameId', name: 'game-detail', component: GameDetailView },
-    { path: '/games/:gameId/store', name: 'game-store', component: GameStoreView },
+    { path: '/games/:gameId/store', name: 'game-store', redirect: (to) => ({ name: 'game-detail', params: { gameId: to.params.gameId } }) },
     { path: '/games/:gameId/community', name: 'game-community', component: GameCommunityView },
     { path: '/inventory', name: 'inventory', component: InventoryView, meta: { requiresAuth: true } },
     { path: '/library', name: 'library', component: LibraryView, meta: { requiresAuth: true } },

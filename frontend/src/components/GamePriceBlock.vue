@@ -4,8 +4,8 @@
     <template v-else>
       <span v-if="discountPercent > 0" class="discount">-{{ discountPercent }}%</span>
       <span class="price-stack">
-        <span v-if="discountPercent > 0" class="base">¥{{ money(basePrice) }}</span>
-        <span class="final">¥{{ money(finalPrice) }}</span>
+        <span v-if="discountPercent > 0" class="base">¥ {{ money(basePrice) }}</span>
+        <span class="final">¥ {{ money(finalPrice) }}</span>
       </span>
     </template>
   </div>

@@ -2,15 +2,17 @@
   <div class="store-view">
     <GameFilterBar v-model="query" />
 
-    <PageState v-if="loading" kind="loading" title="正在加载商店" message="正在获取游戏列表和精选推荐。" />
+    <PageState v-if="loading" kind="loading" title="正在加载商店" message="正在获取游戏列表、折扣和口碑摘要。" />
     <PageState v-else-if="error" kind="error" title="商店加载失败" :message="error" action-label="重试" @action="loadGames" />
+
     <template v-else>
       <section v-if="isFallback" class="fallback-notice">
         <strong>正在使用本地演示数据</strong>
         <span>{{ fallbackMessage }}</span>
       </section>
+
       <GameHeroPanel v-if="games.length" :games="games" />
-      <PageState v-else kind="empty" title="没有找到游戏" message="换一个搜索词或筛选条件试试。" />
+      <PageState v-else kind="empty" title="没有找到游戏" message="换一个搜索词或筛选条件再试。" />
 
       <section class="store-section">
         <header class="store-heading">
@@ -30,7 +32,8 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { getApiError } from '../api/http';
 import { getGames } from '../api/games';
 import type { GameListItem, GameQuery } from '../api/types';
@@ -39,7 +42,8 @@ import GameFilterBar from '../components/GameFilterBar.vue';
 import GameHeroPanel from '../components/GameHeroPanel.vue';
 import PageState from '../components/PageState.vue';
 
-let query = reactive<GameQuery>({
+const route = useRoute();
+const query = ref<GameQuery>({
   search: '',
   priceFilter: 'all',
   sort: 'default',
@@ -60,7 +64,7 @@ async function loadGames(options: { silent?: boolean } = {}) {
   }
   error.value = '';
   try {
-    const page = await getGames(query);
+    const page = await getGames(query.value);
     games.value = page.items;
     isFallback.value = page.source === 'fallback';
     fallbackMessage.value = page.warning || '';
@@ -76,6 +80,10 @@ async function loadGames(options: { silent?: boolean } = {}) {
 watch(query, () => loadGames(), { deep: true });
 
 onMounted(() => {
+  const search = typeof route.query.search === 'string' ? route.query.search : '';
+  if (search) {
+    query.value = { ...query.value, search };
+  }
   loadGames();
   retryTimer = window.setInterval(() => {
     if (isFallback.value) {
@@ -132,8 +140,6 @@ onBeforeUnmount(() => {
   color: var(--steam-blue);
   font-size: 0.78rem;
   font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .store-heading h1 {
