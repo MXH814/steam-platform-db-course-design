@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import {
   ArrowLeftRight,
   Boxes,
@@ -34,9 +34,10 @@ const games: Array<{ id: InventoryGameId; label: string; shortName: string; acce
 
 const pageSize = 25;
 
+const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
-const activeGameId = ref<InventoryGameId>('GAME_CS2');
+const activeGameId = ref<InventoryGameId>(normalizeGameId(route.query.gameId));
 const searchTerm = ref('');
 const templates = ref<ItemTemplate[]>([]);
 const inventory = ref<InventoryItem[]>([]);
@@ -88,10 +89,32 @@ const gameCounts = computed(() =>
   }, { GAME_CS2: 0, GAME_DST: 0 })
 );
 
+function normalizeGameId(value: unknown): InventoryGameId {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw === 'GAME_DST' ? 'GAME_DST' : 'GAME_CS2';
+}
+
+function selectGame(gameId: InventoryGameId) {
+  activeGameId.value = gameId;
+  router.replace({
+    query: {
+      ...route.query,
+      gameId
+    }
+  });
+}
+
 watch([activeGameId, searchTerm], () => {
   currentPage.value = 1;
   selectFirstVisibleItem();
 });
+
+watch(
+  () => route.query.gameId,
+  (value) => {
+    activeGameId.value = normalizeGameId(value);
+  }
+);
 
 watch(selectedItem, async (item) => {
   transfers.value = [];
@@ -125,6 +148,11 @@ async function refreshInventory() {
 }
 
 async function simulateDrop() {
+  const confirmed = window.confirm('模拟掉落会真实写入云端数据库并新增库存记录，确定继续吗？');
+  if (!confirmed) {
+    return;
+  }
+
   actionLoading.value = true;
   errorMessage.value = '';
   successMessage.value = '';
@@ -324,7 +352,7 @@ function transferParty(value?: string | null) {
           type="button"
           :class="{ active: activeGameId === game.id }"
           :style="{ '--game-accent': game.accent }"
-          @click="activeGameId = game.id"
+          @click="selectGame(game.id)"
         >
           <span class="game-icon">{{ game.shortName }}</span>
           <strong>{{ game.label }}</strong>

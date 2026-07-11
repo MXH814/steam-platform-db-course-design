@@ -11,7 +11,7 @@ import {
   Tag,
   X
 } from '@lucide/vue';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   cancelOrder,
@@ -94,6 +94,17 @@ const myTrades = computed(() => {
 });
 
 const activeCategorySet = computed(() => new Set(selectedCategories.value));
+
+function queryValue(value: unknown) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function applyRouteFilters() {
+  const templateId = queryValue(route.query.templateId);
+  if (typeof templateId === 'string' && templateId.trim()) {
+    searchQuery.value = templateId.trim();
+  }
+}
 
 const filteredListings = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
@@ -329,8 +340,16 @@ async function runAction(action: () => Promise<void>) {
 }
 
 onMounted(async () => {
+  applyRouteFilters();
   await refreshAll();
 });
+
+watch(
+  () => route.query.templateId,
+  () => {
+    applyRouteFilters();
+  }
+);
 </script>
 
 <template>
