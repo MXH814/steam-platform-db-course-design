@@ -22,7 +22,8 @@ public sealed class ExceptionHandlingTests
 
         Assert.Equal(409, statusCode);
         Assert.Equal(40900, response.Code);
-        Assert.Equal("The player already reviewed this game.", response.Message);
+        Assert.Contains("REVIEW_ALREADY_EXISTS", response.Message);
+        Assert.Contains("The player already reviewed this game.", response.Message);
     }
 
     [Fact]

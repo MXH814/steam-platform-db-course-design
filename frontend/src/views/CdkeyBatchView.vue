@@ -71,11 +71,7 @@ function normalizeBatchErrorMessage(rawMessage: string): string {
     return '生成 CDKey 批次失败，请稍后重试。';
   }
 
-  if (rawMessage.includes('ORA-') || rawMessage.includes('unique') || rawMessage.includes('违反唯一')) {
-    return '批次号已存在，请更换批次号并重试。';
-  }
-
-  if (rawMessage.includes('GAME_UNSUPPORTED') || rawMessage.includes('CDKEY_GAME')) {
+  if (rawMessage.includes('CDKEY_GAME')) {
     return '当前只支持为饥荒联机版 (DST) 生成 CDKey。';
   }
 
@@ -103,4 +99,3 @@ async function createBatch() {
   }
 }
 </script>
-

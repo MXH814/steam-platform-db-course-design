@@ -84,10 +84,6 @@ function normalizeErrorMessage(rawMessage: string): string {
     return '兑换失败，请稍后重试。';
   }
 
-  if (rawMessage.includes('ORA-') || rawMessage.includes('Oracle')) {
-    return '玩家已拥有该游戏或 CDKey 已被兑换。';
-  }
-
   if (rawMessage.includes('already owns') || rawMessage.includes('already owned')) {
     return '您已经拥有该游戏，无需重复兑换。';
   }

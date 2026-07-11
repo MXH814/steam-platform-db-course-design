@@ -281,6 +281,53 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
     }
 
     [Fact]
+    public async Task RedeemCdkey_handles_concurrent_requests_gracefully()
+    {
+        // Arrange: Create a batch with one CDKey as a developer
+        using var factory = new SteamPlatformApiFactory();
+        var devClient = factory.CreateClient();
+        AuthorizeAs(devClient, "DEVELOPER");
+
+        var batchRequest = new CreateCdkeyBatchRequest(
+            "GAME_DST",
+            $"CONCURRENCY-TEST-{Guid.NewGuid():N}",
+            DateTime.UtcNow.AddMinutes(-1),
+            DateTime.UtcNow.AddDays(1),
+            1);
+        using var batchResponse = await devClient.PostAsJsonAsync("/api/developer/cdkey-batches", batchRequest);
+        batchResponse.EnsureSuccessStatusCode();
+        var batchResult = await batchResponse.Content.ReadFromJsonAsync<CdkeyBatchSummary>();
+        var cdkeyToRedeem = batchResult!.PlaintextKeys.Single();
+
+        // Act: Two different players try to redeem the same key concurrently by calling the service directly
+        var redeemRequest = new RedeemCdkeyRequest(cdkeyToRedeem);
+        
+        async Task<CdkeyRedeemResult> RedeemAsPlayer(string principalId)
+        {
+            using var scope = factory.Services.CreateScope();
+            var service = scope.ServiceProvider.GetRequiredService<ICoreTransactionService>();
+            var claims = new AuthClaims("PLAYER", principalId, principalId, DateTimeOffset.MaxValue);
+            return await service.RedeemCdkeyAsync(claims, redeemRequest, CancellationToken.None);
+        }
+
+        var task1 = RedeemAsPlayer("P999");
+        var task2 = RedeemAsPlayer("P998");
+
+        var results = await Task.WhenAll(task1, task2);
+        var result1 = results[0];
+        var result2 = results[1];
+
+        // Assert: One succeeds, one fails with a specific business error
+        var successResult = string.Equals(result1.Result, "SUCCESS", StringComparison.Ordinal) ? result1 : result2;
+        var failedResult = string.Equals(result1.Result, "SUCCESS", StringComparison.Ordinal) ? result2 : result1;
+
+        Assert.Equal("SUCCESS", successResult.Result);
+        Assert.Equal("REDEEMED", failedResult.Result);
+        Assert.Contains("redeemed", failedResult.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    [Fact]
     public async Task Free_claim_rejects_non_cs2_without_opening_database()
     {
         AuthorizeAsPlayer();
@@ -306,17 +353,20 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
         AuthorizeAs(_client, role);
     }
 
-    private void AuthorizeAs(HttpClient client, string role)
+    private void AuthorizeAs(HttpClient client, string role, string principalId = "P001")
     {
         using var scope = _factory.Services.CreateScope();
         var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
-        var principalId = role.ToUpperInvariant() switch
+        var resolvedPrincipalId = principalId;
+        if (role.ToUpperInvariant() != "PLAYER")
         {
-            "PLAYER" => "P001",
-            "ADMIN" => "ADM001",
-            _ => "DEV001"
-        };
-        var token = auth.CreateToken(new AuthClaims(role, principalId, "tester", DateTimeOffset.UtcNow.AddMinutes(10)));
+            resolvedPrincipalId = role.ToUpperInvariant() switch
+            {
+                "ADMIN" => "ADM001",
+                _ => "DEV001"
+            };
+        }
+        var token = auth.CreateToken(new AuthClaims(role, resolvedPrincipalId, "tester", DateTimeOffset.UtcNow.AddMinutes(10)));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
 

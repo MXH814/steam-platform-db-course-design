@@ -22,6 +22,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
     private readonly Dictionary<string, RefundRecord> _refunds = new();
     private readonly Dictionary<string, CdkeyRecord> _cdkeys = new();
     private readonly Dictionary<string, CdkeyBatchRecord> _batches = new();
+    private readonly object _cdkeyLock = new();
 
     public InMemoryCoreTransactionService()
     {
@@ -348,34 +349,35 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         var plaintext = NormalizeRequired(request.Cdkey, nameof(request.Cdkey));
         var submittedHash = HashCdkey(plaintext);
 
-        var cd = _cdkeys.Values.FirstOrDefault(c => c.CdkeyHash == submittedHash);
-        if (cd is null)
+        lock (_cdkeyLock)
         {
-            return Task.FromResult(new CdkeyRedeemResult("INVALID", null, null, "CDKey does not exist."));
-        }
+            var cd = _cdkeys.Values.FirstOrDefault(c => c.CdkeyHash == submittedHash);
+            if (cd is null)
+            {
+                return Task.FromResult(new CdkeyRedeemResult("INVALID", null, null, "CDKey does not exist."));
+            }
 
-        if (!string.Equals(cd.Status, "AVAILABLE", StringComparison.OrdinalIgnoreCase))
-        {
-            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", cd.GameId, null, "CDKey has already been redeemed."));
-        }
+            if (!string.Equals(cd.Status, "AVAILABLE", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.FromResult(new CdkeyRedeemResult("REDEEMED", cd.GameId, null, "CDKey has already been redeemed."));
+            }
 
-        var now = DateTime.UtcNow;
-        if (now < cd.ValidFrom || now > cd.ExpireTime)
-        {
-            return Task.FromResult(new CdkeyRedeemResult("EXPIRED", cd.GameId, null, "CDKey is outside its valid time window."));
-        }
+            var now = DateTime.UtcNow;
+            if (now < cd.ValidFrom || now > cd.ExpireTime)
+            {
+                return Task.FromResult(new CdkeyRedeemResult("EXPIRED", cd.GameId, null, "CDKey is outside its valid time window."));
+            }
 
-        if (_library.Contains((userId, cd.GameId)))
-        {
-            cd.Status = "REDEEMED"; // still mark
-            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", null, null, "Player already owns this game."));
-        }
+            if (_library.Contains((userId, cd.GameId)))
+            {
+                return Task.FromResult(new CdkeyRedeemResult("REDEEMED", cd.GameId, null, "Player already owns this game."));
+            }
 
-        // redeem
-        cd.Status = "REDEEMED";
-        var libraryId = "LIB_TEST_" + Guid.NewGuid().ToString("N")[..8];
-        _library.Add((userId, cd.GameId));
-        return Task.FromResult(new CdkeyRedeemResult("SUCCESS", cd.GameId, libraryId, "CDKey redeemed."));
+            cd.Status = "REDEEMED";
+            var libraryId = "LIB_TEST_" + Guid.NewGuid().ToString("N")[..8];
+            _library.Add((userId, cd.GameId));
+            return Task.FromResult(new CdkeyRedeemResult("SUCCESS", cd.GameId, libraryId, "CDKey redeemed."));
+        }
     }
 
     // helpers and internal records
