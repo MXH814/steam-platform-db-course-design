@@ -28,7 +28,7 @@
         <span>数量</span>
         <input v-model.number="quantity" type="number" min="1" max="50" required />
       </label>
-      <button class="primary-button" type="submit">生成 CDKey</button>
+      <button class="primary-button" type="submit" :disabled="submitting">{{ submitting ? '生成中...' : '生成 CDKey' }}</button>
     </form>
 
     <p v-if="error" class="message error">{{ error }}</p>
@@ -51,7 +51,8 @@ import { createCdkeyBatch, type CdkeyBatchSummary } from '../api/coreApi';
 import { getApiError } from '../api/http';
 
 const gameId = ref('GAME_DST');
-const batchNo = ref(`DST-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`);
+// include timestamp to reduce accidental duplicate batchNo; developer can still edit
+const batchNo = ref(`DST-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Date.now().toString().slice(-4)}`);
 const now = new Date();
 const nextMonth = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 const validFrom = ref(toLocalInput(now));
@@ -59,14 +60,30 @@ const expireTime = ref(toLocalInput(nextMonth));
 const quantity = ref(3);
 const batch = ref<CdkeyBatchSummary | null>(null);
 const error = ref('');
+const submitting = ref(false);
 
 function toLocalInput(date: Date): string {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 }
 
+function normalizeBatchErrorMessage(rawMessage: string): string {
+  if (!rawMessage) {
+    return '生成 CDKey 批次失败，请稍后重试。';
+  }
+
+  if (rawMessage.includes('CDKEY_GAME')) {
+    return '当前只支持为饥荒联机版 (DST) 生成 CDKey。';
+  }
+
+  return rawMessage;
+}
+
 async function createBatch() {
+  if (submitting.value) return;
   error.value = '';
   batch.value = null;
+  submitting.value = true;
+
   try {
     batch.value = await createCdkeyBatch(
       gameId.value,
@@ -76,7 +93,9 @@ async function createBatch() {
       quantity.value
     );
   } catch (requestError) {
-    error.value = getApiError(requestError);
+    error.value = normalizeBatchErrorMessage(getApiError(requestError));
+  } finally {
+    submitting.value = false;
   }
 }
 </script>

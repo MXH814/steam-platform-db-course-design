@@ -11,7 +11,7 @@
         <RouterLink v-if="auth.isAuthenticated" to="/wallet/history">消费历史</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/library">游戏库</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/refunds">退款</RouterLink>
-        <RouterLink v-if="auth.isAuthenticated" to="/redeem">CDKey</RouterLink>
+        <RouterLink v-if="auth.isAuthenticated && !auth.isDeveloper" to="/redeem">CDKey</RouterLink>
         <RouterLink to="/">公告</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/account">账户</RouterLink>
         <RouterLink v-if="auth.isDeveloper" to="/developer/games">游戏管理</RouterLink>

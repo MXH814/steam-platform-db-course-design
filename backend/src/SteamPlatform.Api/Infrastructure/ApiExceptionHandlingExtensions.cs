@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 using SteamPlatform.Shared;
 
 namespace SteamPlatform.Api.Infrastructure;
@@ -13,30 +12,30 @@ public static class ApiExceptionHandlingExtensions
             errorApp.Run(async context =>
             {
                 var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
-                var problem = CreateProblem(exception);
-                context.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
-                context.Response.ContentType = "application/problem+json";
-                await context.Response.WriteAsJsonAsync(problem);
+                var (statusCode, response) = CreateApiResponse(exception);
+                context.Response.StatusCode = statusCode;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(response);
             });
         });
     }
 
-    public static ProblemDetails CreateProblem(Exception? exception)
+    public static (int StatusCode, ApiResponse<object?> Response) CreateApiResponse(Exception? exception)
     {
-        if (TryGetOracleErrorNumber(exception, out var oracleNumber))
+        if (TryGetOracleErrorNumber(exception, out _))
         {
-            return NewProblem(StatusCodes.Status503ServiceUnavailable, "Oracle database error", $"Oracle error ORA-{oracleNumber}.");
+            return (StatusCodes.Status503ServiceUnavailable, ApiResponse<object?>.Failure(50301, "数据库服务暂时不可用。"));
         }
 
         return exception switch
         {
-            ArgumentException argumentException => NewProblem(StatusCodes.Status400BadRequest, "Invalid request", argumentException.Message),
-            BusinessRuleException businessRuleException => NewProblem(StatusCodes.Status409Conflict, businessRuleException.Code, businessRuleException.Message),
-            ResourceNotFoundException resourceNotFoundException => NewProblem(StatusCodes.Status404NotFound, "Not found", resourceNotFoundException.Message),
-            ForbiddenException forbiddenException => NewProblem(StatusCodes.Status403Forbidden, "Forbidden", forbiddenException.Message),
-            InvalidOperationException => NewProblem(StatusCodes.Status500InternalServerError, "Server configuration error", "The server is not configured correctly."),
-            UnauthorizedAccessException unauthorizedAccessException => NewProblem(StatusCodes.Status401Unauthorized, "Unauthorized", unauthorizedAccessException.Message),
-            _ => NewProblem(StatusCodes.Status500InternalServerError, "Unexpected server error", "The server could not complete the request.")
+            ArgumentException argumentException => (StatusCodes.Status400BadRequest, ApiResponse<object?>.Failure(40001, argumentException.Message)),
+            BusinessRuleException businessRuleException => (StatusCodes.Status409Conflict, ApiResponse<object?>.Failure(40900, $"{businessRuleException.Code}: {businessRuleException.Message}")),
+            ResourceNotFoundException resourceNotFoundException => (StatusCodes.Status404NotFound, ApiResponse<object?>.Failure(40401, resourceNotFoundException.Message)),
+            ForbiddenException forbiddenException => (StatusCodes.Status403Forbidden, ApiResponse<object?>.Failure(40301, forbiddenException.Message)),
+            InvalidOperationException => (StatusCodes.Status500InternalServerError, ApiResponse<object?>.Failure(50001, "服务器配置错误。")),
+            UnauthorizedAccessException unauthorizedAccessException => (StatusCodes.Status401Unauthorized, ApiResponse<object?>.Failure(40101, unauthorizedAccessException.Message)),
+            _ => (StatusCodes.Status500InternalServerError, ApiResponse<object?>.Failure(50000, "服务器无法完成请求。"))
         };
     }
 
@@ -57,12 +56,4 @@ public static class ApiExceptionHandlingExtensions
         number = oracleNumber;
         return true;
     }
-
-    private static ProblemDetails NewProblem(int status, string title, string detail) =>
-        new()
-        {
-            Status = status,
-            Title = title,
-            Detail = detail
-        };
 }

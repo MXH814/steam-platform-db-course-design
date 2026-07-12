@@ -1,9 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using SteamPlatform.Application.Auth;
 using SteamPlatform.Application.CoreTransactions;
@@ -13,27 +13,28 @@ using SteamPlatform.Shared;
 namespace SteamPlatform.Infrastructure.CoreTransactions;
 
 // Minimal in-memory implementation for local development and unit tests.
+// Simulates real database concurrency semantics without using locks.
 public sealed class InMemoryCoreTransactionService : ICoreTransactionService
 {
-    private readonly Dictionary<string, decimal> _wallets = new();
-    private readonly List<WalletTransactionRecord> _walletTransactions = new();
-    private readonly HashSet<(string userId, string gameId)> _library = new();
-    private readonly Dictionary<string, OrderRecord> _orders = new();
-    private readonly Dictionary<string, RefundRecord> _refunds = new();
-    private readonly Dictionary<string, CdkeyRecord> _cdkeys = new();
-    private readonly Dictionary<string, CdkeyBatchRecord> _batches = new();
+    private readonly ConcurrentDictionary<string, decimal> _wallets = new();
+    private readonly ConcurrentQueue<WalletTransactionRecord> _walletTransactions = new();
+    private readonly ConcurrentDictionary<(string userId, string gameId), byte> _library = new();
+    private readonly ConcurrentDictionary<string, OrderRecord> _orders = new();
+    private readonly ConcurrentDictionary<string, RefundRecord> _refunds = new();
+    private readonly ConcurrentDictionary<string, CdkeyRecord> _cdkeys = new();
+    private readonly ConcurrentDictionary<string, CdkeyBatchRecord> _batches = new();
 
     public InMemoryCoreTransactionService()
     {
         // seed wallets for P001 and P002 for tests/demo
-        _wallets["P001"] = 100m;
-        _wallets["P002"] = 10m;
+        _wallets.TryAdd("P001", 100m);
+        _wallets.TryAdd("P002", 10m);
         // seed P001 owns DST in demo data
-        _library.Add(("P001", "GAME_DST"));
-        _library.Add(("P002", "GAME_DST"));
+        _library.TryAdd(("P001", "GAME_DST"), 0);
+        _library.TryAdd(("P002", "GAME_DST"), 0);
         // seed an existing completed paid order for P001 for refund demo
         var orderId = "O_DST_001";
-        _orders[orderId] = new OrderRecord
+        _orders.TryAdd(orderId, new OrderRecord
         {
             OrderId = orderId,
             UserId = "P001",
@@ -47,7 +48,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             {
                 new OrderDetailRecord { DetailId = "OD_DST_001", GameId = "GAME_DST", OriginalPrice = 100m, DiscountAmount = 50m, PayableAmount = 50m, RefundAmount = 0m }
             }
-        };
+        });
     }
 
     private static void EnsurePlayer(AuthClaims claims)
@@ -97,7 +98,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         if (!_wallets.TryGetValue(userId, out var before)) throw new ResourceNotFoundException("Wallet does not exist.");
 
         var after = before + amount;
-        _wallets[userId] = after;
+        _wallets.TryUpdate(userId, after, before);
 
         var txnId = "WTN" + Guid.NewGuid().ToString("N")[..8];
         var entry = new WalletTransactionEntry(
@@ -111,7 +112,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             idempotencyKey,
             paymentMethod,
             DateTime.UtcNow);
-        _walletTransactions.Add(new WalletTransactionRecord(walletId, entry));
+        _walletTransactions.Enqueue(new WalletTransactionRecord(walletId, entry));
 
         return Task.FromResult(new RechargeWalletResult(walletId, txnId, after, 0m, after));
     }
@@ -125,7 +126,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
 
         var normalizedPage = Math.Max(page, 1);
         var normalizedPageSize = Math.Clamp(pageSize, 1, 100);
-        var transactions = _walletTransactions
+        var transactions = _walletTransactions.ToArray()
             .Where(t => string.Equals(t.WalletId, walletId, StringComparison.Ordinal))
             .Select(t => t.Entry)
             .OrderByDescending(t => t.CreateTime)
@@ -208,7 +209,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             .SelectMany(order => order.Details.Select(detail => detail.GameId))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var libraryRows = _library
+        var libraryRows = _library.Keys
             .Where(library => library.userId == userId && !orderedGames.Contains(library.gameId))
             .Select(library => new WalletHistoryEntry(
                 $"LIBRARY-{library.userId}-{library.gameId}",
@@ -251,7 +252,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         EnsurePlayer(claims);
         var userId = claims.PrincipalId;
         var paymentMethod = NormalizeOrderPaymentMethod(request.PaymentMethod);
-        if (_library.Contains((userId, request.GameId)))
+        if (_library.ContainsKey((userId, request.GameId)))
         {
             throw new BusinessRuleException("GAME_ALREADY_OWNED", "The player already owns this game.");
         }
@@ -264,13 +265,17 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
 
         if (paymentMethod == PaymentMethods.SteamWallet && bal < payable) throw new BusinessRuleException("INSUFFICIENT_BALANCE", "Wallet balance is not enough for this purchase.");
 
-        if (paymentMethod == PaymentMethods.SteamWallet)
+        if (paymentMethod == PaymentMethods.SteamWallet && !_wallets.TryUpdate(userId, bal - payable, bal))
         {
-            _wallets[userId] = bal - payable;
+            throw new BusinessRuleException("BUY_GAME_FAILED", "Could not complete purchase due to a conflict. Please try again.");
+        }
+
+        if (!_library.TryAdd((userId, request.GameId), 0))
+        {
+            throw new BusinessRuleException("GAME_ALREADY_OWNED", "The player already owns this game.");
         }
 
         var orderId = "O_TEST_" + Guid.NewGuid().ToString("N")[..8];
-        _library.Add((userId, request.GameId));
 
         var originalPrice = request.GameId == "GAME_DST" ? 100m : payable;
         var discountAmount = originalPrice - payable;
@@ -308,8 +313,10 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         EnsurePlayer(claims);
         var userId = claims.PrincipalId;
         if (gameId != "GAME_CS2") throw new BusinessRuleException("GAME_NOT_FREE", "Only Counter-Strike 2 uses the free-claim flow.");
-        if (_library.Contains((userId, gameId))) throw new BusinessRuleException("GAME_ALREADY_OWNED", "The player already owns this game.");
-        _library.Add((userId, gameId));
+        if (!_library.TryAdd((userId, gameId), 0))
+        {
+            throw new BusinessRuleException("GAME_ALREADY_OWNED", "The player already owns this game.");
+        }
         var orderId = "O_TEST_" + Guid.NewGuid().ToString("N")[..8];
         var detail = new OrderDetailEntry("OD_TEST", gameId, "Counter-Strike 2", 0m, 0m, 0m, 0m);
         var summary = new OrderSummary(orderId, userId, 0m, "BUY_GAME", "COMPLETED", "PAID", $"free-{userId}-{gameId}", DateTime.UtcNow, new[] { detail });
@@ -323,7 +330,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
     {
         EnsurePlayer(claims);
         var userId = claims.PrincipalId;
-        var list = _library.Where(l => l.userId == userId).Select(l => new LibraryEntry("LIB_TEST", l.gameId, l.gameId == "GAME_DST" ? "Don't Starve Together" : "Counter-Strike 2", l.gameId == "GAME_CS2" ? "FREE" : "BUY", "NORMAL", 0, null)).ToArray();
+        var list = _library.Keys.Where(l => l.userId == userId).Select(l => new LibraryEntry("LIB_TEST", l.gameId, l.gameId == "GAME_DST" ? "Don't Starve Together" : "Counter-Strike 2", l.gameId == "GAME_CS2" ? "FREE" : "BUY", "NORMAL", 0, null)).ToArray();
         return Task.FromResult((IReadOnlyList<LibraryEntry>)list);
     }
 
@@ -354,7 +361,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         var userId = claims.PrincipalId;
         var normalizedGameId = NormalizeRequired(gameId, nameof(gameId));
         var entryKey = (userId, normalizedGameId);
-        if (!_library.Contains(entryKey)) throw new ResourceNotFoundException("Library entry does not exist.");
+        if (!_library.ContainsKey(entryKey)) throw new ResourceNotFoundException("Library entry does not exist.");
 
         // In-memory we don't track play minutes persistently; return a synthetic entry.
         var lib = new LibraryEntry("LIB_TEST", normalizedGameId, normalizedGameId == "GAME_DST" ? "Don't Starve Together" : "Counter-Strike 2", normalizedGameId == "GAME_CS2" ? "FREE" : "BUY", "NORMAL", request.MinutesToAdd, DateTime.UtcNow);
@@ -391,7 +398,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             ApplyTime = DateTime.UtcNow,
             OrderDetailId = selectedDetail?.DetailId
         };
-        _refunds[refundId] = refund;
+        _refunds.TryAdd(refundId, refund);
         // mark order refunding
         order.OrderStatus = "REFUNDING";
 
@@ -431,7 +438,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             if (string.Equals(order.PaymentMethod, PaymentMethods.SteamWallet, StringComparison.OrdinalIgnoreCase)
                 && _wallets.TryGetValue(userId, out var bal))
             {
-                _wallets[userId] = bal + refund.RefundAmount;
+                _wallets.TryUpdate(userId, bal + refund.RefundAmount, bal);
             }
 
             order.PaymentStatus = "REFUNDED";
@@ -477,7 +484,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         var batchId = "B" + Guid.NewGuid().ToString("N")[..8];
         var keys = new List<string>(request.Quantity);
         var batch = new CdkeyBatchRecord { BatchId = batchId, GameId = gameId, BatchNo = batchNo, ValidFrom = request.ValidFrom, ExpireTime = request.ExpireTime };
-        _batches[batchId] = batch;
+        _batches.TryAdd(batchId, batch);
 
         for (var i = 0; i < request.Quantity; i++)
         {
@@ -485,7 +492,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             keys.Add(plaintext);
             var hash = HashCdkey(plaintext);
             var id = "CK" + Guid.NewGuid().ToString("N")[..8];
-            _cdkeys[id] = new CdkeyRecord { CdkeyHash = hash, BatchId = batchId, Status = "AVAILABLE", GenerateTime = DateTime.UtcNow, GameId = gameId, ValidFrom = request.ValidFrom, ExpireTime = request.ExpireTime };
+            _cdkeys.TryAdd(id, new CdkeyRecord(hash, batchId, "AVAILABLE", DateTime.UtcNow, gameId, request.ValidFrom, request.ExpireTime));
         }
 
         return Task.FromResult(new CdkeyBatchSummary(batchId, gameId, batchNo, request.ValidFrom, request.ExpireTime, keys));
@@ -515,17 +522,39 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             return Task.FromResult(new CdkeyRedeemResult("EXPIRED", cd.GameId, null, "CDKey is outside its valid time window."));
         }
 
-        if (_library.Contains((userId, cd.GameId)))
+        if (_library.ContainsKey((userId, cd.GameId)))
         {
-            cd.Status = "REDEEMED"; // still mark
-            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", null, null, "Player already owns this game."));
+            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", cd.GameId, null, "Player already owns this game."));
         }
 
-        // redeem
-        cd.Status = "REDEEMED";
+        // Simulate database atomic update: set status='REDEEMED' where cdkey_hash=:CdkeyHash and status='AVAILABLE'
+        // Find the dictionary entry to perform compare-and-swap
+        var cdkeyEntry = _cdkeys.FirstOrDefault(kvp => kvp.Value.CdkeyHash == submittedHash);
+        if (!cdkeyEntry.Value.CdkeyHash.Equals(submittedHash, StringComparison.Ordinal))
+        {
+            return Task.FromResult(new CdkeyRedeemResult("INVALID", null, null, "CDKey does not exist."));
+        }
+
+        var currentRecord = cdkeyEntry.Value;
+        if (!string.Equals(currentRecord.Status, "AVAILABLE", StringComparison.OrdinalIgnoreCase))
+        {
+            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", currentRecord.GameId, null, "CDKey has already been redeemed."));
+        }
+
+        var redeemedRecord = currentRecord with { Status = "REDEEMED" };
+        var updateSucceeded = _cdkeys.TryUpdate(cdkeyEntry.Key, redeemedRecord, currentRecord);
+        if (!updateSucceeded)
+        {
+            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", currentRecord.GameId, null, "CDKey has already been redeemed."));
+        }
+
+        if (!_library.TryAdd((userId, currentRecord.GameId), 0))
+        {
+            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", currentRecord.GameId, null, "Player already owns this game."));
+        }
+
         var libraryId = "LIB_TEST_" + Guid.NewGuid().ToString("N")[..8];
-        _library.Add((userId, cd.GameId));
-        return Task.FromResult(new CdkeyRedeemResult("SUCCESS", cd.GameId, libraryId, "CDKey redeemed."));
+        return Task.FromResult(new CdkeyRedeemResult("SUCCESS", currentRecord.GameId, libraryId, "CDKey redeemed."));
     }
 
     // helpers and internal records
@@ -663,16 +692,15 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         public string? AuditReason;
     }
 
-    private sealed class CdkeyRecord
-    {
-        public string CdkeyHash = "";
-        public string BatchId = "";
-        public string Status = "";
-        public DateTime GenerateTime;
-        public string GameId = "";
-        public DateTime ValidFrom;
-        public DateTime ExpireTime;
-    }
+    private sealed record CdkeyRecord(
+        string CdkeyHash,
+        string BatchId,
+        string Status,
+        DateTime GenerateTime,
+        string GameId,
+        DateTime ValidFrom,
+        DateTime ExpireTime
+    );
 
     private sealed class CdkeyBatchRecord
     {

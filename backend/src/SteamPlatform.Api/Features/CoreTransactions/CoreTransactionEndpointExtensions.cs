@@ -33,7 +33,7 @@ public static class CoreTransactionEndpointExtensions
             }
             catch (ResourceNotFoundException exception)
             {
-                return IsWalletMissing(exception) ? WalletNotFound(exception) : WalletHistoryNotFound(exception);
+                return WalletNotFound(exception);
             }
         });
 
@@ -64,7 +64,7 @@ public static class CoreTransactionEndpointExtensions
             }
             catch (ResourceNotFoundException exception)
             {
-                return IsWalletMissing(exception) ? WalletNotFound(exception) : WalletHistoryNotFound(exception);
+                return WalletNotFound(exception);
             }
         });
 
