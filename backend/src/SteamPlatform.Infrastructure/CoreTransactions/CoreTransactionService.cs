@@ -981,15 +981,22 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
 
             await EnsureGameNotOwnedAsync(connection, transaction, userId, cdkey.GameId, cancellationToken);
             var libraryId = IdGenerator.NewId("LIB");
-            await connection.ExecuteAsync(new CommandDefinition(
+            var updatedRows = await connection.ExecuteAsync(new CommandDefinition(
                 """
                 update cdkey
                    set status = 'REDEEMED'
                  where cdkey_hash = :CdkeyHash
+                   and status = 'AVAILABLE'
                 """,
                 new { cdkey.CdkeyHash },
                 transaction,
                 cancellationToken: cancellationToken));
+
+            if (updatedRows == 0)
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                return await HandleCdkeyRedemptionRaceConditionAsync(connection, userId, submittedHash, cancellationToken);
+            }
 
             await connection.ExecuteAsync(new CommandDefinition(
                 """
