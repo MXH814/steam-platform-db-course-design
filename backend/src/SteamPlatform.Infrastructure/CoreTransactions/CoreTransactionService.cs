@@ -1065,7 +1065,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             await transaction.CommitAsync(cancellationToken);
             return new CdkeyRedeemResult("REDEEMED", cdkey.GameId, null, "CDKey has already been redeemed.");
         }
-        
+
         var isGameOwned = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
             """
             select count(*)

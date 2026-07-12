@@ -301,7 +301,7 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
 
         // Act: Two different players try to redeem the same key concurrently by calling the service directly
         var redeemRequest = new RedeemCdkeyRequest(cdkeyToRedeem);
-        
+
         async Task<CdkeyRedeemResult> RedeemAsPlayer(string principalId)
         {
             using var scope = factory.Services.CreateScope();
@@ -310,8 +310,8 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
             return await service.RedeemCdkeyAsync(claims, redeemRequest, CancellationToken.None);
         }
 
-        var task1 = RedeemAsPlayer("P999");
-        var task2 = RedeemAsPlayer("P998");
+        var task1 = Task.Run(() => RedeemAsPlayer("P999"));
+        var task2 = Task.Run(() => RedeemAsPlayer("P998"));
 
         var results = await Task.WhenAll(task1, task2);
         var result1 = results[0];

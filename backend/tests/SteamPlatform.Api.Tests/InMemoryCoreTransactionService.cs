@@ -346,7 +346,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             keys.Add(plaintext);
             var hash = HashCdkey(plaintext);
             var id = "CK" + Guid.NewGuid().ToString("N")[..8];
-            _cdkeys.TryAdd(id, new CdkeyRecord { CdkeyHash = hash, BatchId = batchId, Status = "AVAILABLE", GenerateTime = DateTime.UtcNow, GameId = gameId, ValidFrom = request.ValidFrom, ExpireTime = request.ExpireTime });
+            _cdkeys.TryAdd(id, new CdkeyRecord(hash, batchId, "AVAILABLE", DateTime.UtcNow, gameId, request.ValidFrom, request.ExpireTime));
         }
 
         return Task.FromResult(new CdkeyBatchSummary(batchId, gameId, batchNo, request.ValidFrom, request.ExpireTime, keys));
@@ -382,21 +382,33 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         }
 
         // Simulate database atomic update: set status='REDEEMED' where cdkey_hash=:CdkeyHash and status='AVAILABLE'
-        var recordToUpdate = _cdkeys.Values.FirstOrDefault(c => c.CdkeyHash == submittedHash && string.Equals(c.Status, "AVAILABLE", StringComparison.OrdinalIgnoreCase));
-        if (recordToUpdate is null)
+        // Find the dictionary entry to perform compare-and-swap
+        var cdkeyEntry = _cdkeys.FirstOrDefault(kvp => kvp.Value.CdkeyHash == submittedHash);
+        if (!cdkeyEntry.Value.CdkeyHash.Equals(submittedHash, StringComparison.Ordinal))
         {
-            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", cd.GameId, null, "CDKey has already been redeemed."));
+            return Task.FromResult(new CdkeyRedeemResult("INVALID", null, null, "CDKey does not exist."));
         }
 
-        recordToUpdate.Status = "REDEEMED";
-
-        if (!_library.TryAdd((userId, cd.GameId), 0))
+        var currentRecord = cdkeyEntry.Value;
+        if (!string.Equals(currentRecord.Status, "AVAILABLE", StringComparison.OrdinalIgnoreCase))
         {
-            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", cd.GameId, null, "Player already owns this game."));
+            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", currentRecord.GameId, null, "CDKey has already been redeemed."));
+        }
+
+        var redeemedRecord = currentRecord with { Status = "REDEEMED" };
+        var updateSucceeded = _cdkeys.TryUpdate(cdkeyEntry.Key, redeemedRecord, currentRecord);
+        if (!updateSucceeded)
+        {
+            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", currentRecord.GameId, null, "CDKey has already been redeemed."));
+        }
+
+        if (!_library.TryAdd((userId, currentRecord.GameId), 0))
+        {
+            return Task.FromResult(new CdkeyRedeemResult("REDEEMED", currentRecord.GameId, null, "Player already owns this game."));
         }
 
         var libraryId = "LIB_TEST_" + Guid.NewGuid().ToString("N")[..8];
-        return Task.FromResult(new CdkeyRedeemResult("SUCCESS", cd.GameId, libraryId, "CDKey redeemed."));
+        return Task.FromResult(new CdkeyRedeemResult("SUCCESS", currentRecord.GameId, libraryId, "CDKey redeemed."));
     }
 
     // helpers and internal records
@@ -498,16 +510,15 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         public string? AuditReason;
     }
 
-    private sealed class CdkeyRecord
-    {
-        public string CdkeyHash = "";
-        public string BatchId = "";
-        public string Status = "";
-        public DateTime GenerateTime;
-        public string GameId = "";
-        public DateTime ValidFrom;
-        public DateTime ExpireTime;
-    }
+    private sealed record CdkeyRecord(
+        string CdkeyHash,
+        string BatchId,
+        string Status,
+        DateTime GenerateTime,
+        string GameId,
+        DateTime ValidFrom,
+        DateTime ExpireTime
+    );
 
     private sealed class CdkeyBatchRecord
     {
