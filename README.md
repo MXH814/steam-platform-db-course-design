@@ -523,7 +523,7 @@ PLAYER_LIBRARY
 
 - 不能超额退款。
 - 每次审核必须写 `REFUND_AUDIT_LOG`。
-- 退款入账必须写钱包流水。
+- Steam 钱包支付的退款入账必须写钱包流水；外部模拟支付退款按原支付方式记录状态，不增加 Steam 钱包余额。
 - 必要时调整 `PLAYER_LIBRARY` 资产状态。
 
 ### 9.4 CDKey 兑换

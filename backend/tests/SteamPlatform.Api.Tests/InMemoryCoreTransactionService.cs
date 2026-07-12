@@ -191,12 +191,12 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
                 "REFUND",
                 refund.ApplyTime,
                 "退款",
-                PaymentMethods.SteamWallet,
+                _orders[refund.OrderId].PaymentMethod,
                 refund.RefundAmount,
                 0m,
                 0m,
                 refund.RefundAmount,
-                refund.Status == "APPROVED" ? refund.RefundAmount : null,
+                refund.Status == "APPROVED" && _orders[refund.OrderId].PaymentMethod == PaymentMethods.SteamWallet ? refund.RefundAmount : null,
                 null,
                 refund.OrderId,
                 refund.OrderDetailId,
@@ -420,19 +420,22 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         if (!string.Equals(refund.Status, "PENDING", StringComparison.OrdinalIgnoreCase))
             throw new BusinessRuleException("REFUND_STATUS_INVALID", "Refund is not pending.");
 
-        // apply refund: mark refunded, credit wallet if exists, and update order detail
+        // apply refund: Steam Wallet orders credit the wallet; external payment refunds stay outside the wallet.
         refund.Status = "APPROVED";
         refund.Auditor = operatorId;
         refund.AuditReason = NormalizeOptional(request.Reason);
 
-        // credit wallet if present
         if (_orders.TryGetValue(refund.OrderId, out var order))
         {
             var userId = order.UserId;
-            if (_wallets.TryGetValue(userId, out var bal))
+            if (string.Equals(order.PaymentMethod, PaymentMethods.SteamWallet, StringComparison.OrdinalIgnoreCase)
+                && _wallets.TryGetValue(userId, out var bal))
             {
                 _wallets[userId] = bal + refund.RefundAmount;
             }
+
+            order.PaymentStatus = "REFUNDED";
+            order.OrderStatus = "CLOSED";
         }
 
         return Task.FromResult(new RefundSummary(refund.RefundId, refund.OrderId, refund.RefundAmount, "FULL", refund.Reason, 0m, refund.Status, refund.ApplyTime));

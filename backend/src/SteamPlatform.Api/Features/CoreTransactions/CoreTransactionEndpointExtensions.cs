@@ -9,6 +9,7 @@ public static class CoreTransactionEndpointExtensions
 {
     private const int WalletIdempotencyKeyRequiredCode = 40001;
     private const int WalletNotFoundCode = 40401;
+    private const int WalletHistoryNotFoundCode = 40402;
     private const int WalletInvalidAmountCode = 40901;
     private const int WalletIdempotencyConflictCode = 40902;
 
@@ -32,7 +33,7 @@ public static class CoreTransactionEndpointExtensions
             }
             catch (ResourceNotFoundException exception)
             {
-                return WalletNotFound(exception);
+                return IsWalletMissing(exception) ? WalletNotFound(exception) : WalletHistoryNotFound(exception);
             }
         });
 
@@ -63,7 +64,7 @@ public static class CoreTransactionEndpointExtensions
             }
             catch (ResourceNotFoundException exception)
             {
-                return WalletNotFound(exception);
+                return IsWalletMissing(exception) ? WalletNotFound(exception) : WalletHistoryNotFound(exception);
             }
         });
 
@@ -136,7 +137,7 @@ public static class CoreTransactionEndpointExtensions
             }
             catch (ResourceNotFoundException exception)
             {
-                return WalletNotFound(exception);
+                return IsWalletMissing(exception) ? WalletNotFound(exception) : WalletHistoryNotFound(exception);
             }
         });
 
@@ -392,6 +393,12 @@ public static class CoreTransactionEndpointExtensions
 
     private static IResult WalletNotFound(ResourceNotFoundException exception) =>
         Results.NotFound(ApiResponse<object>.Failure(WalletNotFoundCode, $"WALLET_NOT_FOUND: {exception.Message}"));
+
+    private static IResult WalletHistoryNotFound(ResourceNotFoundException exception) =>
+        Results.NotFound(ApiResponse<object>.Failure(WalletHistoryNotFoundCode, $"WALLET_HISTORY_NOT_FOUND: {exception.Message}"));
+
+    private static bool IsWalletMissing(ResourceNotFoundException exception) =>
+        exception.Message.Contains("Wallet does not exist", StringComparison.OrdinalIgnoreCase);
 
     private static int WalletBusinessCode(string code) =>
         code.Equals("INVALID_AMOUNT", StringComparison.OrdinalIgnoreCase)

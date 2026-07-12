@@ -168,6 +168,8 @@ POST /api/admin/refunds/{refundId}/reject
   -> 提交事务
 ```
 
+外部模拟支付订单退款按原 `PAYMENT_TRANSACTION.payment_method` 记录退款状态，不增加 `WALLET_ACCOUNT.available_balance`；只有 `STEAM_WALLET` 原支付订单退款才写 `WALLET_TRANSACTION` 回充钱包。
+
 退款拒绝必须写 `REFUND_AUDIT_LOG`，但不能改钱包余额。
 
 ### DST CDKey 兑换

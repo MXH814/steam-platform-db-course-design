@@ -178,7 +178,7 @@ GET /api/wallet/history/{historyId}
 ## 边界说明
 
 - 马祥珲负责 Group C 核心交易总设计、购买事务和集成；钱包模块必须服从 Group C 总契约。
-- 徐京负责退款、CDKey、游戏库等链路；退款入账仍复用 `WALLET_ACCOUNT` 和 `WALLET_TRANSACTION`。
+- 徐京负责退款、CDKey、游戏库等链路；Steam 钱包原支付退款入账复用 `WALLET_ACCOUNT` 和 `WALLET_TRANSACTION`，外部模拟支付退款不增加钱包余额。
 - Group D 市场交易如涉及钱包冻结、解冻、清算，必须复用本钱包表，不得新增余额字段。
 - 免费游戏 `GAME_CS2` 入库不能扣钱包余额。
 - `GAME_DST` 购买、退款、CDKey 兑换是 Group C 主演示链路，钱包模块为其提供余额和流水基础。

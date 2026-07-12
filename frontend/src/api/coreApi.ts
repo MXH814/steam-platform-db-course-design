@@ -186,7 +186,7 @@ export async function getWalletHistory(page = 1, pageSize = 50) {
 }
 
 export async function getWalletHistoryEntry(historyId: string) {
-  const page = await buildWalletHistoryFromReadmeApis(1, 300);
+  const page = await buildWalletHistoryFromReadmeApis(1, 100);
   const entry = page.items.find(item => item.historyId === historyId);
   if (entry) {
     return entry;
@@ -261,7 +261,7 @@ async function buildWalletHistoryFromReadmeApis(page: number, pageSize: number):
   const normalizedPage = Math.max(1, page);
   const normalizedPageSize = Math.min(Math.max(1, pageSize), 100);
   const [transactionPage, orders, refunds, library] = await Promise.all([
-    getWalletTransactions(1, 200),
+    getAllWalletTransactions(),
     getOrders(),
     getRefunds(),
     getLibrary()
@@ -308,6 +308,21 @@ async function buildWalletHistoryFromReadmeApis(page: number, pageSize: number):
     pageSize: normalizedPageSize,
     total: rows.length
   };
+}
+
+async function getAllWalletTransactions(): Promise<PagedResponse<WalletTransactionEntry>> {
+  const pageSize = 100;
+  const firstPage = await getWalletTransactions(1, pageSize);
+  if (firstPage.total <= firstPage.items.length) {
+    return firstPage;
+  }
+
+  const pageCount = Math.ceil(firstPage.total / pageSize);
+  const restPages = await Promise.all(
+    Array.from({ length: pageCount - 1 }, (_, index) => getWalletTransactions(index + 2, pageSize))
+  );
+  const items = [firstPage, ...restPages].flatMap(result => result.items);
+  return { ...firstPage, page: 1, pageSize, items };
 }
 
 function walletTransactionToHistory(transaction: WalletTransactionEntry): WalletHistoryEntry {
@@ -365,13 +380,14 @@ function orderDetailToHistory(order: OrderSummary, detail: OrderDetailEntry, wal
 
 function refundToHistory(refund: RefundSummary, order: OrderSummary | undefined, walletTransaction: WalletTransactionEntry | null): WalletHistoryEntry {
   const firstDetail = order?.details[0];
+  const paymentMethod = walletTransaction?.paymentMethod || order?.paymentMethod || 'STEAM_WALLET';
 
   return {
     historyId: `REFUND-${refund.refundId}`,
     sourceType: 'REFUND',
     createTime: refund.applyTime,
     itemName: firstDetail?.gameName || `订单 ${refund.orderId} 退款`,
-    paymentMethod: walletTransaction?.paymentMethod || 'STEAM_WALLET',
+    paymentMethod,
     orderStatus: order?.orderStatus ?? null,
     paymentStatus: order?.paymentStatus ?? null,
     refundStatus: refund.status,
@@ -379,7 +395,9 @@ function refundToHistory(refund: RefundSummary, order: OrderSummary | undefined,
     discountAmount: 0,
     discountRate: 0,
     totalAmount: refund.refundAmount,
-    walletChange: refund.status === 'APPROVED' ? walletChangeFromTransaction(walletTransaction) ?? refund.refundAmount : null,
+    walletChange: refund.status === 'APPROVED' && paymentMethod === 'STEAM_WALLET'
+      ? walletChangeFromTransaction(walletTransaction) ?? refund.refundAmount
+      : null,
     walletBalanceAfter: walletTransaction?.availBalAfter ?? null,
     orderId: refund.orderId,
     orderDetailId: firstDetail?.detailId || null,

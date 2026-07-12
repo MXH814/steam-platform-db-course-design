@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using SteamPlatform.Application.Auth;
 using SteamPlatform.Application.CoreTransactions;
+using SteamPlatform.Infrastructure.CoreTransactions;
 using SteamPlatform.Shared;
 
 namespace SteamPlatform.Api.Tests;
@@ -235,6 +236,25 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
     }
 
     [Fact]
+    public async Task Wallet_history_detail_missing_entry_returns_history_not_found_api_response()
+    {
+        using var customFactory = CreateFactoryWithCoreTransactionService(new StubCoreTransactionService
+        {
+            GetWalletHistoryEntry = (_, _, _) => throw new ResourceNotFoundException("Wallet history entry does not exist.")
+        });
+        using var client = customFactory.CreateClient();
+        AuthorizeAsPlayer(client);
+
+        using var response = await client.GetAsync("/api/wallet/history/ORDER-NOT_FOUND");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"code\":40402", body);
+        Assert.Contains("WALLET_HISTORY_NOT_FOUND", body);
+        Assert.DoesNotContain("WALLET_NOT_FOUND", body);
+    }
+
+    [Fact]
     public async Task Wallet_history_contains_recharge_after_successful_recharge()
     {
         AuthorizeAsPlayer();
@@ -281,6 +301,60 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("\"sourceType\":\"BUY_GAME\"", body);
         Assert.DoesNotContain("\"historyId\":\"LIBRARY-P001-GAME_DST\"", body);
+    }
+
+    [Fact]
+    public async Task External_payment_refund_approval_does_not_credit_wallet()
+    {
+        using var customFactory = CreateFactoryWithCoreTransactionService(new InMemoryCoreTransactionService());
+        using var client = customFactory.CreateClient();
+        AuthorizeAsPlayer(client, "P002");
+
+        var walletBefore = await client.GetFromJsonAsync<ApiResponse<WalletSummary>>("/api/wallet");
+
+        using var orderResponse = await client.PostAsJsonAsync("/api/orders", new
+        {
+            gameId = "GAME_EXTERNAL_REFUND",
+            idempotencyKey = $"external-refund-{Guid.NewGuid():N}",
+            paymentMethod = PaymentMethods.Alipay
+        });
+
+        Assert.Equal(HttpStatusCode.Created, orderResponse.StatusCode);
+        var order = await orderResponse.Content.ReadFromJsonAsync<OrderSummary>();
+        Assert.NotNull(order);
+
+        using var refundResponse = await client.PostAsJsonAsync("/api/refunds", new
+        {
+            orderId = order!.OrderId,
+            reason = "external refund test"
+        });
+
+        Assert.Equal(HttpStatusCode.Created, refundResponse.StatusCode);
+        var refund = await refundResponse.Content.ReadFromJsonAsync<RefundSummary>();
+        Assert.NotNull(refund);
+
+        AuthorizeAs(client, "ADMIN");
+        using var approveResponse = await client.PostAsJsonAsync($"/api/admin/refunds/{refund!.RefundId}/approve", new
+        {
+            reason = "approved"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, approveResponse.StatusCode);
+
+        AuthorizeAsPlayer(client, "P002");
+        var walletAfter = await client.GetFromJsonAsync<ApiResponse<WalletSummary>>("/api/wallet");
+
+        Assert.NotNull(walletBefore);
+        Assert.NotNull(walletAfter);
+        Assert.NotNull(walletBefore!.Data);
+        Assert.NotNull(walletAfter!.Data);
+        Assert.Equal(walletBefore.Data!.AvailableBalance, walletAfter.Data!.AvailableBalance);
+
+        using var historyResponse = await client.GetAsync("/api/wallet/history?page=1&pageSize=20");
+        Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
+        var historyBody = await historyResponse.Content.ReadAsStringAsync();
+        Assert.Contains("\"sourceType\":\"REFUND\"", historyBody);
+        Assert.Contains("\"paymentMethod\":\"ALIPAY\"", historyBody);
     }
 
     [Fact]

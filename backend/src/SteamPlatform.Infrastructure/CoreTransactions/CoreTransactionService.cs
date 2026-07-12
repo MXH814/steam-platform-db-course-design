@@ -26,7 +26,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                  when 'MARKET_BUY' then '社区市场购买'
                  else wt.biz_type
                end item_name,
-               coalesce(wt.payment_method, case when wt.biz_type = 'RECHARGE' then 'WECHAT_PAY' else 'STEAM_WALLET' end) payment_method,
+               coalesce(wt.payment_method, 'STEAM_WALLET') payment_method,
                wt.amount original_price,
                0 discount_amount,
                0 discount_rate,
@@ -67,12 +67,12 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                'REFUND' source_type,
                rt.apply_time create_time,
                g.game_name item_name,
-               'STEAM_WALLET' payment_method,
+               coalesce(pt.payment_method, 'STEAM_WALLET') payment_method,
                od.original_price original_price,
                od.discount_amount discount_amount,
                case when od.original_price > 0 then round(od.discount_amount / od.original_price, 4) else 0 end discount_rate,
                rd.refund_amount total_amount,
-               case when rt.status = 'APPROVED' then rd.refund_amount else null end wallet_change,
+               case when rt.status = 'APPROVED' and coalesce(pt.payment_method, 'STEAM_WALLET') = 'STEAM_WALLET' then rd.refund_amount else null end wallet_change,
                wt.avail_bal_after wallet_balance_after,
                rt.order_id order_id,
                rd.order_detail_id order_detail_id,
@@ -83,6 +83,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
           join order_detail od on od.detail_id = rd.order_detail_id
           join game g on g.game_id = od.game_id
           join game_order go on go.order_id = rt.order_id
+          left join payment_transaction pt on pt.order_id = go.order_id
           left join wallet_transaction wt on wt.biz_type = 'REFUND' and wt.biz_ref_id = rt.refund_id and wt.wallet_id = :WalletId
          where go.user_id = :UserId
         union all
@@ -426,7 +427,6 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             var orderId = IdGenerator.NewId("O");
             var detailId = IdGenerator.NewId("OD");
             var paymentId = IdGenerator.NewId("PAY");
-            var libraryId = IdGenerator.NewId("LIB");
             var createdLogId = IdGenerator.NewId("OSL");
             var completedLogId = IdGenerator.NewId("OSL");
             var discountAmount = game.BasePrice - payable;
@@ -447,16 +447,13 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                 completedLogId,
                 cancellationToken);
 
-            await connection.ExecuteAsync(new CommandDefinition(
-                """
-                insert into player_library
-                  (lib_id, user_id, game_id, acquire_way, status, play_minutes, last_play_time)
-                values
-                  (:LibraryId, :UserId, :GameId, 'BUY', 'NORMAL', 0, null)
-                """,
-                new { LibraryId = libraryId, UserId = userId, GameId = game.GameId },
+            await RestoreOrInsertLibraryEntryAsync(
+                connection,
                 transaction,
-                cancellationToken: cancellationToken));
+                userId,
+                game.GameId,
+                "BUY",
+                cancellationToken);
 
             if (paymentMethod == PaymentMethods.SteamWallet && wallet is not null)
             {
@@ -522,7 +519,6 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             var orderId = IdGenerator.NewId("O");
             var detailId = IdGenerator.NewId("OD");
             var paymentId = IdGenerator.NewId("PAY");
-            var libraryId = IdGenerator.NewId("LIB");
             var createdLogId = IdGenerator.NewId("OSL");
             var completedLogId = IdGenerator.NewId("OSL");
             var idempotencyKey = $"free-{userId}-{game.GameId}";
@@ -543,16 +539,13 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                 completedLogId,
                 cancellationToken);
 
-            await connection.ExecuteAsync(new CommandDefinition(
-                """
-                insert into player_library
-                  (lib_id, user_id, game_id, acquire_way, status, play_minutes, last_play_time)
-                values
-                  (:LibraryId, :UserId, :GameId, 'FREE', 'NORMAL', 0, null)
-                """,
-                new { LibraryId = libraryId, UserId = userId, GameId = game.GameId },
+            await RestoreOrInsertLibraryEntryAsync(
+                connection,
                 transaction,
-                cancellationToken: cancellationToken));
+                userId,
+                game.GameId,
+                "FREE",
+                cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
             return await GetOrderAsync(claims, orderId, cancellationToken);
@@ -885,29 +878,45 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             var refund = await LoadPendingRefundForUpdateAsync(connection, transaction, normalizedRefundId, cancellationToken);
             var order = await connection.QueryFirstAsync<OrderRefundRow>(new CommandDefinition(
                 """
-                select order_id, user_id, order_status, payment_status
-                  from game_order
-                 where order_id = :OrderId
+                select go.order_id,
+                       go.user_id,
+                       go.order_status,
+                       go.payment_status,
+                       coalesce((
+                         select max(pt.payment_method)
+                           from payment_transaction pt
+                          where pt.order_id = go.order_id
+                       ), 'STEAM_WALLET') payment_method
+                  from game_order go
+                 where go.order_id = :OrderId
                  for update
                 """,
                 new { refund.OrderId },
                 transaction,
                 cancellationToken: cancellationToken));
 
-            var wallet = await LoadWalletForUpdateAsync(connection, transaction, order.UserId, cancellationToken);
-            var before = wallet.AvailableBalance;
-            var after = before + refund.RefundAmount;
+            var refundsToWallet = string.Equals(order.PaymentMethod, PaymentMethods.SteamWallet, StringComparison.OrdinalIgnoreCase);
+            WalletRow? wallet = null;
+            decimal before = 0;
+            decimal after = 0;
 
-            await connection.ExecuteAsync(new CommandDefinition(
-                """
-                update wallet_account
-                   set available_balance = :After,
-                       version = version + 1
-                 where wallet_id = :WalletId
-                """,
-                new { wallet.WalletId, After = after },
-                transaction,
-                cancellationToken: cancellationToken));
+            if (refundsToWallet)
+            {
+                wallet = await LoadWalletForUpdateAsync(connection, transaction, order.UserId, cancellationToken);
+                before = wallet.AvailableBalance;
+                after = before + refund.RefundAmount;
+
+                await connection.ExecuteAsync(new CommandDefinition(
+                    """
+                    update wallet_account
+                       set available_balance = :After,
+                           version = version + 1
+                     where wallet_id = :WalletId
+                    """,
+                    new { wallet.WalletId, After = after },
+                    transaction,
+                    cancellationToken: cancellationToken));
+            }
 
             await connection.ExecuteAsync(new CommandDefinition(
                 """
@@ -982,24 +991,44 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
 
             await connection.ExecuteAsync(new CommandDefinition(
                 """
-                insert into wallet_transaction
-                  (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, payment_method, create_time)
-                values
-                  (:TxnId, :WalletId, 'REFUND', :RefundId, 'CREDIT', :Amount, :Before, :After, :IdempotencyKey, :PaymentMethod, SYSTIMESTAMP)
+                update payment_transaction
+                   set status = case
+                         when not exists (
+                           select 1 from order_detail od
+                            where od.order_id = :OrderId
+                              and od.refund_amount < od.payable_amount
+                         ) then 'REFUNDED'
+                         else status
+                       end
+                 where order_id = :OrderId
                 """,
-                new
-                {
-                    TxnId = IdGenerator.NewId("WT"),
-                    wallet.WalletId,
-                    refund.RefundId,
-                    Amount = refund.RefundAmount,
-                    Before = before,
-                    After = after,
-                    IdempotencyKey = $"refund-{refund.RefundId}",
-                    PaymentMethod = PaymentMethods.SteamWallet
-                },
+                new { refund.OrderId },
                 transaction,
                 cancellationToken: cancellationToken));
+
+            if (refundsToWallet && wallet is not null)
+            {
+                await connection.ExecuteAsync(new CommandDefinition(
+                    """
+                    insert into wallet_transaction
+                      (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, payment_method, create_time)
+                    values
+                      (:TxnId, :WalletId, 'REFUND', :RefundId, 'CREDIT', :Amount, :Before, :After, :IdempotencyKey, :PaymentMethod, SYSTIMESTAMP)
+                    """,
+                    new
+                    {
+                        TxnId = IdGenerator.NewId("WT"),
+                        wallet.WalletId,
+                        refund.RefundId,
+                        Amount = refund.RefundAmount,
+                        Before = before,
+                        After = after,
+                        IdempotencyKey = $"refund-{refund.RefundId}",
+                        PaymentMethod = order.PaymentMethod
+                    },
+                    transaction,
+                    cancellationToken: cancellationToken));
+            }
 
             await InsertRefundAuditAsync(connection, transaction, refund.RefundId, adminId, "PENDING", "APPROVED", reason, cancellationToken);
 
@@ -1170,7 +1199,6 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             }
 
             await EnsureGameNotOwnedAsync(connection, transaction, userId, cdkey.GameId, cancellationToken);
-            var libraryId = IdGenerator.NewId("LIB");
             await connection.ExecuteAsync(new CommandDefinition(
                 """
                 update cdkey
@@ -1181,16 +1209,13 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                 transaction,
                 cancellationToken: cancellationToken));
 
-            await connection.ExecuteAsync(new CommandDefinition(
-                """
-                insert into player_library
-                  (lib_id, user_id, game_id, acquire_way, status, play_minutes, last_play_time)
-                values
-                  (:LibraryId, :UserId, :GameId, 'REDEEM', 'NORMAL', 0, null)
-                """,
-                new { LibraryId = libraryId, UserId = userId, cdkey.GameId },
+            var libraryId = await RestoreOrInsertLibraryEntryAsync(
+                connection,
                 transaction,
-                cancellationToken: cancellationToken));
+                userId,
+                cdkey.GameId,
+                "REDEEM",
+                cancellationToken);
 
             await InsertCdkeyRedeemLogAsync(connection, transaction, userId, submittedHash, cdkey.CdkeyHash, "SUCCESS", null, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -1435,6 +1460,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
               from player_library
              where user_id = :UserId
                and game_id = :GameId
+               and status = 'NORMAL'
             """,
             new { UserId = userId, GameId = gameId },
             transaction,
@@ -1444,6 +1470,60 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         {
             throw new BusinessRuleException("GAME_ALREADY_OWNED", "The player already owns this game.");
         }
+    }
+
+    private static async Task<string> RestoreOrInsertLibraryEntryAsync(
+        DbConnection connection,
+        DbTransaction transaction,
+        string userId,
+        string gameId,
+        string acquireWay,
+        CancellationToken cancellationToken)
+    {
+        var existingLibraryId = await connection.QueryFirstOrDefaultAsync<string>(new CommandDefinition(
+            """
+            select lib_id
+              from player_library
+             where user_id = :UserId
+               and game_id = :GameId
+               and status <> 'NORMAL'
+             for update
+            """,
+            new { UserId = userId, GameId = gameId },
+            transaction,
+            cancellationToken: cancellationToken));
+
+        if (existingLibraryId is not null)
+        {
+            await connection.ExecuteAsync(new CommandDefinition(
+                """
+                update player_library
+                   set acquire_way = :AcquireWay,
+                       status = 'NORMAL',
+                       play_minutes = 0,
+                       last_play_time = null
+                 where lib_id = :LibraryId
+                """,
+                new { LibraryId = existingLibraryId, AcquireWay = acquireWay },
+                transaction,
+                cancellationToken: cancellationToken));
+
+            return existingLibraryId;
+        }
+
+        var libraryId = IdGenerator.NewId("LIB");
+        await connection.ExecuteAsync(new CommandDefinition(
+            """
+            insert into player_library
+              (lib_id, user_id, game_id, acquire_way, status, play_minutes, last_play_time)
+            values
+              (:LibraryId, :UserId, :GameId, :AcquireWay, 'NORMAL', 0, null)
+            """,
+            new { LibraryId = libraryId, UserId = userId, GameId = gameId, AcquireWay = acquireWay },
+            transaction,
+            cancellationToken: cancellationToken));
+
+        return libraryId;
     }
 
     private static async Task<string> LoadWalletIdAsync(DbConnection connection, string userId, CancellationToken cancellationToken)
@@ -1757,6 +1837,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         public string UserId { get; set; } = "";
         public string OrderStatus { get; set; } = "";
         public string PaymentStatus { get; set; } = "";
+        public string PaymentMethod { get; set; } = PaymentMethods.SteamWallet;
     }
 
     private sealed class RefundableDetailRow

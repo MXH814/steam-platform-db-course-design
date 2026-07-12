@@ -64,6 +64,20 @@ public sealed class SchemaContractTests
     }
 
     [Fact]
+    public void Wallet_payment_method_migration_is_idempotent_and_backfills_legacy_rows()
+    {
+        var migration = SqlFile.WalletPaymentMethodMigration;
+
+        Assert.Contains("user_tab_cols", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("user_constraints", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("EXECUTE IMMEDIATE", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("WHERE payment_method IS NULL", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("raise_application_error", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CK_PAYMENT_METHOD", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CK_WALLET_TXN_PAYMENT_METHOD", migration, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Game_reputation_column_can_store_longest_documented_value()
     {
         var block = Normalize(TableBlock("GAME"));
