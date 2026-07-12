@@ -51,6 +51,8 @@ public sealed class SchemaContractTests
     [InlineData("ADMIN_USER", "SUPER_ADMIN", "AUDITOR", "RISK_ADMIN", "CUSTOMER_SERVICE")]
     [InlineData("SYS_NOTICE", "DRAFT", "PUBLISHED", "EXPIRED", "REVOKED")]
     [InlineData("DEVELOPER", "PENDING", "APPROVED", "REJECTED")]
+    [InlineData("PAYMENT_TRANSACTION", "STEAM_WALLET", "WECHAT_PAY", "ALIPAY", "VISA", "MASTERCARD")]
+    [InlineData("WALLET_TRANSACTION", "STEAM_WALLET", "WECHAT_PAY", "ALIPAY", "VISA", "MASTERCARD")]
     public void Status_and_role_enums_match_documented_contract(string tableName, params string[] expectedValues)
     {
         var block = TableBlock(tableName);

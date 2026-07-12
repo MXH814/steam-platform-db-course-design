@@ -57,7 +57,9 @@
             <h2>购买 {{ game.shortName }}</h2>
             <p>购买或入库后，评价与成就模块会通过 PLAYER_LIBRARY 做资产确权。</p>
           </div>
-          <button class="steam-green-button" type="button" @click="notice = '购买入口由 Group C 接口负责，当前页面保留商店展示位置。'">加入购物车</button>
+          <RouterLink v-if="gameId !== 'GAME_CS2'" class="steam-green-button checkout-store-link" :to="`/checkout/game/${gameId}`">加入购物车</RouterLink>
+          <button v-else class="steam-green-button checkout-store-link" type="button" @click="notice = '免费游戏请在游戏详情页使用免费入库。'">免费入库</button>
+          <button class="steam-green-button legacy-store-button" type="button" @click="notice = '购买入口由 Group C 接口负责，当前页面保留商店展示位置。'">加入购物车</button>
         </section>
 
         <section class="store-panel">
@@ -358,6 +360,9 @@ async function loadStore() {
 }
 
 .steam-green-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 42px;
   border: 0;
   border-radius: 2px;
@@ -366,6 +371,10 @@ async function loadStore() {
   background: linear-gradient(90deg, #75b022, #a4d007);
   cursor: pointer;
   font-weight: 900;
+}
+
+.legacy-store-button {
+  display: none;
 }
 
 .store-review-row {

@@ -586,7 +586,9 @@ PLAYER_LIBRARY
 /library          我的游戏库
 /inventory        我的饰品库存
 /market           饰品市场
-/account          个人中心、钱包
+/account          个人中心
+/wallet           钱包充值
+/wallet/history   消费历史记录
 /login            登录
 /register         注册
 /developer        开发商工作台
@@ -1167,8 +1169,11 @@ POST   /api/cdkeys/redeem
 主要前端页面：
 
 ```text
-/account/wallet
-/orders
+/wallet
+/wallet/recharge/checkout
+/wallet/history
+/wallet/history/:historyId
+/orders -> /wallet/history
 /orders/:id
 /library
 /refunds

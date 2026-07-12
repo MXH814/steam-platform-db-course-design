@@ -8,7 +8,7 @@
         <RouterLink to="/inventory">库存</RouterLink>
         <RouterLink to="/market">市场</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/wallet">钱包</RouterLink>
-        <RouterLink v-if="auth.isAuthenticated" to="/orders">订单</RouterLink>
+        <RouterLink v-if="auth.isAuthenticated" to="/wallet/history">消费历史</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/library">游戏库</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/refunds">退款</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/redeem">CDKey</RouterLink>

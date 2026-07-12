@@ -19,6 +19,8 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
     [Theory]
     [InlineData(HttpMethodName.Get, "/api/wallet")]
     [InlineData(HttpMethodName.Get, "/api/wallet/transactions")]
+    [InlineData(HttpMethodName.Get, "/api/wallet/history")]
+    [InlineData(HttpMethodName.Get, "/api/wallet/history/WALLET-WT_TEST")]
     [InlineData(HttpMethodName.Get, "/api/orders")]
     [InlineData(HttpMethodName.Get, "/api/library")]
     [InlineData(HttpMethodName.Get, "/api/refunds")]
@@ -144,6 +146,23 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
     }
 
     [Fact]
+    public async Task Recharge_wallet_requires_payment_method_before_opening_database()
+    {
+        AuthorizeAsPlayer();
+
+        using var response = await _client.PostAsJsonAsync("/api/wallet/recharge", new
+        {
+            amount = 10,
+            idempotencyKey = "recharge-test"
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"code\":40902", body);
+        Assert.Contains("INVALID_PAYMENT_METHOD", body);
+    }
+
+    [Fact]
     public async Task Wallet_summary_returns_wallet_not_found_api_response()
     {
         using var customFactory = CreateFactoryWithCoreTransactionService(new StubCoreTransactionService
@@ -179,6 +198,89 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
         Assert.Contains("\"code\":40401", body);
         Assert.Contains("WALLET_NOT_FOUND", body);
         Assert.Contains("\"data\":null", body);
+    }
+
+    [Fact]
+    public async Task Wallet_history_detail_returns_api_response()
+    {
+        using var customFactory = CreateFactoryWithCoreTransactionService(new StubCoreTransactionService
+        {
+            GetWalletHistoryEntry = (_, historyId, _) => Task.FromResult(new WalletHistoryEntry(
+                historyId,
+                "RECHARGE",
+                DateTime.UtcNow,
+                "Steam 钱包充值",
+                PaymentMethods.WechatPay,
+                30m,
+                0m,
+                0m,
+                30m,
+                30m,
+                130m,
+                null,
+                null,
+                null,
+                "WT_TEST"))
+        });
+        using var client = customFactory.CreateClient();
+        AuthorizeAsPlayer(client);
+
+        using var response = await client.GetAsync("/api/wallet/history/WALLET-WT_TEST");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"code\":0", body);
+        Assert.Contains("\"historyId\":\"WALLET-WT_TEST\"", body);
+        Assert.Contains("\"sourceType\":\"RECHARGE\"", body);
+    }
+
+    [Fact]
+    public async Task Wallet_history_contains_recharge_after_successful_recharge()
+    {
+        AuthorizeAsPlayer();
+        var idempotencyKey = $"recharge-history-{Guid.NewGuid():N}";
+
+        using var rechargeResponse = await _client.PostAsJsonAsync("/api/wallet/recharge", new
+        {
+            amount = 30,
+            paymentMethod = PaymentMethods.WechatPay,
+            idempotencyKey
+        });
+
+        Assert.Equal(HttpStatusCode.OK, rechargeResponse.StatusCode);
+
+        using var historyResponse = await _client.GetAsync("/api/wallet/history?page=1&pageSize=20");
+
+        Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
+        var body = await historyResponse.Content.ReadAsStringAsync();
+        Assert.Contains("\"sourceType\":\"RECHARGE\"", body);
+        Assert.Contains("\"paymentMethod\":\"WECHAT_PAY\"", body);
+    }
+
+    [Fact]
+    public async Task Wallet_history_includes_library_entry_without_order_history()
+    {
+        AuthorizeAsPlayer(_client, "P002");
+
+        using var response = await _client.GetAsync("/api/wallet/history?page=1&pageSize=20");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"sourceType\":\"CDKEY_REDEEM\"", body);
+        Assert.Contains("Don", body);
+    }
+
+    [Fact]
+    public async Task Wallet_history_does_not_duplicate_ordered_library_entries()
+    {
+        AuthorizeAsPlayer();
+
+        using var response = await _client.GetAsync("/api/wallet/history?page=1&pageSize=20");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"sourceType\":\"BUY_GAME\"", body);
+        Assert.DoesNotContain("\"historyId\":\"LIBRARY-P001-GAME_DST\"", body);
     }
 
     [Fact]
@@ -301,6 +403,11 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
         AuthorizeAs(client, "PLAYER");
     }
 
+    private void AuthorizeAsPlayer(HttpClient client, string principalId)
+    {
+        AuthorizeAs(client, "PLAYER", principalId);
+    }
+
     private void AuthorizeAs(string role)
     {
         AuthorizeAs(_client, role);
@@ -308,14 +415,19 @@ public sealed class CoreTransactionEndpointTests(SteamPlatformApiFactory factory
 
     private void AuthorizeAs(HttpClient client, string role)
     {
-        using var scope = _factory.Services.CreateScope();
-        var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
         var principalId = role.ToUpperInvariant() switch
         {
             "PLAYER" => "P001",
             "ADMIN" => "ADM001",
             _ => "DEV001"
         };
+        AuthorizeAs(client, role, principalId);
+    }
+
+    private void AuthorizeAs(HttpClient client, string role, string principalId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
         var token = auth.CreateToken(new AuthClaims(role, principalId, "tester", DateTimeOffset.UtcNow.AddMinutes(10)));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
@@ -341,6 +453,8 @@ internal sealed class StubCoreTransactionService : ICoreTransactionService
     public Func<AuthClaims, CancellationToken, Task<WalletSummary>>? GetWallet { get; init; }
     public Func<AuthClaims, RechargeWalletRequest, CancellationToken, Task<RechargeWalletResult>>? RechargeWallet { get; init; }
     public Func<AuthClaims, int, int, CancellationToken, Task<PagedResponse<WalletTransactionEntry>>>? ListWalletTransactions { get; init; }
+    public Func<AuthClaims, int, int, CancellationToken, Task<PagedResponse<WalletHistoryEntry>>>? ListWalletHistory { get; init; }
+    public Func<AuthClaims, string, CancellationToken, Task<WalletHistoryEntry>>? GetWalletHistoryEntry { get; init; }
 
     public Task<WalletSummary> GetWalletAsync(AuthClaims claims, CancellationToken cancellationToken) =>
         GetWallet?.Invoke(claims, cancellationToken) ?? throw new NotImplementedException();
@@ -350,6 +464,12 @@ internal sealed class StubCoreTransactionService : ICoreTransactionService
 
     public Task<PagedResponse<WalletTransactionEntry>> ListWalletTransactionsAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken) =>
         ListWalletTransactions?.Invoke(claims, page, pageSize, cancellationToken) ?? throw new NotImplementedException();
+
+    public Task<PagedResponse<WalletHistoryEntry>> ListWalletHistoryAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken) =>
+        ListWalletHistory?.Invoke(claims, page, pageSize, cancellationToken) ?? throw new NotImplementedException();
+
+    public Task<WalletHistoryEntry> GetWalletHistoryEntryAsync(AuthClaims claims, string historyId, CancellationToken cancellationToken) =>
+        GetWalletHistoryEntry?.Invoke(claims, historyId, cancellationToken) ?? throw new NotImplementedException();
 
     public Task<OrderSummary> BuyGameAsync(AuthClaims claims, CreateOrderRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();
     public Task<OrderSummary> ClaimFreeGameAsync(AuthClaims claims, string gameId, CancellationToken cancellationToken) => throw new NotImplementedException();

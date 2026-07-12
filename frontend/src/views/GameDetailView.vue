@@ -66,10 +66,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import {
-  buyGame,
-  claimFreeGame,
-} from '../api/coreApi';
+import { claimFreeGame } from '../api/coreApi';
 import {
   getGameAchievementSummary,
   getGameContentPackages,
@@ -190,11 +187,10 @@ async function handlePrimaryAction() {
     if (game.value.finalPrice <= 0 || game.value.shortName === 'CS2') {
       await claimFreeGame(game.value.gameId);
       actionMessage.value = `${game.value.gameName} 已免费入库，可以开始游戏。`;
+      await loadOwnership(game.value.gameId);
     } else {
-      await buyGame(game.value.gameId);
-      actionMessage.value = `${game.value.gameName} 购买成功，已加入游戏库。`;
+      router.push({ name: 'game-checkout', params: { gameId: game.value.gameId } });
     }
-    await loadOwnership(game.value.gameId);
   } catch (err) {
     actionError.value = getApiError(err);
   } finally {

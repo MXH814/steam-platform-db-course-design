@@ -90,6 +90,56 @@ public static class CoreTransactionEndpointExtensions
             }
         });
 
+        wallet.MapGet("/history", async (
+            int? page,
+            int? pageSize,
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "PLAYER") is { } denied)
+            {
+                return denied;
+            }
+
+            try
+            {
+                var result = await service.ListWalletHistoryAsync(claims!, page ?? 1, pageSize ?? 20, cancellationToken);
+                return Results.Ok(ApiResponse<PagedResponse<WalletHistoryEntry>>.Success(result));
+            }
+            catch (ResourceNotFoundException exception)
+            {
+                return WalletNotFound(exception);
+            }
+        });
+
+        wallet.MapGet("/history/{historyId}", async (
+            string historyId,
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "PLAYER") is { } denied)
+            {
+                return denied;
+            }
+
+            if (InputGuards.IsBlank(historyId))
+            {
+                return Results.BadRequest(ApiResponse<object>.Failure(40002, "HISTORY_ID_REQUIRED: HistoryId is required."));
+            }
+
+            try
+            {
+                var result = await service.GetWalletHistoryEntryAsync(claims!, historyId, cancellationToken);
+                return Results.Ok(ApiResponse<WalletHistoryEntry>.Success(result));
+            }
+            catch (ResourceNotFoundException exception)
+            {
+                return WalletNotFound(exception);
+            }
+        });
+
         var orders = app.MapGroup("/api/orders").WithTags("Orders");
 
         orders.MapPost("", async (

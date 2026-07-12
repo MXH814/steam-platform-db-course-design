@@ -7,4 +7,4 @@
 当前补充文档：
 
 - `group-c-core-transaction-contract.md`：Group C 核心交易总契约。
-- `c2-wallet-module-readme.md`：C2/胡知鱼钱包后端模块说明。
+- `c2-wallet-module-readme.md`：C2/胡知鱼钱包模块说明。

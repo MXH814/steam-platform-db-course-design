@@ -30,6 +30,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         _wallets["P002"] = 10m;
         // seed P001 owns DST in demo data
         _library.Add(("P001", "GAME_DST"));
+        _library.Add(("P002", "GAME_DST"));
         // seed an existing completed paid order for P001 for refund demo
         var orderId = "O_DST_001";
         _orders[orderId] = new OrderRecord
@@ -40,9 +41,11 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             OrderStatus = "COMPLETED",
             PaymentStatus = "PAID",
             IdempotencyKey = "seed-001",
+            PaymentMethod = PaymentMethods.SteamWallet,
+            CreateTime = DateTime.UtcNow.AddDays(-1),
             Details = new List<OrderDetailRecord>
             {
-                new OrderDetailRecord { DetailId = "OD_DST_001", GameId = "GAME_DST", PayableAmount = 50m, RefundAmount = 0m }
+                new OrderDetailRecord { DetailId = "OD_DST_001", GameId = "GAME_DST", OriginalPrice = 100m, DiscountAmount = 50m, PayableAmount = 50m, RefundAmount = 0m }
             }
         };
     }
@@ -69,6 +72,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         var walletId = $"W-{userId}";
         var amount = NormalizeRechargeAmount(request.Amount);
         var idempotencyKey = NormalizeRechargeIdempotencyKey(request.IdempotencyKey);
+        var paymentMethod = NormalizeExternalPaymentMethod(request.PaymentMethod);
 
         var existing = _walletTransactions.FirstOrDefault(t =>
             string.Equals(t.Entry.IdempotencyKey, idempotencyKey, StringComparison.Ordinal));
@@ -76,7 +80,8 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         {
             if (!string.Equals(existing.WalletId, walletId, StringComparison.Ordinal)
                 || !string.Equals(existing.Entry.BizType, "RECHARGE", StringComparison.OrdinalIgnoreCase)
-                || existing.Entry.Amount != amount)
+                || existing.Entry.Amount != amount
+                || !string.Equals(existing.Entry.PaymentMethod, paymentMethod, StringComparison.OrdinalIgnoreCase))
             {
                 throw new BusinessRuleException("IDEMPOTENCY_CONFLICT", "IdempotencyKey is already used by another wallet transaction.");
             }
@@ -104,6 +109,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             before,
             after,
             idempotencyKey,
+            paymentMethod,
             DateTime.UtcNow);
         _walletTransactions.Add(new WalletTransactionRecord(walletId, entry));
 
@@ -133,10 +139,118 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         return Task.FromResult(new PagedResponse<WalletTransactionEntry>(items, normalizedPage, normalizedPageSize, transactions.Length));
     }
 
+    public Task<PagedResponse<WalletHistoryEntry>> ListWalletHistoryAsync(AuthClaims claims, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        EnsurePlayer(claims);
+        var userId = claims.PrincipalId;
+        var walletId = $"W-{userId}";
+        if (!_wallets.ContainsKey(userId)) throw new ResourceNotFoundException("Wallet does not exist.");
+
+        var walletRows = _walletTransactions
+            .Where(transaction => transaction.WalletId == walletId)
+            .Select(transaction => new WalletHistoryEntry(
+                $"WALLET-{transaction.Entry.TxnId}",
+                transaction.Entry.BizType,
+                transaction.Entry.CreateTime,
+                transaction.Entry.BizType == "RECHARGE" ? "Steam 钱包充值" : transaction.Entry.BizType,
+                transaction.Entry.PaymentMethod ?? PaymentMethods.SteamWallet,
+                transaction.Entry.Amount,
+                0m,
+                0m,
+                transaction.Entry.Amount,
+                transaction.Entry.FundsDirection == "CREDIT" ? transaction.Entry.Amount : -transaction.Entry.Amount,
+                transaction.Entry.AvailBalAfter,
+                transaction.Entry.BizType == "BUY_GAME" ? transaction.Entry.BizRefId : null,
+                null,
+                transaction.Entry.BizType == "REFUND" ? transaction.Entry.BizRefId : null,
+                transaction.Entry.TxnId));
+
+        var orderRows = _orders.Values
+            .Where(order => order.UserId == userId)
+            .SelectMany(order => order.Details.Select(detail => new WalletHistoryEntry(
+                $"ORDER-{detail.DetailId}",
+                "BUY_GAME",
+                order.CreateTime,
+                detail.GameId == "GAME_DST" ? "Don't Starve Together" : "Counter-Strike 2",
+                order.PaymentMethod,
+                detail.OriginalPrice,
+                detail.DiscountAmount,
+                detail.OriginalPrice > 0 ? decimal.Round(detail.DiscountAmount / detail.OriginalPrice, 4) : 0m,
+                detail.PayableAmount,
+                order.PaymentMethod == PaymentMethods.SteamWallet ? -detail.PayableAmount : null,
+                null,
+                order.OrderId,
+                detail.DetailId,
+                null,
+                null)));
+
+        var refundRows = _refunds.Values
+            .Where(refund => _orders.TryGetValue(refund.OrderId, out var order) && order.UserId == userId)
+            .Select(refund => new WalletHistoryEntry(
+                $"REFUND-{refund.RefundId}",
+                "REFUND",
+                refund.ApplyTime,
+                "退款",
+                PaymentMethods.SteamWallet,
+                refund.RefundAmount,
+                0m,
+                0m,
+                refund.RefundAmount,
+                refund.Status == "APPROVED" ? refund.RefundAmount : null,
+                null,
+                refund.OrderId,
+                refund.OrderDetailId,
+                refund.RefundId,
+                null));
+
+        var orderedGames = _orders.Values
+            .Where(order => order.UserId == userId)
+            .SelectMany(order => order.Details.Select(detail => detail.GameId))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var libraryRows = _library
+            .Where(library => library.userId == userId && !orderedGames.Contains(library.gameId))
+            .Select(library => new WalletHistoryEntry(
+                $"LIBRARY-{library.userId}-{library.gameId}",
+                library.userId == "P002" && library.gameId == "GAME_DST" ? "CDKEY_REDEEM" : "LIBRARY_IMPORT",
+                DateTime.UtcNow.AddDays(-2),
+                library.gameId == "GAME_DST" ? "Don't Starve Together" : "Counter-Strike 2",
+                library.userId == "P002" && library.gameId == "GAME_DST" ? "CDKEY_REDEEM" : "LIBRARY_IMPORT",
+                0m,
+                0m,
+                0m,
+                0m,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
+
+        var normalizedPage = Math.Max(page, 1);
+        var normalizedPageSize = Math.Clamp(pageSize, 1, 100);
+        var rows = walletRows.Concat(orderRows).Concat(refundRows).Concat(libraryRows)
+            .OrderByDescending(row => row.CreateTime)
+            .ThenByDescending(row => row.HistoryId)
+            .ToArray();
+        var items = rows.Skip((normalizedPage - 1) * normalizedPageSize).Take(normalizedPageSize).ToArray();
+
+        return Task.FromResult(new PagedResponse<WalletHistoryEntry>(items, normalizedPage, normalizedPageSize, rows.Length));
+    }
+
+    public async Task<WalletHistoryEntry> GetWalletHistoryEntryAsync(AuthClaims claims, string historyId, CancellationToken cancellationToken)
+    {
+        var normalizedHistoryId = NormalizeRequired(historyId, nameof(historyId));
+        var page = await ListWalletHistoryAsync(claims, 1, 100, cancellationToken);
+        return page.Items.FirstOrDefault(row => string.Equals(row.HistoryId, normalizedHistoryId, StringComparison.Ordinal))
+            ?? throw new ResourceNotFoundException("Wallet history entry does not exist.");
+    }
+
     public Task<OrderSummary> BuyGameAsync(AuthClaims claims, CreateOrderRequest request, CancellationToken cancellationToken)
     {
         EnsurePlayer(claims);
         var userId = claims.PrincipalId;
+        var paymentMethod = NormalizeOrderPaymentMethod(request.PaymentMethod);
         if (_library.Contains((userId, request.GameId)))
         {
             throw new BusinessRuleException("GAME_ALREADY_OWNED", "The player already owns this game.");
@@ -148,14 +262,44 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         var payable = request.GameId == "GAME_CS2" ? 0m : 50m;
         if (payable <= 0) throw new BusinessRuleException("GAME_NOT_PAID", "Free games must use the free-claim endpoint.");
 
-        if (bal < payable) throw new BusinessRuleException("INSUFFICIENT_BALANCE", "Wallet balance is not enough for this purchase.");
+        if (paymentMethod == PaymentMethods.SteamWallet && bal < payable) throw new BusinessRuleException("INSUFFICIENT_BALANCE", "Wallet balance is not enough for this purchase.");
 
-        _wallets[userId] = bal - payable;
+        if (paymentMethod == PaymentMethods.SteamWallet)
+        {
+            _wallets[userId] = bal - payable;
+        }
+
         var orderId = "O_TEST_" + Guid.NewGuid().ToString("N")[..8];
         _library.Add((userId, request.GameId));
 
-        var detail = new OrderDetailEntry("OD_TEST", request.GameId, request.GameId == "GAME_DST" ? "Don't Starve Together" : "CS2", payable, 0m, payable, 0m);
-        var summary = new OrderSummary(orderId, userId, payable, "BUY_GAME", "COMPLETED", "PAID", request.IdempotencyKey, DateTime.UtcNow, new[] { detail });
+        var originalPrice = request.GameId == "GAME_DST" ? 100m : payable;
+        var discountAmount = originalPrice - payable;
+        var detail = new OrderDetailEntry("OD_TEST", request.GameId, request.GameId == "GAME_DST" ? "Don't Starve Together" : "CS2", originalPrice, discountAmount, payable, 0m);
+        var createTime = DateTime.UtcNow;
+        _orders[orderId] = new OrderRecord
+        {
+            OrderId = orderId,
+            UserId = userId,
+            TotalAmount = payable,
+            OrderStatus = "COMPLETED",
+            PaymentStatus = "PAID",
+            IdempotencyKey = request.IdempotencyKey,
+            PaymentMethod = paymentMethod,
+            CreateTime = createTime,
+            Details = new List<OrderDetailRecord>
+            {
+                new()
+                {
+                    DetailId = detail.DetailId,
+                    GameId = detail.GameId,
+                    OriginalPrice = originalPrice,
+                    DiscountAmount = discountAmount,
+                    PayableAmount = payable,
+                    RefundAmount = 0m
+                }
+            }
+        };
+        var summary = new OrderSummary(orderId, userId, payable, "BUY_GAME", "COMPLETED", "PAID", request.IdempotencyKey, createTime, new[] { detail }, paymentMethod);
         return Task.FromResult(summary);
     }
 
@@ -195,12 +339,12 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             d.DetailId,
             d.GameId,
             d.GameId == "GAME_DST" ? "Don't Starve Together" : "Counter-Strike 2",
-            d.PayableAmount + d.RefundAmount,
-            0m,
+            d.OriginalPrice,
+            d.DiscountAmount,
             d.PayableAmount,
             d.RefundAmount)).ToArray();
 
-        var summary = new OrderSummary(order.OrderId, order.UserId, order.TotalAmount, "BUY_GAME", order.OrderStatus, order.PaymentStatus, order.IdempotencyKey, DateTime.UtcNow, details);
+        var summary = new OrderSummary(order.OrderId, order.UserId, order.TotalAmount, "BUY_GAME", order.OrderStatus, order.PaymentStatus, order.IdempotencyKey, order.CreateTime, details, order.PaymentMethod);
         return Task.FromResult(summary);
     }
 
@@ -235,6 +379,8 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         if (refundable <= 0) throw new BusinessRuleException("ORDER_NOT_REFUNDABLE", "The order has no refundable amount.");
 
         var refundId = "R" + Guid.NewGuid().ToString("N")[..8];
+        var selectedDetail = order.Details.FirstOrDefault(detail =>
+            string.IsNullOrWhiteSpace(request.OrderDetailId) || detail.DetailId == request.OrderDetailId);
         var refund = new RefundRecord
         {
             RefundId = refundId,
@@ -242,7 +388,8 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
             RefundAmount = refundable,
             Status = "PENDING",
             Reason = NormalizeRequired(request.Reason, nameof(request.Reason)),
-            ApplyTime = DateTime.UtcNow
+            ApplyTime = DateTime.UtcNow,
+            OrderDetailId = selectedDetail?.DetailId
         };
         _refunds[refundId] = refund;
         // mark order refunding
@@ -413,6 +560,37 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         return amount;
     }
 
+    private static string NormalizeExternalPaymentMethod(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new BusinessRuleException("INVALID_PAYMENT_METHOD", "Payment method is required.");
+        }
+
+        var normalized = NormalizePaymentMethod(value, PaymentMethods.WechatPay);
+        return normalized == PaymentMethods.SteamWallet
+            ? throw new BusinessRuleException("INVALID_PAYMENT_METHOD", "Wallet recharge must use an external payment method.")
+            : normalized;
+    }
+
+    private static string NormalizeOrderPaymentMethod(string? value) =>
+        NormalizePaymentMethod(value, PaymentMethods.SteamWallet);
+
+    private static string NormalizePaymentMethod(string? value, string defaultValue)
+    {
+        var normalized = string.IsNullOrWhiteSpace(value)
+            ? defaultValue
+            : value.Trim().ToUpperInvariant();
+
+        return normalized is PaymentMethods.SteamWallet
+            or PaymentMethods.WechatPay
+            or PaymentMethods.Alipay
+            or PaymentMethods.Visa
+            or PaymentMethods.Mastercard
+            ? normalized
+            : throw new BusinessRuleException("INVALID_PAYMENT_METHOD", "Payment method is not supported.");
+    }
+
     private static string? NormalizeOptional(string? value)
     {
         var normalized = value?.Trim();
@@ -454,6 +632,8 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         public string OrderStatus = "";
         public string PaymentStatus = "";
         public string? IdempotencyKey;
+        public string PaymentMethod = PaymentMethods.SteamWallet;
+        public DateTime CreateTime = DateTime.UtcNow;
         public List<OrderDetailRecord> Details = new();
     }
 
@@ -461,6 +641,8 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
     {
         public string DetailId = "";
         public string GameId = "";
+        public decimal OriginalPrice;
+        public decimal DiscountAmount;
         public decimal PayableAmount;
         public decimal RefundAmount;
     }
@@ -473,6 +655,7 @@ public sealed class InMemoryCoreTransactionService : ICoreTransactionService
         public string Status = "";
         public string Reason = "";
         public DateTime ApplyTime;
+        public string? OrderDetailId;
         public string? Auditor;
         public string? AuditReason;
     }
