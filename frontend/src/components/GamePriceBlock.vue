@@ -4,8 +4,8 @@
     <template v-else>
       <span v-if="discountPercent > 0" class="discount">-{{ discountPercent }}%</span>
       <span class="price-stack">
-        <span v-if="discountPercent > 0" class="base">¥{{ money(basePrice) }}</span>
-        <span class="final">¥{{ money(finalPrice) }}</span>
+        <span v-if="discountPercent > 0" class="base">¥ {{ money(basePrice) }}</span>
+        <span class="final">¥ {{ money(finalPrice) }}</span>
       </span>
     </template>
   </div>
@@ -27,7 +27,7 @@ const props = withDefaults(
 );
 
 const isFree = computed(() => props.finalPrice <= 0);
-const discountPercent = computed(() => Math.round(props.discountRate * 100));
+const discountPercent = computed(() => Math.round((1 - props.discountRate) * 100));
 
 function money(value: number): string {
   return value.toFixed(2);

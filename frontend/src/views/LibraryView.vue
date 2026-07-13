@@ -8,9 +8,13 @@
           <span>游戏库</span>
           <h1>主页</h1>
         </div>
-        <div class="home-tools">
-          <button type="button" title="筛选" aria-label="筛选"><SlidersHorizontal :size="17" /></button>
-          <button type="button" title="排序" aria-label="排序"><ArrowDownUp :size="17" /></button>
+        <div class="home-tools" aria-label="游戏库工具">
+          <button type="button" title="筛选" aria-label="筛选">
+            <SlidersHorizontal :size="17" />
+          </button>
+          <button type="button" title="排序" aria-label="排序">
+            <ArrowDownUp :size="17" />
+          </button>
         </div>
       </header>
 
@@ -27,12 +31,7 @@
         </header>
 
         <div class="news-grid">
-          <RouterLink
-            v-for="story in newsStories"
-            :key="story.title"
-            class="news-tile"
-            :to="story.to"
-          >
+          <RouterLink v-for="story in newsStories" :key="story.title" class="news-tile" :to="story.to">
             <img :src="story.image" :alt="story.game" />
             <div>
               <small>{{ story.date }}</small>
@@ -84,6 +83,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { ArrowDownUp, ChevronDown, Gamepad2, Play, Settings, SlidersHorizontal } from '@lucide/vue';
+import { RouterLink } from 'vue-router';
 import { addPlaytime, getLibrary, type LibraryEntry } from '../api/coreApi';
 import { getApiError } from '../api/http';
 import LibraryRail from '../components/LibraryRail.vue';
@@ -222,6 +222,14 @@ onMounted(load);
   background: rgba(14, 20, 28, 0.82);
 }
 
+.library-message.success {
+  color: #b8f36f;
+}
+
+.library-message.error {
+  color: #ffb7b7;
+}
+
 .shelf-section {
   margin-bottom: 26px;
 }
@@ -257,8 +265,11 @@ onMounted(load);
 
 .news-tile {
   min-width: 0;
+  color: inherit;
   background: #222d3a;
+  text-decoration: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+  transition: transform 160ms ease, background 160ms ease;
 }
 
 .news-tile:hover {
@@ -345,6 +356,10 @@ onMounted(load);
   cursor: pointer;
 }
 
+.recent-game-info button:disabled {
+  filter: grayscale(0.8);
+}
+
 .recent-game-info div {
   display: grid;
   min-width: 0;
@@ -389,6 +404,13 @@ onMounted(load);
   padding: 7px 14px;
   color: #ffffff;
   background: #3d6f96;
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .news-tile {
+    transition: none;
+  }
 }
 
 @media (max-width: 1050px) {

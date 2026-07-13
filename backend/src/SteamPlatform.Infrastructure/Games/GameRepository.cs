@@ -1,4 +1,5 @@
 using Dapper;
+using Oracle.ManagedDataAccess.Client;
 using SteamPlatform.Application.Games;
 using SteamPlatform.Infrastructure.Data;
 using SteamPlatform.Shared;
@@ -358,6 +359,32 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
                 request.Reputation
             },
             cancellationToken: cancellationToken));
+
+        return affected > 0;
+    }
+
+    public async Task<bool> DeleteAsync(string gameId, string developerId, CancellationToken cancellationToken)
+    {
+        await using var connection = _connectionFactory.CreateConnection();
+        int affected;
+        try
+        {
+            affected = await connection.ExecuteAsync(new CommandDefinition(
+                """
+                delete from game
+                 where game_id = :GameId
+                   and dev_id = :DeveloperId
+                   and status = 'OFFLINE'
+                """,
+                new { GameId = gameId, DeveloperId = developerId },
+                cancellationToken: cancellationToken));
+        }
+        catch (OracleException exception) when (exception.Number == 2292)
+        {
+            throw new BusinessRuleException(
+                "GAME_HAS_DEPENDENCIES",
+                "Game cannot be deleted because orders, library records, CDKey batches, reviews, achievements, or item templates still reference it.");
+        }
 
         return affected > 0;
     }

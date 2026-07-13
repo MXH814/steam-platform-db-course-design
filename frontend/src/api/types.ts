@@ -127,6 +127,10 @@ export interface GameQuery {
   priceFilter?: GamePriceFilter;
   sort?: GameSortKey;
   status?: string;
+  developerId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  reputation?: string;
   page?: number;
   pageSize?: number;
 }
@@ -152,6 +156,31 @@ export interface GameListItem {
 
 export interface GameDetail extends GameListItem {
   description: string;
+}
+
+export interface CreateGameRequest {
+  devId: string;
+  gameName: string;
+  basePrice: number;
+  discountRate: number;
+  releaseDate: string;
+  reputation: string | null;
+}
+
+export interface UpdateGameRequest {
+  gameName: string;
+  basePrice: number;
+  discountRate: number;
+  releaseDate: string;
+  reputation: string | null;
+}
+
+export interface GameManageForm {
+  gameName: string;
+  basePrice: number;
+  discountRate: number;
+  releaseDate: string;
+  reputation: string;
 }
 
 export interface GameContentPackage {

@@ -281,11 +281,53 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             await transaction.CommitAsync(cancellationToken);
             return await GetOrderAsync(claims, orderId, cancellationToken);
         }
+        catch (BusinessRuleException exception) when (exception.Code == "GAME_ALREADY_OWNED")
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        catch (Exception ex) when (IsOracleUniqueConstraintViolation(ex))
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            return await HandleBuyGameRaceConditionAsync(connection, userId, gameId, idempotencyKey, cancellationToken);
+        }
         catch
         {
             await transaction.RollbackAsync(CancellationToken.None);
             throw;
         }
+    }
+
+    private async Task<OrderSummary> HandleBuyGameRaceConditionAsync(
+        DbConnection connection,
+        string userId,
+        string gameId,
+        string idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        var existing = await FindOrderByIdempotencyAsync(connection, userId, idempotencyKey, cancellationToken);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var isGameOwned = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+            """
+            select count(*)
+              from player_library
+             where user_id = :UserId
+               and game_id = :GameId
+               and status = 'NORMAL'
+            """,
+            new { UserId = userId, GameId = gameId },
+            cancellationToken: cancellationToken)) > 0;
+
+        if (isGameOwned)
+        {
+            throw new BusinessRuleException("GAME_ALREADY_OWNED", "The player already owns this game.");
+        }
+
+        throw new BusinessRuleException("BUY_GAME_FAILED", "Could not complete purchase due to a conflict. Please try again.");
     }
 
     public async Task<OrderSummary> ClaimFreeGameAsync(AuthClaims claims, string gameId, CancellationToken cancellationToken)
@@ -346,6 +388,16 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
 
             await transaction.CommitAsync(cancellationToken);
             return await GetOrderAsync(claims, orderId, cancellationToken);
+        }
+        catch (BusinessRuleException exception) when (exception.Code == "GAME_ALREADY_OWNED")
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        catch (Exception ex) when (IsOracleUniqueConstraintViolation(ex))
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw new BusinessRuleException("GAME_ALREADY_OWNED", "The player already owns this game.");
         }
         catch
         {
@@ -929,15 +981,22 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
 
             await EnsureGameNotOwnedAsync(connection, transaction, userId, cdkey.GameId, cancellationToken);
             var libraryId = IdGenerator.NewId("LIB");
-            await connection.ExecuteAsync(new CommandDefinition(
+            var updatedRows = await connection.ExecuteAsync(new CommandDefinition(
                 """
                 update cdkey
                    set status = 'REDEEMED'
                  where cdkey_hash = :CdkeyHash
+                   and status = 'AVAILABLE'
                 """,
                 new { cdkey.CdkeyHash },
                 transaction,
                 cancellationToken: cancellationToken));
+
+            if (updatedRows == 0)
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                return await HandleCdkeyRedemptionRaceConditionAsync(connection, userId, submittedHash, cancellationToken);
+            }
 
             await connection.ExecuteAsync(new CommandDefinition(
                 """
@@ -960,11 +1019,75 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             await transaction.CommitAsync(cancellationToken);
             return new CdkeyRedeemResult("REDEEMED", null, null, "Player already owns this game.");
         }
+        catch (Exception ex) when (IsOracleUniqueConstraintViolation(ex))
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            return await HandleCdkeyRedemptionRaceConditionAsync(connection, userId, submittedHash, cancellationToken);
+        }
         catch
         {
             await transaction.RollbackAsync(CancellationToken.None);
             throw;
         }
+    }
+
+    private async Task<CdkeyRedeemResult> HandleCdkeyRedemptionRaceConditionAsync(
+        DbConnection connection,
+        string userId,
+        string submittedHash,
+        CancellationToken cancellationToken)
+    {
+        var cdkey = await connection.QueryFirstOrDefaultAsync<CdkeyRow>(new CommandDefinition(
+            """
+            select c.cdkey_hash,
+                   c.status,
+                   b.game_id
+              from cdkey c
+              join cdkey_batch b on b.batch_id = c.batch_id
+             where c.cdkey_hash = :CdkeyHash
+            """,
+            new { CdkeyHash = submittedHash },
+            cancellationToken: cancellationToken));
+
+        if (cdkey is null)
+        {
+            // This should not happen if we got a unique constraint violation, but as a safeguard:
+            await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+            await InsertCdkeyRedeemLogAsync(connection, transaction, userId, submittedHash, null, "INVALID", "CDKey was not found after a race condition.", cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return new CdkeyRedeemResult("INVALID", null, null, "CDKey does not exist.");
+        }
+
+        if (string.Equals(cdkey.Status, "REDEEMED", StringComparison.OrdinalIgnoreCase))
+        {
+            await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+            await InsertCdkeyRedeemLogAsync(connection, transaction, userId, submittedHash, cdkey.CdkeyHash, "REDEEMED", "CDKey has already been redeemed by another transaction.", cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return new CdkeyRedeemResult("REDEEMED", cdkey.GameId, null, "CDKey has already been redeemed.");
+        }
+
+        var isGameOwned = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+            """
+            select count(*)
+              from player_library
+             where user_id = :UserId
+               and game_id = :GameId
+               and status = 'NORMAL'
+            """,
+            new { UserId = userId, cdkey.GameId },
+            cancellationToken: cancellationToken)) > 0;
+
+        if (isGameOwned)
+        {
+            await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+            await InsertCdkeyRedeemLogAsync(connection, transaction, userId, submittedHash, cdkey.CdkeyHash, "REDEEMED", "Player already owns this game.", cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return new CdkeyRedeemResult("REDEEMED", cdkey.GameId, null, "Player already owns this game.");
+        }
+
+        // If we are here, it means a unique constraint was hit, but we cannot determine the business reason.
+        // This is an unexpected state, so we rethrow a generic business exception.
+        throw new BusinessRuleException("CDKEY_REDEEM_FAILED", "Could not redeem CDKey due to a conflict. Please try again.");
     }
 
     private static async Task InsertCompletedOrderAsync(

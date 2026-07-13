@@ -11,7 +11,7 @@
         <nav class="steam-tabs" aria-label="游戏页面导航">
           <RouterLink :to="{ name: 'game-detail', params: { gameId } }">商店页面</RouterLink>
           <RouterLink :to="{ name: 'game-library', params: { gameId } }">库内详情</RouterLink>
-          <RouterLink :to="`/games/${gameId}/community`">评测与成就</RouterLink>
+          <RouterLink :to="{ name: 'game-community', params: { gameId } }">评测与成就</RouterLink>
         </nav>
       </div>
       <aside class="header-achievement-summary">
