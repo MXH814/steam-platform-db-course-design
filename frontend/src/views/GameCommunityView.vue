@@ -158,7 +158,7 @@
         <section class="steam-panel achievement-sidebar">
           <div class="sidebar-head">
             <div>
-              <p class="steam-kicker">Steam 成就</p>
+              <p class="steam-kicker">项目成就</p>
               <h2>{{ unlockedAchievements.length }}/{{ achievements.length }} 已解锁</h2>
             </div>
             <button class="steam-button secondary" type="button" @click="loadAchievements">刷新</button>
@@ -177,10 +177,10 @@
               <button
                 class="unlock-button"
                 type="button"
-                :disabled="achievement.source !== 'api' || achievement.isUnlocked || !auth.isAuthenticated || unlockingAchId === achievement.achId"
+                :disabled="achievement.isUnlocked || !auth.isAuthenticated || unlockingAchId === achievement.achId"
                 @click="unlock(achievement.achId)"
               >
-                {{ achievement.source !== 'api' ? '展示' : achievement.isUnlocked ? '已解锁' : unlockingAchId === achievement.achId ? '...' : '解锁' }}
+                {{ achievement.isUnlocked ? '已解锁' : unlockingAchId === achievement.achId ? '...' : '解锁' }}
               </button>
             </article>
           </div>
@@ -219,7 +219,7 @@ import {
 } from '../api/communityApi';
 import { getApiError } from '../api/http';
 import type { ReviewListItem, ReviewVersionItem } from '../api/types';
-import { mergeAchievementCatalog, type AchievementDisplayItem } from '../data/achievementCatalog';
+import { withAchievementIcons, type AchievementDisplayItem } from '../data/achievementCatalog';
 import { getGameMeta } from '../data/gameCatalog';
 import { useAuthStore } from '../stores/auth';
 
@@ -307,9 +307,9 @@ async function loadAchievements() {
   loadingAchievements.value = true;
   try {
     const achievementRows = await listGameAchievements(gameId.value);
-    achievements.value = mergeAchievementCatalog(gameId.value, achievementRows);
+    achievements.value = withAchievementIcons(achievementRows);
   } catch (requestError) {
-    achievements.value = mergeAchievementCatalog(gameId.value, []);
+    achievements.value = [];
     error.value = friendlyError(requestError);
   } finally {
     loadingAchievements.value = false;

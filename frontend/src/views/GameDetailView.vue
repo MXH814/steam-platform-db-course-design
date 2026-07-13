@@ -59,7 +59,7 @@
 
       <div class="detail-module-links">
         <button class="button-link" type="button" @click="scrollToDetailSection('detail-reviews')">查看玩家评测</button>
-        <button class="ghost-button" type="button" @click="scrollToDetailSection('detail-achievements')">查看 Steam 成就</button>
+        <button class="ghost-button" type="button" @click="scrollToDetailSection('detail-achievements')">查看项目成就</button>
         <RouterLink class="ghost-button" :to="{ name: 'game-community', params: { gameId: game.gameId } }">进入社区中心</RouterLink>
       </div>
 
@@ -108,10 +108,10 @@
           <RouterLink v-if="game" class="summary-link" :to="{ name: 'game-community', params: { gameId: game.gameId } }">查看全部玩家评测</RouterLink>
         </GameSummarySection>
 
-        <GameSummarySection id="detail-achievements" title="成就概览" :loading="achievements.loading" :error="achievements.error" :empty="!achievements.data && !detailAchievements.length">
+        <GameSummarySection id="detail-achievements" title="项目成就概览" :loading="achievements.loading" :error="achievements.error" :empty="!achievements.data || detailAchievements.length === 0">
           <dl class="stat-grid">
             <div><dt>成就数</dt><dd>{{ achievements.data?.achievementCount || detailAchievements.length }}</dd></div>
-            <div><dt>平均达成率</dt><dd>{{ achievements.data?.averageGlobalRate ?? averageCatalogRate }}%</dd></div>
+            <div><dt>平均达成率</dt><dd>{{ formatAverageRate(achievements.data?.averageGlobalRate) }}</dd></div>
           </dl>
           <div v-if="detailAchievements.length" class="achievement-list">
             <article v-for="item in detailAchievements.slice(0, 6)" :key="item.achievementId">
@@ -142,7 +142,7 @@ import {
   getGameReviewSummary
 } from '../api/games';
 import type { GameAchievementSummary, GameAchievementSummaryItem, GameContentPackage, GameDetail, GameItemSummary, GameQuery, GameReviewSummary } from '../api/types';
-import { getAchievementCatalog } from '../data/achievementCatalog';
+import { getAchievementIcon } from '../data/achievementCatalog';
 import GameFilterBar from '../components/GameFilterBar.vue';
 import GamePriceBlock from '../components/GamePriceBlock.vue';
 import GameSummarySection from '../components/GameSummarySection.vue';
@@ -167,33 +167,12 @@ const items = reactive<ModuleState<GameItemSummary | null>>({ loading: false, er
 const review = reactive<ModuleState<GameReviewSummary | null>>({ loading: false, error: '', data: null });
 const achievements = reactive<ModuleState<GameAchievementSummary | null>>({ loading: false, error: '', data: null });
 
-const detailAchievements = computed(() => {
-  const currentGameId = String(route.params.gameId || '');
-  const catalog = getAchievementCatalog(currentGameId);
-  const apiRows = achievements.data?.achievements ?? [];
-  const matchedIds = new Set<string>();
-  const catalogRows = catalog.map((meta) => {
-    const apiRow = apiRows.find((item) => item.achievementId === meta.achId || item.achievementName === meta.achName);
-    if (apiRow) matchedIds.add(apiRow.achievementId);
-    return {
-      achievementId: apiRow?.achievementId ?? meta.achId,
-      achievementName: apiRow?.achievementName ?? meta.achName,
-      description: apiRow?.description ?? meta.description,
-      globalRate: apiRow?.globalRate ?? meta.globalRate,
-      iconUrl: meta.iconUrl
-    };
-  });
-  const extraRows = apiRows
-    .filter((item) => !matchedIds.has(item.achievementId))
-    .map((item) => ({ ...item, iconUrl: summaryAchievementIcon(item) }));
-  return [...catalogRows, ...extraRows];
-});
-
-const averageCatalogRate = computed(() => {
-  if (!detailAchievements.value.length) return 0;
-  const total = detailAchievements.value.reduce((sum, item) => sum + (item.globalRate ?? 0), 0);
-  return Math.round((total / detailAchievements.value.length) * 10) / 10;
-});
+const detailAchievements = computed(() =>
+  (achievements.data?.achievements ?? []).map((item) => ({
+    ...item,
+    iconUrl: summaryAchievementIcon(item)
+  }))
+);
 
 watch(
   () => storeQuery.search,
@@ -249,11 +228,12 @@ function money(value: number | null) {
   return typeof value === 'number' ? `¥${value.toFixed(2)}` : '-';
 }
 
+function formatAverageRate(value: number | null | undefined) {
+  return typeof value === 'number' ? `${value}%` : '-';
+}
+
 function summaryAchievementIcon(item: GameAchievementSummaryItem) {
-  const currentGameId = String(route.params.gameId || '');
-  return getAchievementCatalog(currentGameId).find(
-    (achievement) => achievement.achId === item.achievementId || achievement.achName === item.achievementName
-  )?.iconUrl ?? '/assets/achievements/default-medal.svg';
+  return getAchievementIcon({ achId: item.achievementId });
 }
 
 function scrollToDetailSection(id: string) {

@@ -167,7 +167,7 @@ import { addPlaytime, getLibrary, type LibraryEntry } from '../api/coreApi';
 import { listGameAchievements } from '../api/communityApi';
 import { getApiError } from '../api/http';
 import LibraryRail from '../components/LibraryRail.vue';
-import { mergeAchievementCatalog, type AchievementDisplayItem } from '../data/achievementCatalog';
+import { withAchievementIcons, type AchievementDisplayItem } from '../data/achievementCatalog';
 import { getGameMeta } from '../data/gameCatalog';
 import { minutesText } from '../utils/format';
 
@@ -208,9 +208,9 @@ async function loadLibrary() {
 
   try {
     const achievementRows = await listGameAchievements(gameId.value);
-    achievements.value = mergeAchievementCatalog(gameId.value, achievementRows);
+    achievements.value = withAchievementIcons(achievementRows);
   } catch (error) {
-    achievements.value = mergeAchievementCatalog(gameId.value, []);
+    achievements.value = [];
     notice.value ||= getApiError(error);
   } finally {
     loading.value = false;
