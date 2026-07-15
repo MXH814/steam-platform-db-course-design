@@ -9,6 +9,7 @@ public static class CoreTransactionEndpointExtensions
 {
     private const int WalletIdempotencyKeyRequiredCode = 40001;
     private const int WalletNotFoundCode = 40401;
+    private const int WalletHistoryNotFoundCode = 40402;
     private const int WalletInvalidAmountCode = 40901;
     private const int WalletIdempotencyConflictCode = 40902;
 
@@ -87,6 +88,56 @@ public static class CoreTransactionEndpointExtensions
             catch (ResourceNotFoundException exception)
             {
                 return WalletNotFound(exception);
+            }
+        });
+
+        wallet.MapGet("/history", async (
+            int? page,
+            int? pageSize,
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "PLAYER") is { } denied)
+            {
+                return denied;
+            }
+
+            try
+            {
+                var result = await service.ListWalletHistoryAsync(claims!, page ?? 1, pageSize ?? 20, cancellationToken);
+                return Results.Ok(ApiResponse<PagedResponse<WalletHistoryEntry>>.Success(result));
+            }
+            catch (ResourceNotFoundException exception)
+            {
+                return WalletNotFound(exception);
+            }
+        });
+
+        wallet.MapGet("/history/{historyId}", async (
+            string historyId,
+            ICoreTransactionService service,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "PLAYER") is { } denied)
+            {
+                return denied;
+            }
+
+            if (InputGuards.IsBlank(historyId))
+            {
+                return Results.BadRequest(ApiResponse<object>.Failure(40002, "HISTORY_ID_REQUIRED: HistoryId is required."));
+            }
+
+            try
+            {
+                var result = await service.GetWalletHistoryEntryAsync(claims!, historyId, cancellationToken);
+                return Results.Ok(ApiResponse<WalletHistoryEntry>.Success(result));
+            }
+            catch (ResourceNotFoundException exception)
+            {
+                return IsWalletMissing(exception) ? WalletNotFound(exception) : WalletHistoryNotFound(exception);
             }
         });
 
@@ -342,6 +393,12 @@ public static class CoreTransactionEndpointExtensions
 
     private static IResult WalletNotFound(ResourceNotFoundException exception) =>
         Results.NotFound(ApiResponse<object>.Failure(WalletNotFoundCode, $"WALLET_NOT_FOUND: {exception.Message}"));
+
+    private static IResult WalletHistoryNotFound(ResourceNotFoundException exception) =>
+        Results.NotFound(ApiResponse<object>.Failure(WalletHistoryNotFoundCode, $"WALLET_HISTORY_NOT_FOUND: {exception.Message}"));
+
+    private static bool IsWalletMissing(ResourceNotFoundException exception) =>
+        exception.Message.Contains("Wallet does not exist", StringComparison.OrdinalIgnoreCase);
 
     private static int WalletBusinessCode(string code) =>
         code.Equals("INVALID_AMOUNT", StringComparison.OrdinalIgnoreCase)

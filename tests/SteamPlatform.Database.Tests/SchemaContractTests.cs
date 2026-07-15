@@ -51,6 +51,8 @@ public sealed class SchemaContractTests
     [InlineData("ADMIN_USER", "SUPER_ADMIN", "AUDITOR", "RISK_ADMIN", "CUSTOMER_SERVICE")]
     [InlineData("SYS_NOTICE", "DRAFT", "PUBLISHED", "EXPIRED", "REVOKED")]
     [InlineData("DEVELOPER", "PENDING", "APPROVED", "REJECTED")]
+    [InlineData("PAYMENT_TRANSACTION", "STEAM_WALLET", "WECHAT_PAY", "ALIPAY", "VISA", "MASTERCARD")]
+    [InlineData("WALLET_TRANSACTION", "STEAM_WALLET", "WECHAT_PAY", "ALIPAY", "VISA", "MASTERCARD")]
     public void Status_and_role_enums_match_documented_contract(string tableName, params string[] expectedValues)
     {
         var block = TableBlock(tableName);
@@ -59,6 +61,20 @@ public sealed class SchemaContractTests
         {
             Assert.Contains($"'{value}'", block, StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    [Fact]
+    public void Wallet_payment_method_migration_is_idempotent_and_backfills_legacy_rows()
+    {
+        var migration = SqlFile.WalletPaymentMethodMigration;
+
+        Assert.Contains("user_tab_cols", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("user_constraints", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("EXECUTE IMMEDIATE", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("WHERE payment_method IS NULL", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("raise_application_error", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CK_PAYMENT_METHOD", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CK_WALLET_TXN_PAYMENT_METHOD", migration, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

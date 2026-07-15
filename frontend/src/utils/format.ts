@@ -1,5 +1,5 @@
 export function money(value: number | null | undefined): string {
-  return `￥${Number(value ?? 0).toFixed(2)}`;
+  return `¥ ${Number(value ?? 0).toFixed(2)}`;
 }
 
 export function dateTime(value: string | null | undefined): string {
