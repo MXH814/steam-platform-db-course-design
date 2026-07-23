@@ -1,13 +1,6 @@
 <template>
   <article class="detail-template" :class="`variant-${variant}`">
     <section class="hero-shell">
-      <slot name="banner">
-        <div class="default-banner">
-          <span>{{ game.shortName }}</span>
-          <strong>{{ game.gameName }}</strong>
-        </div>
-      </slot>
-
       <div class="media-layout">
         <div class="media-column">
           <slot name="media">

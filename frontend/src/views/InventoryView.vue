@@ -329,7 +329,7 @@ function transferParty(value?: string | null) {
     <section class="inventory-shell">
       <header class="inventory-actions">
         <div>
-          <p class="inventory-eyebrow">Group D / Inventory</p>
+          <p class="inventory-eyebrow">物品库存</p>
           <h1>{{ auth.currentUser?.account ?? '玩家' }} 的库存</h1>
         </div>
         <div class="inventory-action-row">

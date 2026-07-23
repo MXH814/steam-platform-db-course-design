@@ -17,10 +17,10 @@
       <section class="store-section">
         <header class="store-heading">
           <div>
-            <p>Group B / Store</p>
-            <h1>游戏商店</h1>
+            <p>特别优惠</p>
+            <h1>浏览热门游戏</h1>
           </div>
-          <span>{{ games.length }} 款可展示游戏</span>
+          <RouterLink to="/store/specials">查看更多</RouterLink>
         </header>
 
         <div v-if="games.length" class="game-grid">
@@ -151,6 +151,14 @@ onBeforeUnmount(() => {
 .store-heading span {
   color: var(--steam-muted);
   font-size: 0.9rem;
+}
+
+.store-heading a {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 0.28rem 0.65rem;
+  color: #ffffff;
+  font-size: 0.76rem;
+  text-transform: uppercase;
 }
 
 .game-grid {

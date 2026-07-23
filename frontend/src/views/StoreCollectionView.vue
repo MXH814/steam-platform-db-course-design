@@ -71,13 +71,13 @@ let retryTimer: number | undefined;
 
 const collectionGroups: Record<string, CollectionLink[]> = {
   recommend: [
-    { slug: 'featured', title: '精选推荐', summary: '按默认推荐顺序展示主演示游戏。', to: '/store/recommend/featured', queryPatch: { sort: 'default' } },
+    { slug: 'featured', title: '精选推荐', summary: '发现当前最值得关注的游戏。', to: '/store/recommend/featured', queryPatch: { sort: 'default' } },
     { slug: 'new', title: '最新发行', summary: '按发行时间查看游戏。', to: '/store/recommend/new', queryPatch: { sort: 'releaseDate' } },
     { slug: 'reputation', title: '高口碑', summary: '按玩家口碑排序。', to: '/store/recommend/reputation', queryPatch: { sort: 'reputation' } }
   ],
   categories: [
-    { slug: 'competitive', title: '多人竞技', summary: '包含 CS2 竞技、市场与库存样板。', to: '/store/categories/competitive', queryPatch: { tag: '多人竞技' } },
-    { slug: 'survival', title: '生存合作', summary: '包含 DST 联机生存和内容包样板。', to: '/store/categories/survival', queryPatch: { tag: '生存' } },
+    { slug: 'competitive', title: '多人竞技', summary: '查看强调战术、操作和团队配合的游戏。', to: '/store/categories/competitive', queryPatch: { tag: '多人竞技' } },
+    { slug: 'survival', title: '生存合作', summary: '与好友一起探索、制作并共同生存。', to: '/store/categories/survival', queryPatch: { tag: '生存' } },
     { slug: 'market', title: '饰品市场', summary: '支持市场入口的游戏。', to: '/store/categories/market', queryPatch: { priceFilter: 'market' } },
     { slug: 'packages', title: '内容包', summary: '带 DLC、皮肤箱或礼包的游戏。', to: '/store/categories/packages', queryPatch: { priceFilter: 'packages' } }
   ],
@@ -96,11 +96,11 @@ const collectionGroups: Record<string, CollectionLink[]> = {
 const sectionMeta: Record<string, { title: string; description: string }> = {
   recommend: {
     title: '推荐',
-    description: '保留 Steam 风格推荐栏目，用排序和口碑展示支撑商店浏览。'
+    description: '根据新品、热门程度与玩家口碑发现下一款游戏。'
   },
   categories: {
     title: '类别',
-    description: '按项目已有标签和样板能力组织分类入口，不新增 README 范围外的复杂业务。'
+    description: '按玩法、主题和社区功能浏览游戏。'
   },
   playstyles: {
     title: '畅玩方式',
@@ -108,7 +108,7 @@ const sectionMeta: Record<string, { title: string; description: string }> = {
   },
   specials: {
     title: '特别栏目',
-    description: '聚合折扣中和免费入库等答辩演示需要的入口。'
+    description: '查看正在折扣和可以免费开玩的游戏。'
   }
 };
 

@@ -5,24 +5,12 @@
     :variant="game.shortName === 'DST' ? 'dst' : 'default'"
     :summary="detailSummary"
   >
-    <template #banner>
-      <div class="game-banner" :class="{ dst: isDst }">
-        <span>{{ game.shortName }}</span>
-        <strong>{{ game.gameName }}</strong>
-      </div>
-    </template>
-
     <template #media>
-      <div class="game-media" :class="{ dst: isDst }">
-        <div>
-          <span>{{ game.shortName }}</span>
-          <strong>{{ isDst ? 'SURVIVAL PACKAGE DEMO' : 'STORE DETAIL DEMO' }}</strong>
-        </div>
-      </div>
+      <div class="game-media"><img :src="meta.heroImage" :alt="`${game.gameName} 游戏画面`" /></div>
     </template>
 
     <template #summary-art>
-      <div class="game-capsule" :class="{ dst: isDst }">{{ game.gameName }}</div>
+      <img class="game-capsule" :src="meta.headerImage" :alt="game.gameName" />
     </template>
 
     <template #summary-extra>
@@ -37,7 +25,7 @@
           <h2>{{ owned ? '已在你的游戏库中' : game.finalPrice > 0 ? `购买 ${game.shortName}` : `获取 ${game.shortName}` }}</h2>
           <p v-if="ownershipLoading">正在确认你的游戏库状态...</p>
           <p v-else-if="owned">你已经拥有这款游戏。商店页保留商品介绍、DLC/礼包、公告和社区入口，个人游玩数据请进入游戏库查看。</p>
-          <p v-else-if="ownershipError">暂未确认是否已入库。你仍可浏览商店详情，购买和入库由 Group C 接口负责。</p>
+          <p v-else-if="ownershipError">暂时无法确认游戏库状态，你仍可继续浏览商品详情。</p>
           <p v-else>{{ purchaseCopy }}</p>
         </div>
         <GamePriceBlock :base-price="game.basePrice" :final-price="game.finalPrice" :discount-rate="game.discountRate" />
@@ -119,16 +107,12 @@
 
     <template #side>
       <SteamInfoPanel
-        title="商店页保留入口"
-        :rows="isDst ? ['购买区域展示', 'DLC / 皮肤箱 / 礼包', '更新公告', '社区入口', '创意工坊入口'] : ['统一详情模板', '社区入口']"
+        title="功能"
+        :rows="isDst ? ['多人在线合作', 'Steam 创意工坊', '可用附加内容', '社区中心'] : ['社区中心']"
       />
       <SteamInfoPanel
-        title="已入库后查看"
-        :rows="isDst ? ['/library/GAME_DST', '个人游玩时长', '个人成就进度', '社区评价入口'] : [`/library/${game.gameId}`]"
-      />
-      <SteamInfoPanel
-        title="Group B 边界"
-        :rows="['不处理钱包扣款', '不生成订单事务', '不处理退款', '不直接修改数据库']"
+        title="语言与内容"
+        :rows="['支持简体中文界面', '在线互动', '游戏内购买']"
       />
     </template>
   </SteamGameDetailTemplate>
@@ -138,6 +122,7 @@
 import { computed } from 'vue';
 import type { GameAchievementSummary, GameAchievementSummaryItem, GameContentPackage, GameDetail, GameItemSummary, GameReviewSummary } from '../api/types';
 import { getAchievementIcon } from '../data/achievementCatalog';
+import { getGameMeta } from '../data/gameCatalog';
 import GamePriceBlock from './GamePriceBlock.vue';
 import GameSummarySection from './GameSummarySection.vue';
 import SteamGameDetailTemplate from './SteamGameDetailTemplate.vue';
@@ -167,14 +152,15 @@ const emit = defineEmits<{
 }>();
 
 const isDst = computed(() => props.game.shortName === 'DST');
+const meta = computed(() => getGameMeta(props.game.gameId));
 const communityRoute = computed(() => ({ name: 'game-community', params: { gameId: props.game.gameId } }));
 const workshopRoute = computed(() => ({ name: 'game-community', params: { gameId: props.game.gameId }, query: { section: 'workshop' } }));
 
 const dstNotices = [
   {
-    title: '联机生存演示数据已更新',
+    title: '联机生存内容已更新',
     date: '2026-07-09',
-    summary: '用于答辩演示的 DLC、礼包、评价和成就摘要已经准备好。'
+    summary: '新的内容包、社区评价与成就信息现已上线。'
   },
   {
     title: '社区与创意工坊入口保留',
@@ -185,15 +171,15 @@ const dstNotices = [
 
 const detailSummary = computed(() => {
   if (isDst.value) {
-    return 'DST 在本项目中承担买断制购买、内容包、评价和成就样板。详情页保留这些可与后端接口联动的模块，并把社区入口接到已实现的评论与成就页面。';
+    return '与好友一起进入一片奇异而危险的世界。收集资源、制作物品、建立营地，并在不断变化的荒野中共同生存。';
   }
   return props.game.description || props.game.summary || '该游戏使用统一详情模板展示基础信息，等待后端继续补充字段。';
 });
 
 const purchaseCopy = computed(() =>
   isDst.value
-    ? '买断制购买区域只展示价格、折扣和入口，钱包扣款、订单生成、退款事务由 Group C 承接。'
-    : '通用游戏详情展示，等待后端补充业务入口。'
+    ? '购买后游戏将立即添加到你的游戏库。'
+    : '购买后即可在游戏库中安装并游玩。'
 );
 
 function formatRate(value: number | null) {
@@ -206,78 +192,23 @@ function summaryAchievementIcon(item: GameAchievementSummaryItem) {
 </script>
 
 <style scoped>
-.game-banner {
-  display: grid;
-  min-height: 138px;
-  align-content: center;
-  border: 12px solid rgba(7, 12, 18, 0.8);
-  padding: 1rem 2rem;
-  background:
-    radial-gradient(circle at 74% 26%, rgba(102, 192, 244, 0.22), transparent 12rem),
-    linear-gradient(100deg, #132235, #24445d 56%, #111923);
-}
-
-.game-banner.dst {
-  background:
-    radial-gradient(circle at 78% 28%, rgba(117, 197, 63, 0.22), transparent 12rem),
-    linear-gradient(100deg, #132117, #34512c 56%, #101822);
-}
-
-.game-banner span {
-  color: var(--steam-blue);
-  font-weight: 950;
-}
-
-.game-banner strong {
-  color: #ffffff;
-  font-size: clamp(1.8rem, 4vw, 3.1rem);
-  line-height: 1.08;
-  text-wrap: balance;
-}
-
 .game-media {
-  display: grid;
-  min-height: 420px;
-  place-items: center;
-  background:
-    radial-gradient(circle at 62% 42%, rgba(102, 192, 244, 0.18), transparent 10rem),
-    linear-gradient(135deg, #080d13, #31465c);
+  height: 420px;
+  overflow: hidden;
+  background: #080d13;
 }
 
-.game-media.dst {
-  background:
-    radial-gradient(circle at 62% 42%, rgba(117, 197, 63, 0.18), transparent 10rem),
-    linear-gradient(135deg, #10130d, #2f4528);
-}
-
-.game-media div {
-  display: grid;
-  justify-items: center;
-  gap: 0.25rem;
-  color: rgba(255, 255, 255, 0.86);
-}
-
-.game-media span {
-  font-size: clamp(3.5rem, 12vw, 7rem);
-  font-weight: 950;
-  line-height: 0.95;
+.game-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .game-capsule {
-  display: grid;
-  min-height: 178px;
-  place-items: center;
-  padding: 1rem;
-  color: #ffffff;
-  background: linear-gradient(135deg, #31465c, #111923);
-  font-size: clamp(1.4rem, 3vw, 2.2rem);
-  font-weight: 950;
-  text-align: center;
-  text-wrap: balance;
-}
-
-.game-capsule.dst {
-  background: linear-gradient(135deg, #38512f, #111923);
+  display: block;
+  width: 100%;
+  aspect-ratio: 460 / 215;
+  object-fit: cover;
 }
 
 .summary-tags {

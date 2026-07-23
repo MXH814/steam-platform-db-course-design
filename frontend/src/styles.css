@@ -1,7 +1,7 @@
 :root {
-  --steam-bg: #0d1118;
-  --steam-shell: #101822;
-  --steam-panel: #16202d;
+  --steam-bg: #192a3d;
+  --steam-shell: #171d25;
+  --steam-panel: #1f3044;
   --steam-panel-2: #1b2838;
   --steam-border: rgba(151, 170, 195, 0.18);
   --steam-text: #eef2f8;
@@ -25,10 +25,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 14% 18%, rgba(102, 192, 244, 0.08), transparent 18rem),
-    linear-gradient(135deg, rgba(38, 115, 154, 0.14), transparent 34rem),
-    linear-gradient(180deg, #1b2838 0%, #101822 42%, var(--steam-bg) 100%);
+  background: linear-gradient(180deg, #2a475e 0, #1b2838 460px, #192a3d 100%);
 }
 
 button,
@@ -52,78 +49,191 @@ a {
   min-height: 100vh;
 }
 
-.topbar {
+.client-header {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 30;
+  background: var(--steam-shell);
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.35);
+}
+
+.client-menu {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 1rem;
-  min-height: 58px;
-  padding: 0 28px;
-  border-bottom: 1px solid var(--steam-border);
-  background: rgba(23, 26, 33, 0.96);
-  backdrop-filter: blur(12px);
+  gap: 2rem;
+  width: min(1180px, calc(100% - 32px));
+  min-height: 72px;
+  margin: 0 auto;
 }
 
-.brand {
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
-.brand::before {
-  content: "";
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  margin-right: 8px;
-  vertical-align: -3px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 38% 38%, #c7d5e0 0 20%, #5c7e99 21% 42%, #1b2838 43% 100%);
-}
-
-.nav-links,
-.session {
+.client-brand,
+.client-menu nav,
+.client-actions,
+.account-link,
+.store-nav,
+.store-nav nav,
+.client-status,
+.client-status a {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
 }
 
-.nav-links a {
-  color: #aebbd0;
-  font-weight: 650;
+.client-brand {
+  gap: 0.65rem;
+  color: #f5f5f5;
+  font-size: 1.28rem;
+  font-weight: 400;
+  text-transform: uppercase;
 }
 
-.nav-links a[href*="/store"],
-.nav-links a[href*="/library"],
-.nav-links a[href*="/community"],
-.nav-links a[href*="/market"] {
-  font-size: 1.05rem;
+.brand-symbol {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 2px solid #d6d7d8;
+  border-radius: 50%;
 }
 
-.nav-links a.router-link-active,
-.nav-links a:hover {
-  color: var(--steam-blue-strong);
+.client-menu nav {
+  gap: 1.2rem;
 }
 
-.session {
+.client-menu nav a {
+  position: relative;
+  color: #d6d7d8;
+  font-size: 1.03rem;
+  text-transform: uppercase;
+}
+
+.client-menu nav a.router-link-active,
+.client-menu nav a:hover {
+  color: #1a9fff;
+}
+
+.client-menu nav a.router-link-active::after {
+  position: absolute;
+  right: 0;
+  bottom: -8px;
+  left: 0;
+  height: 3px;
+  background: #1a9fff;
+  content: "";
+}
+
+.client-actions {
+  gap: 0.55rem;
   justify-content: flex-end;
 }
 
-.session-user {
-  max-width: 12rem;
-  overflow: hidden;
-  color: #aebbd0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.icon-link,
+.install-login,
+.account-link {
+  min-height: 30px;
+  color: #d6d7d8;
+  background: #272d37;
+}
+
+.icon-link {
+  display: grid;
+  width: 32px;
+  place-items: center;
+}
+
+.install-login {
+  padding: 0.35rem 0.75rem;
+  background: #75a300;
+}
+
+.account-link {
+  gap: 0.45rem;
+  padding-right: 0.55rem;
+  font-size: 0.82rem;
+}
+
+.account-avatar {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  color: #10161f;
+  background: #67bde8;
+  font-weight: 800;
+}
+
+.store-nav {
+  gap: 0.8rem;
+  width: min(1180px, calc(100% - 32px));
+  min-height: 40px;
+  margin: 0 auto;
+  padding: 0 0.7rem;
+  background: linear-gradient(90deg, #54a5d4, #2b6f9b);
+}
+
+.store-nav nav {
+  min-width: 0;
+  flex: 1;
+}
+
+.store-nav a,
+.manage-menu summary {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.7rem;
+  color: #e5f4ff;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.store-nav a:hover,
+.store-nav a.router-link-active,
+.manage-menu summary:hover {
+  color: #ffffff;
+  background: rgba(16, 39, 58, 0.36);
+}
+
+.manage-menu {
+  position: relative;
+}
+
+.manage-menu summary {
+  list-style: none;
+}
+
+.manage-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.manage-menu > div {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  display: grid;
+  min-width: 180px;
+  background: #1f3044;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
+}
+
+.manage-menu > div a {
+  color: #d6e6f2;
+}
+
+.mobile-menu-button {
+  display: none;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  color: #d6d7d8;
+  background: transparent;
 }
 
 .page {
-  width: min(1500px, calc(100% - 32px));
+  width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 24px 0 64px;
+  padding: 22px 0 72px;
 }
 
 .page.page-wide {
@@ -158,8 +268,8 @@ a {
 }
 
 .section-heading h1 {
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  line-height: 1.05;
+  font-size: 1.85rem;
+  line-height: 1.15;
 }
 
 .section-heading h2 {
@@ -190,7 +300,7 @@ a {
 .notice-item,
 .state-panel {
   border: 1px solid rgba(151, 170, 195, 0.18);
-  border-radius: 8px;
+  border-radius: 2px;
   background: rgba(20, 28, 39, 0.92);
   box-shadow: none;
 }
@@ -246,7 +356,7 @@ textarea:focus {
   justify-content: center;
   min-height: 38px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 2px;
   padding: 0.55rem 0.9rem;
   cursor: pointer;
   font-weight: 800;
@@ -254,13 +364,49 @@ textarea:focus {
 
 .primary-button,
 .button-link {
-  color: #06111b;
-  background: var(--steam-blue);
+  color: #d2efa9;
+  background: linear-gradient(90deg, #75a300, #588a1b);
 }
 
 .primary-button:hover,
 .button-link:hover {
-  background: #9bd3ff;
+  color: #ffffff;
+  background: linear-gradient(90deg, #8cc414, #6aa621);
+}
+
+.client-status {
+  position: fixed;
+  z-index: 40;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  gap: 1rem;
+  min-height: 34px;
+  padding: 0 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: #c7d5e0;
+  background: #171d25;
+  box-shadow: 0 -3px 14px rgba(0, 0, 0, 0.35);
+  font-size: 0.78rem;
+}
+
+.client-status a {
+  gap: 0.35rem;
+}
+
+.client-status a:hover {
+  color: #ffffff;
+}
+
+.client-status button {
+  border: 0;
+  color: #8f98a0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.status-spacer {
+  flex: 1;
 }
 
 .secondary-button {
@@ -670,20 +816,49 @@ tbody tr:hover {
 }
 
 @media (max-width: 760px) {
-  .topbar {
-    grid-template-columns: 1fr;
-    padding: 14px 16px;
+  .client-menu {
+    width: calc(100% - 24px);
+    min-height: 58px;
+    gap: 0.8rem;
   }
 
-  .nav-links,
-  .session {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+  .client-brand {
+    font-size: 1rem;
+  }
+
+  .client-menu > nav,
+  .account-link > span:not(.account-avatar) {
+    display: none;
+  }
+
+  .mobile-menu-button {
+    display: grid;
+    place-items: center;
+  }
+
+  .store-nav {
+    display: none;
+    width: 100%;
+    padding: 0.4rem 12px;
+  }
+
+  .store-nav.open,
+  .store-nav.open nav {
+    display: grid;
+  }
+
+  .store-nav.open {
+    grid-template-columns: 1fr;
+  }
+
+  .store-nav a,
+  .manage-menu summary {
+    min-height: 36px;
   }
 
   .page {
-    width: min(100% - 24px, 1500px);
-    padding-top: 24px;
+    width: calc(100% - 24px);
+    padding-top: 16px;
   }
 
   .page.page-library {

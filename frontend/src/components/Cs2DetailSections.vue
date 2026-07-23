@@ -3,29 +3,17 @@
     :game="game"
     :review="review"
     variant="cs2"
-    summary="Counter-Strike 2 是本项目的免费入库和饰品经济样板。商店详情页只负责商品介绍、入库状态、市场概览和社区入口；个人库存与交易明细放在游戏库和 Group D 页面。"
+    summary="Counter-Strike 2 延续经典的团队竞技玩法，并带来全新的视觉效果、动态烟雾和社区饰品经济。"
   >
-    <template #banner>
-      <div class="cs2-banner">
-        <span>COUNTER-STRIKE 2</span>
-        <strong>免费开玩 · 饰品经济 · 市场入口</strong>
-      </div>
-    </template>
-
     <template #media>
-      <div class="media-preview">
-        <div>
-          <span>CS2</span>
-          <strong>TACTICAL MARKET DEMO</strong>
-        </div>
-      </div>
+      <div class="media-preview"><img :src="meta.heroImage" alt="Counter-Strike 2 游戏画面" /></div>
       <div class="thumb-strip" aria-label="媒体缩略图">
-        <span v-for="item in 5" :key="item" :class="{ active: item === 1 }">预览 {{ item }}</span>
+        <img v-for="item in 5" :key="item" :class="{ active: item === 1 }" :src="item % 2 ? meta.headerImage : meta.heroImage" alt="" />
       </div>
     </template>
 
     <template #summary-art>
-      <div class="cs2-capsule">Counter-Strike 2</div>
+      <img class="cs2-capsule" :src="meta.headerImage" alt="Counter-Strike 2" />
     </template>
 
     <template #summary-extra>
@@ -43,8 +31,8 @@
           <h2>{{ owned ? '已在你的游戏库中' : '玩 Counter-Strike 2' }}</h2>
           <p v-if="ownershipLoading">正在确认你的游戏库状态...</p>
           <p v-else-if="owned">你已经拥有 CS2。商店页保留介绍、口碑和市场概览，库存与个人成就在库内详情查看。</p>
-          <p v-else-if="ownershipError">暂未确认是否已入库。你仍可浏览商店详情，免费入库由 Group C 接口负责。</p>
-          <p v-else>CS2 是免费游戏。这里展示免费入库入口，真实入库流程由 Group C 的免费入库接口承接。</p>
+          <p v-else-if="ownershipError">暂时无法确认游戏库状态，你仍可继续浏览商品详情。</p>
+          <p v-else>免费开玩。添加到游戏库后即可安装并进入比赛。</p>
         </div>
         <div class="action-buttons">
           <RouterLink v-if="owned" class="green-button" :to="{ name: 'game-library', params: { gameId: game.gameId } }">开始游戏</RouterLink>
@@ -101,24 +89,20 @@
         </GameSummarySection>
 
         <section class="about-panel">
-          <h2>页面职责</h2>
-          <p>商店详情页不展示“我的库存实例”和市场撮合明细。用户已入库后，从游戏库进入 CS2 库内详情查看个人游玩时长、库存入口和个人成就进度。</p>
+          <h2>关于此游戏</h2>
+          <p>在经典的目标攻防与团队对抗中磨练技巧。游戏库提供游玩记录，库存与社区市场则用于查看和交易已拥有的饰品。</p>
         </section>
       </section>
     </template>
 
     <template #side>
       <SteamInfoPanel
-        title="商店页保留入口"
-        :rows="['免费入库状态', '饰品市场入口', '评价与成就入口', '创意工坊入口']"
+        title="功能"
+        :rows="['多人在线竞技', '社区市场', 'Steam 创意工坊', '成就']"
       />
       <SteamInfoPanel
-        title="已入库后查看"
-        :rows="['/library/GAME_CS2', '个人游玩时长', '库存入口', '个人成就进度']"
-      />
-      <SteamInfoPanel
-        title="本页摘要接口"
-        :rows="['GET /api/games/{gameId}', 'GET /api/games/{gameId}/items/summary', 'GET /api/games/{gameId}/reviews/summary', 'GET /api/games/{gameId}/achievements/summary']"
+        title="语言与内容"
+        :rows="['支持简体中文界面', '在线互动', '游戏内购买']"
       />
     </template>
   </SteamGameDetailTemplate>
@@ -128,6 +112,7 @@
 import { computed } from 'vue';
 import type { GameAchievementSummary, GameAchievementSummaryItem, GameDetail, GameItemSummary, GameReviewSummary } from '../api/types';
 import { getAchievementIcon } from '../data/achievementCatalog';
+import { getGameMeta } from '../data/gameCatalog';
 import GameSummarySection from './GameSummarySection.vue';
 import SteamGameDetailTemplate from './SteamGameDetailTemplate.vue';
 import SteamInfoPanel from './SteamInfoPanel.vue';
@@ -157,6 +142,7 @@ const emit = defineEmits<{
 }>();
 
 const communityRoute = computed(() => ({ name: 'game-community', params: { gameId: props.game.gameId } }));
+const meta = computed(() => getGameMeta(props.game.gameId));
 const workshopRoute = computed(() => ({ name: 'game-community', params: { gameId: props.game.gameId }, query: { section: 'workshop' } }));
 
 function money(value: number | null) {
@@ -173,54 +159,35 @@ function summaryAchievementIcon(item: GameAchievementSummaryItem) {
 </script>
 
 <style scoped>
-.cs2-banner {
-  display: grid;
-  min-height: 138px;
-  align-content: center;
-  border: 12px solid rgba(7, 12, 18, 0.8);
-  padding: 1rem 2rem;
-  background:
-    radial-gradient(circle at 74% 26%, rgba(26, 159, 255, 0.24), transparent 12rem),
-    linear-gradient(100deg, #111923, #175a7a 56%, #161d27);
-}
-
-.cs2-banner span {
-  color: var(--steam-blue);
-  font-weight: 950;
-}
-
-.cs2-banner strong {
-  color: #ffffff;
-  font-size: clamp(1.8rem, 4vw, 3.1rem);
-  line-height: 1.08;
-  text-wrap: balance;
-}
-
 .media-preview {
-  display: grid;
-  min-height: 420px;
-  place-items: center;
+  height: 420px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 64% 40%, rgba(238, 137, 32, 0.26), transparent 10rem),
-    linear-gradient(135deg, #d8d7d0, #4d6374 62%, #080d13);
+  background: #080d13;
 }
 
-.media-preview div {
-  display: grid;
-  justify-items: center;
-  gap: 0.25rem;
-  color: #10151d;
+.media-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.media-preview span {
-  font-size: clamp(4rem, 14vw, 8rem);
-  font-weight: 950;
-  line-height: 0.95;
+.cs2-capsule {
+  display: block;
+  width: 100%;
+  aspect-ratio: 460 / 215;
+  object-fit: cover;
 }
 
-.media-preview strong {
-  font-weight: 950;
+.thumb-strip img {
+  width: 100%;
+  height: 58px;
+  object-fit: cover;
+  opacity: 0.62;
+}
+
+.thumb-strip img.active {
+  outline: 2px solid #ffffff;
+  opacity: 1;
 }
 
 .thumb-strip {
@@ -230,31 +197,8 @@ function summaryAchievementIcon(item: GameAchievementSummaryItem) {
   padding-top: 0.45rem;
 }
 
-.thumb-strip span {
-  display: grid;
-  min-height: 42px;
-  place-items: center;
-  border: 2px solid transparent;
-  border-radius: 4px;
-  color: #c7d5e0;
-  background: #213142;
-  font-size: 0.8rem;
-}
-
 .thumb-strip .active {
   border-color: var(--steam-blue);
-}
-
-.cs2-capsule {
-  display: grid;
-  min-height: 178px;
-  place-items: center;
-  padding: 1rem;
-  color: #ffffff;
-  background: linear-gradient(135deg, #f08a18, #111923 48%, #1d5d84);
-  font-size: clamp(1.6rem, 4vw, 2.6rem);
-  font-weight: 950;
-  text-align: center;
 }
 
 .summary-tags,

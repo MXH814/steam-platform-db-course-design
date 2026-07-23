@@ -1,7 +1,7 @@
 <template>
   <RouterLink class="game-card" :to="{ name: 'game-detail', params: { gameId: game.gameId } }">
-    <div class="game-art" :class="`tone-${game.coverTone}`">
-      <span class="game-mark">{{ game.shortName }}</span>
+    <div class="game-art">
+      <img :src="meta.headerImage" :alt="game.gameName" />
       <span v-if="game.supportsMarket" class="corner-label">市场</span>
       <span v-else-if="game.hasContentPackages" class="corner-label">礼包</span>
     </div>
@@ -23,6 +23,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { GameListItem } from '../api/types';
+import { getGameMeta } from '../data/gameCatalog';
 import GamePriceBlock from './GamePriceBlock.vue';
 
 const props = defineProps<{
@@ -30,6 +31,7 @@ const props = defineProps<{
 }>();
 
 const releaseYear = computed(() => (props.game.releaseDate ? new Date(props.game.releaseDate).getFullYear() : '待定'));
+const meta = computed(() => getGameMeta(props.game.gameId));
 </script>
 
 <style scoped>
@@ -53,56 +55,14 @@ const releaseYear = computed(() => (props.game.releaseDate ? new Date(props.game
   display: grid;
   min-height: 148px;
   aspect-ratio: 16 / 7;
-  place-items: center;
   overflow: hidden;
-  background: linear-gradient(135deg, #20374d, #0e151f);
+  background: #0e151f;
 }
 
-.game-art::before,
-.game-art::after {
-  position: absolute;
-  content: "";
-}
-
-.game-art::before {
-  width: 72%;
-  height: 150%;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  transform: rotate(-16deg);
-}
-
-.game-art::after {
-  right: -8%;
-  bottom: -32%;
-  width: 46%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: rgba(102, 192, 244, 0.15);
-}
-
-.tone-cs2 {
-  background:
-    linear-gradient(90deg, rgba(9, 16, 24, 0.92), rgba(17, 82, 111, 0.48)),
-    linear-gradient(135deg, #1b2634, #10151d 45%, #234a68);
-}
-
-.tone-dst {
-  background:
-    radial-gradient(circle at 22% 35%, rgba(117, 197, 63, 0.2), transparent 6rem),
-    linear-gradient(135deg, #122416, #1d3422 52%, #0d1118);
-}
-
-.tone-background {
-  background: linear-gradient(135deg, #23364b, #111923);
-}
-
-.game-mark {
-  position: relative;
-  z-index: 1;
-  color: rgba(238, 242, 248, 0.96);
-  font-size: clamp(2.1rem, 7vw, 3.8rem);
-  font-weight: 900;
-  letter-spacing: 0;
+.game-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .corner-label {
