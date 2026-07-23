@@ -56,11 +56,11 @@ public sealed class GroupCSeedContractTests
             SqlFile.Data);
 
         Assert.Matches(
-            @"INSERT\s+INTO\s+PAYMENT_TRANSACTION\s*\([^)]*\)\s*VALUES\s*\(\s*'PAY_DST_001'\s*,\s*'O_DST_001'\s*,\s*'GW-DST-001'\s*,\s*24\.00\s*,\s*'SUCCESS'",
+            @"INSERT\s+INTO\s+PAYMENT_TRANSACTION\s*\([^)]*\)\s*VALUES\s*\(\s*'PAY_DST_001'\s*,\s*'O_DST_001'\s*,\s*'GW-DST-001'\s*,\s*24\.00\s*,\s*'SUCCESS'\s*,\s*'STEAM_WALLET'",
             SqlFile.Data);
 
         Assert.Matches(
-            @"INSERT\s+INTO\s+WALLET_TRANSACTION\s*\([^)]*\)\s*VALUES\s*\(\s*'WT_DST_BUY_001'\s*,\s*'W001'\s*,\s*'BUY_GAME'\s*,\s*'O_DST_001'\s*,\s*'DEBIT'\s*,\s*24\.00\s*,\s*200\.00\s*,\s*176\.00",
+            @"INSERT\s+INTO\s+WALLET_TRANSACTION\s*\([^)]*\)\s*VALUES\s*\(\s*'WT_DST_BUY_001'\s*,\s*'W001'\s*,\s*'BUY_GAME'\s*,\s*'O_DST_001'\s*,\s*'DEBIT'\s*,\s*24\.00\s*,\s*200\.00\s*,\s*176\.00\s*,\s*'idem-wallet-dst-buy-001'\s*,\s*'STEAM_WALLET'",
             SqlFile.Data);
 
         Assert.Matches(

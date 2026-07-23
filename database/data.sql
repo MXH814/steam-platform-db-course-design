@@ -44,8 +44,8 @@ VALUES ('OSL_DST_001', 'O_DST_001', NULL, 'CREATED', TIMESTAMP '2026-07-05 10:00
 INSERT INTO ORDER_STATUS_LOG (log_id, order_id, from_status, to_status, create_time)
 VALUES ('OSL_DST_002', 'O_DST_001', 'CREATED', 'COMPLETED', TIMESTAMP '2026-07-05 10:01:00');
 
-INSERT INTO PAYMENT_TRANSACTION (payment_id, order_id, provider_trade_no, amount, status, create_time)
-VALUES ('PAY_DST_001', 'O_DST_001', 'GW-DST-001', 24.00, 'SUCCESS', TIMESTAMP '2026-07-05 10:01:00');
+INSERT INTO PAYMENT_TRANSACTION (payment_id, order_id, provider_trade_no, amount, status, payment_method, create_time)
+VALUES ('PAY_DST_001', 'O_DST_001', 'GW-DST-001', 24.00, 'SUCCESS', 'STEAM_WALLET', TIMESTAMP '2026-07-05 10:01:00');
 
 INSERT INTO GAME_ORDER (order_id, user_id, total_amount, order_type, order_status, payment_status, idempotency_key, expire_time, create_time)
 VALUES ('O_CS2_FREE_001', 'P001', 0.00, 'BUY_GAME', 'COMPLETED', 'PAID', 'idem-order-cs2-free-001', TIMESTAMP '2026-07-05 10:35:00', TIMESTAMP '2026-07-05 10:05:00');
@@ -212,14 +212,14 @@ VALUES ('ITL_CS2_DROP_002', 'ITEM_CS2_002', NULL, 'P002', 'DROP', TIMESTAMP '202
 INSERT INTO ITEM_TRANSFER_LEDGER (transfer_id, item_id, from_user_id, to_user_id, transfer_type, transfer_time)
 VALUES ('ITL_CS2_TRADE_001', 'ITEM_CS2_002', 'P002', 'P001', 'TRADE', TIMESTAMP '2026-07-05 14:02:00');
 
-INSERT INTO WALLET_TRANSACTION (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, create_time)
-VALUES ('WT_DST_BUY_001', 'W001', 'BUY_GAME', 'O_DST_001', 'DEBIT', 24.00, 200.00, 176.00, 'idem-wallet-dst-buy-001', TIMESTAMP '2026-07-05 10:01:00');
+INSERT INTO WALLET_TRANSACTION (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, payment_method, create_time)
+VALUES ('WT_DST_BUY_001', 'W001', 'BUY_GAME', 'O_DST_001', 'DEBIT', 24.00, 200.00, 176.00, 'idem-wallet-dst-buy-001', 'STEAM_WALLET', TIMESTAMP '2026-07-05 10:01:00');
 
-INSERT INTO WALLET_TRANSACTION (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, create_time)
-VALUES ('WT_MARKET_SELL_001', 'W002', 'MARKET_SELL', 'TRD_CS2_001', 'CREDIT', 42.75, 200.00, 242.75, 'idem-wallet-market-sell-001', TIMESTAMP '2026-07-05 14:02:00');
+INSERT INTO WALLET_TRANSACTION (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, payment_method, create_time)
+VALUES ('WT_MARKET_SELL_001', 'W002', 'MARKET_SELL', 'TRD_CS2_001', 'CREDIT', 42.75, 200.00, 242.75, 'idem-wallet-market-sell-001', 'STEAM_WALLET', TIMESTAMP '2026-07-05 14:02:00');
 
-INSERT INTO WALLET_TRANSACTION (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, create_time)
-VALUES ('WT_MARKET_FREEZE_001', 'W002', 'MARKET_FREEZE', 'MO_CS2_BUY_2', 'FREEZE', 50.00, 292.75, 242.75, 'idem-wallet-market-freeze-001', TIMESTAMP '2026-07-05 14:10:00');
+INSERT INTO WALLET_TRANSACTION (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, payment_method, create_time)
+VALUES ('WT_MARKET_FREEZE_001', 'W002', 'MARKET_FREEZE', 'MO_CS2_BUY_2', 'FREEZE', 50.00, 292.75, 242.75, 'idem-wallet-market-freeze-001', 'STEAM_WALLET', TIMESTAMP '2026-07-05 14:10:00');
 
 COMMIT;
 

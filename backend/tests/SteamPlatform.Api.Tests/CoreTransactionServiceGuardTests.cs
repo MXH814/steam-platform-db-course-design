@@ -216,6 +216,21 @@ public sealed class CoreTransactionServiceGuardTests
         Assert.Equal("IDEMPOTENCY_CONFLICT", exception.Code);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("STEAM_WALLET")]
+    [InlineData("PAYPAL")]
+    public async Task Recharge_rejects_missing_or_invalid_payment_method_before_opening_database(string? paymentMethod)
+    {
+        var service = new CoreTransactionService(new ThrowingConnectionFactory());
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.RechargeWalletAsync(PlayerClaims, new RechargeWalletRequest(10, "recharge-idem", paymentMethod), CancellationToken.None));
+
+        Assert.Equal("INVALID_PAYMENT_METHOD", exception.Code);
+    }
+
     [Fact]
     public async Task Recharge_replays_existing_same_amount_with_original_balance_snapshot()
     {
@@ -239,11 +254,12 @@ public sealed class CoreTransactionServiceGuardTests
                 ["AvailBalBefore"] = 0m,
                 ["AvailBalAfter"] = 100m,
                 ["IdempotencyKey"] = "recharge-idem",
+                ["PaymentMethod"] = "WECHAT_PAY",
                 ["CreateTime"] = DateTime.UtcNow
             });
         var service = new CoreTransactionService(new SingleConnectionFactory(connection));
 
-        var result = await service.RechargeWalletAsync(PlayerClaims, new RechargeWalletRequest(100m, "recharge-idem"), CancellationToken.None);
+        var result = await service.RechargeWalletAsync(PlayerClaims, new RechargeWalletRequest(100m, "recharge-idem", "WECHAT_PAY"), CancellationToken.None);
 
         Assert.Equal("WT_ORIGINAL", result.TransactionId);
         Assert.Equal(100m, result.AvailableBalance);
@@ -276,12 +292,13 @@ public sealed class CoreTransactionServiceGuardTests
                 ["AvailBalBefore"] = 0m,
                 ["AvailBalAfter"] = 100m,
                 ["IdempotencyKey"] = "recharge-idem",
+                ["PaymentMethod"] = "WECHAT_PAY",
                 ["CreateTime"] = DateTime.UtcNow
             });
         var service = new CoreTransactionService(new SingleConnectionFactory(connection));
 
         var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            service.RechargeWalletAsync(PlayerClaims, new RechargeWalletRequest(1m, "recharge-idem"), CancellationToken.None));
+            service.RechargeWalletAsync(PlayerClaims, new RechargeWalletRequest(1m, "recharge-idem", "WECHAT_PAY"), CancellationToken.None));
 
         Assert.Equal("IDEMPOTENCY_CONFLICT", exception.Code);
         Assert.Equal(0, connection.NonQueryCount);

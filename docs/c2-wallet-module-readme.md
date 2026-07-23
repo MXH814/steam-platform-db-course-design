@@ -1,6 +1,6 @@
 # C2 钱包模块 README
 
-本文档说明 Group C 中 C2/胡知鱼负责的钱包后端模块。Group C 总体交易规则仍以 `docs/group-c-core-transaction-contract.md` 和根目录 `README.md` 为准；本文只细化钱包账户、模拟充值、资金流水、金额校验和余额查询相关内容。
+本文档说明 Group C 中 C2/胡知鱼负责的钱包模块。Group C 总体交易规则仍以 `docs/group-c-core-transaction-contract.md` 和根目录 `README.md` 为准；本文只细化钱包账户、模拟充值、资金流水、金额校验、余额查询和钱包前端页面相关内容。
 
 ## 负责范围
 
@@ -10,8 +10,7 @@
 - 钱包流水：所有余额变化必须写入 `WALLET_TRANSACTION`。
 - 金额校验：充值金额必须满足数据库精度和业务上限。
 - 幂等控制：重复提交同一充值请求不能重复加钱。
-
-本阶段只完成后端能力，不实现 Vue `/account/wallet` 页面。
+- 钱包前端：提供 `/wallet` 钱包充值页、`/wallet/recharge/checkout` 充值复核页、`/wallet/history` 消费历史页和 `/wallet/history/:historyId` 交易详情页。
 
 ## 接口规范
 
@@ -53,9 +52,12 @@ POST /api/wallet/recharge
 ```json
 {
   "amount": 100.00,
-  "idempotencyKey": "client-generated-key"
+  "idempotencyKey": "client-generated-key",
+  "paymentMethod": "WECHAT_PAY"
 }
 ```
+
+`paymentMethod` 是当前前端保留的演示扩展字段，可选值为 `WECHAT_PAY`、`ALIPAY`、`VISA`、`MASTERCARD`；README 原始要求中的 `amount` 和 `idempotencyKey` 仍是充值业务的核心必填字段。
 
 成功响应：
 
@@ -99,6 +101,28 @@ GET /api/wallet/transactions?page=1&pageSize=20
 - `pageSize` 默认 `20`，范围限制为 `1..100`。
 - 排序固定为 `create_time desc, txn_id desc`。
 - 返回项包含 `idempotencyKey`，便于排查重复提交。
+
+### 查询消费历史
+
+```text
+GET /api/wallet/history?page=1&pageSize=20
+GET /api/wallet/history/{historyId}
+```
+
+消费历史用于前端“消费历史记录”页面，展示当前玩家账户资金变化、订单明细和游戏获取来源。它不是单纯的钱包流水，必须覆盖：
+
+- `RECHARGE`：钱包充值。
+- `BUY_GAME`：付费购买订单明细，包含原价、折扣和实付金额。
+- `FREE_CLAIM`：0 元订单或免费入库。
+- `REFUND`：退款记录。
+- `CDKEY_REDEEM`：成功 CDKey 兑换。
+- `LIBRARY_IMPORT` / `GIFT`：游戏库已有但缺少订单或兑换日志时的兜底入库来源。
+
+去重规则：同一玩家同一游戏如果已经存在订单明细或成功 CDKey 兑换记录，不再额外生成游戏库兜底行，避免一款游戏在历史里重复出现。
+
+当前前端会优先按 README 已列的稳定接口聚合展示消费历史：`GET /api/wallet/transactions`、`GET /api/orders`、`GET /api/refunds`、`GET /api/library`。后端增强接口 `/api/wallet/history` 仍保留为统一历史接口，但云端尚未部署该增强接口时，前端不能因此显示空表。
+
+原“购买与订单”页面内容已合并进“消费历史记录”：订单明细在消费历史表格中展示订单号、订单状态、支付状态、原价、折扣和实付金额；`/orders` 入口重定向到 `/wallet/history`。
 
 ## 事务流程
 
@@ -154,7 +178,7 @@ GET /api/wallet/transactions?page=1&pageSize=20
 ## 边界说明
 
 - 马祥珲负责 Group C 核心交易总设计、购买事务和集成；钱包模块必须服从 Group C 总契约。
-- 徐京负责退款、CDKey、游戏库等链路；退款入账仍复用 `WALLET_ACCOUNT` 和 `WALLET_TRANSACTION`。
+- 徐京负责退款、CDKey、游戏库等链路；Steam 钱包原支付退款入账复用 `WALLET_ACCOUNT` 和 `WALLET_TRANSACTION`，外部模拟支付退款不增加钱包余额。
 - Group D 市场交易如涉及钱包冻结、解冻、清算，必须复用本钱包表，不得新增余额字段。
 - 免费游戏 `GAME_CS2` 入库不能扣钱包余额。
 - `GAME_DST` 购买、退款、CDKey 兑换是 Group C 主演示链路，钱包模块为其提供余额和流水基础。

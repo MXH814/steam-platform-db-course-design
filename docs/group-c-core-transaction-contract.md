@@ -63,6 +63,8 @@ GET  /api/wallet/transactions?page=1&pageSize=20
 
 `GET /api/wallet/transactions` 返回分页响应，默认 `page = 1`、`pageSize = 20`，最大 `pageSize = 100`，按 `create_time desc, txn_id desc` 排序。流水项必须包含 `idempotencyKey`，便于排查重复提交。
 
+前端“消费历史记录”页面展示账户消费/获取历史，不等同于钱包流水，必须合并充值、购买订单、退款、0 元免费入库、成功 CDKey 兑换，以及游戏库已有但缺少订单或兑换日志时的兜底入库来源；已有订单或兑换记录的游戏不得再生成兜底重复行。后端增强接口 `GET /api/wallet/history` 和 `GET /api/wallet/history/{historyId}` 可直接提供统一历史；云端未部署增强接口时，前端按 README 已有接口 `GET /api/wallet/transactions`、`GET /api/orders`、`GET /api/refunds`、`GET /api/library` 聚合展示，不得因此显示空表。
+
 ### DST 买断制购买
 
 接口：
@@ -166,6 +168,8 @@ POST /api/admin/refunds/{refundId}/reject
   -> 提交事务
 ```
 
+外部模拟支付订单退款按原 `PAYMENT_TRANSACTION.payment_method` 记录退款状态，不增加 `WALLET_ACCOUNT.available_balance`；只有 `STEAM_WALLET` 原支付订单退款才写 `WALLET_TRANSACTION` 回充钱包。
+
 退款拒绝必须写 `REFUND_AUDIT_LOG`，但不能改钱包余额。
 
 ### DST CDKey 兑换
@@ -260,9 +264,12 @@ IDEMPOTENCY_CONFLICT
 
 Group C 的前端页面和组件需要暴露以下稳定能力：
 
-- `/account/wallet`：余额、冻结余额、充值模拟、流水列表。
-- `/orders`：订单列表。
-- `/orders/:id`：订单详情、订单明细、支付状态、退款入口。
+- `/wallet`：余额、冻结余额、总余额、推荐金额充值入口。
+- `/wallet/recharge/checkout`：充值支付方式选择和充值复核。
+- `/wallet/history`：统一消费历史记录，合并充值、订单、退款和入库来源。
+- `/wallet/history/:historyId`：交易详情、订单状态、支付状态、钱包流水和退款占位入口。
+- `/orders`：兼容旧入口，重定向到 `/wallet/history`。
+- `/orders/:id`：兼容旧订单详情链接。
 - `/library`：玩家游戏库，展示 `GAME_CS2` 和 `GAME_DST` 的拥有状态。
 - `/refunds/new`：对 `GAME_DST` 订单发起退款。
 - `/admin/refunds`：管理员审核退款。
