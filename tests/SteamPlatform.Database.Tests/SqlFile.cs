@@ -6,6 +6,7 @@ internal static class SqlFile
     public static string Data => Read("database", "data.sql");
     public static string VerifyPhase1 => Read("database", "verify_phase1.sql");
     public static string WalletPaymentMethodMigration => Read("database", "migrations", "20260712_wallet_payment_method_history.sql");
+    public static string GroupDAchievementMigration => Read("database", "migrations", "20260713_group_d_achievement_seed.sql");
 
     private static string Read(params string[] path)
     {

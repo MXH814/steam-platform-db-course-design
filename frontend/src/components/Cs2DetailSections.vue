@@ -83,15 +83,18 @@
           <RouterLink class="section-link" :to="communityRoute">进入评价区</RouterLink>
         </GameSummarySection>
 
-        <GameSummarySection title="成就概览" :loading="achievementsState.loading" :error="achievementsState.error" :empty="!achievements">
+        <GameSummarySection title="项目成就概览" :loading="achievementsState.loading" :error="achievementsState.error" :empty="!achievements">
           <dl v-if="achievements" class="stat-grid">
             <div><dt>成就数</dt><dd>{{ achievements.achievementCount }}</dd></div>
-            <div><dt>平均达成率</dt><dd>{{ achievements.averageGlobalRate ?? 0 }}%</dd></div>
+            <div><dt>平均达成率</dt><dd>{{ formatRate(achievements.averageGlobalRate) }}</dd></div>
           </dl>
           <div v-if="achievements?.achievements.length" class="mini-list">
-            <article v-for="item in achievements.achievements.slice(0, 3)" :key="item.achievementId">
-              <strong>{{ item.achievementName }}</strong>
-              <span>{{ item.globalRate ?? 0 }}%</span>
+                        <article v-for="item in achievements.achievements.slice(0, 3)" :key="item.achievementId">
+              <img :src="summaryAchievementIcon(item)" :alt="item.achievementName" />
+              <div>
+                <strong>{{ item.achievementName }}</strong>
+                <span>{{ formatRate(item.globalRate) }}</span>
+              </div>
             </article>
           </div>
           <RouterLink class="section-link" :to="communityRoute">查看全部成就</RouterLink>
@@ -123,7 +126,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { GameAchievementSummary, GameDetail, GameItemSummary, GameReviewSummary } from '../api/types';
+import type { GameAchievementSummary, GameAchievementSummaryItem, GameDetail, GameItemSummary, GameReviewSummary } from '../api/types';
+import { getAchievementIcon } from '../data/achievementCatalog';
 import GameSummarySection from './GameSummarySection.vue';
 import SteamGameDetailTemplate from './SteamGameDetailTemplate.vue';
 import SteamInfoPanel from './SteamInfoPanel.vue';
@@ -157,6 +161,14 @@ const workshopRoute = computed(() => ({ name: 'game-community', params: { gameId
 
 function money(value: number | null) {
   return typeof value === 'number' ? `¥ ${value.toFixed(2)}` : '暂无';
+}
+
+function formatRate(value: number | null) {
+  return typeof value === 'number' ? `${value}%` : '暂无';
+}
+
+function summaryAchievementIcon(item: GameAchievementSummaryItem) {
+  return getAchievementIcon({ achId: item.achievementId });
 }
 </script>
 
@@ -367,11 +379,26 @@ function money(value: number | null) {
 }
 
 .mini-list article {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
   gap: 0.75rem;
+  align-items: center;
   border-bottom: 1px solid rgba(151, 170, 195, 0.12);
   padding-bottom: 0.45rem;
+}
+
+.mini-list img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 2px;
+  background: #05080c;
+}
+
+.mini-list article div {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
 }
 
 .mini-list span {

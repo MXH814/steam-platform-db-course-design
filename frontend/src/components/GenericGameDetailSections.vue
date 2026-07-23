@@ -93,15 +93,18 @@
           <RouterLink class="section-link" :to="communityRoute">进入社区评价</RouterLink>
         </GameSummarySection>
 
-        <GameSummarySection title="成就概览" :loading="achievements.loading" :error="achievements.error" :empty="!achievements.data">
+        <GameSummarySection title="项目成就概览" :loading="achievements.loading" :error="achievements.error" :empty="!achievements.data">
           <dl v-if="achievements.data" class="stat-grid">
             <div><dt>成就数</dt><dd>{{ achievements.data.achievementCount }}</dd></div>
-            <div><dt>平均达成率</dt><dd>{{ achievements.data.averageGlobalRate ?? 0 }}%</dd></div>
+            <div><dt>平均达成率</dt><dd>{{ formatRate(achievements.data.averageGlobalRate) }}</dd></div>
           </dl>
           <div v-if="achievements.data?.achievements.length" class="mini-list">
-            <article v-for="item in achievements.data.achievements.slice(0, 3)" :key="item.achievementId">
-              <strong>{{ item.achievementName }}</strong>
-              <span>{{ item.globalRate ?? 0 }}%</span>
+                        <article v-for="item in achievements.data.achievements.slice(0, 3)" :key="item.achievementId">
+              <img :src="summaryAchievementIcon(item)" :alt="item.achievementName" />
+              <div>
+                <strong>{{ item.achievementName }}</strong>
+                <span>{{ formatRate(item.globalRate) }}</span>
+              </div>
             </article>
           </div>
           <RouterLink class="section-link" :to="communityRoute">查看全部成就</RouterLink>
@@ -133,7 +136,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { GameAchievementSummary, GameContentPackage, GameDetail, GameItemSummary, GameReviewSummary } from '../api/types';
+import type { GameAchievementSummary, GameAchievementSummaryItem, GameContentPackage, GameDetail, GameItemSummary, GameReviewSummary } from '../api/types';
+import { getAchievementIcon } from '../data/achievementCatalog';
 import GamePriceBlock from './GamePriceBlock.vue';
 import GameSummarySection from './GameSummarySection.vue';
 import SteamGameDetailTemplate from './SteamGameDetailTemplate.vue';
@@ -191,6 +195,14 @@ const purchaseCopy = computed(() =>
     ? '买断制购买区域只展示价格、折扣和入口，钱包扣款、订单生成、退款事务由 Group C 承接。'
     : '通用游戏详情展示，等待后端补充业务入口。'
 );
+
+function formatRate(value: number | null) {
+  return typeof value === 'number' ? `${value}%` : '暂无';
+}
+
+function summaryAchievementIcon(item: GameAchievementSummaryItem) {
+  return getAchievementIcon({ achId: item.achievementId });
+}
 </script>
 
 <style scoped>
@@ -380,6 +392,24 @@ const purchaseCopy = computed(() =>
   align-items: center;
   border-bottom: 1px solid rgba(151, 170, 195, 0.12);
   padding-bottom: 0.55rem;
+}
+
+.mini-list article {
+  grid-template-columns: 44px minmax(0, 1fr);
+}
+
+.mini-list img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 2px;
+  background: #05080c;
+}
+
+.mini-list article div {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
 }
 
 .package-list strong,

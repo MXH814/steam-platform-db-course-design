@@ -159,7 +159,7 @@
                 :class="{ locked: !achievement.isUnlocked }"
                 :title="achievement.achName"
               >
-                <Trophy :size="21" />
+                <img :src="achievement.iconUrl" :alt="achievement.achName" />
               </span>
             </div>
           </section>
@@ -203,7 +203,7 @@ import {
   Play,
   Settings,
   ShoppingCart,
-  Trophy,
+
   Users,
   Wrench
 } from '@lucide/vue';
@@ -211,8 +211,8 @@ import { RouterLink, useRoute } from 'vue-router';
 import { addPlaytime, getLibrary, type LibraryEntry } from '../api/coreApi';
 import { listGameAchievements } from '../api/communityApi';
 import { getApiError } from '../api/http';
-import type { AchievementListItem } from '../api/types';
 import LibraryRail from '../components/LibraryRail.vue';
+import { withAchievementIcons, type AchievementDisplayItem } from '../data/achievementCatalog';
 import { getGameMeta } from '../data/gameCatalog';
 import { dateTime, minutesText } from '../utils/format';
 
@@ -224,7 +224,7 @@ const isDst = computed(() => gameId.value === 'GAME_DST');
 const heroStyle = computed(() => ({ '--library-hero': `url("${game.value.heroImage}")` }));
 
 const library = ref<LibraryEntry[]>([]);
-const achievements = ref<AchievementListItem[]>([]);
+const achievements = ref<AchievementDisplayItem[]>([]);
 const loading = ref(false);
 const playing = ref(false);
 const notice = ref('');
@@ -256,7 +256,8 @@ async function loadLibraryDetail() {
   }
 
   try {
-    achievements.value = await listGameAchievements(gameId.value);
+    const achievementRows = await listGameAchievements(gameId.value);
+    achievements.value = withAchievementIcons(achievementRows);
   } catch (error) {
     achievements.value = [];
     notice.value ||= getApiError(error);
@@ -767,6 +768,13 @@ function saveNote() {
   border: 0;
   color: #f0c768;
   background: #344454;
+  overflow: hidden;
+}
+
+.achievement-row img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .achievement-row span.locked {

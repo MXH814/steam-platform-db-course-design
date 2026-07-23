@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="winter survivor">
+  <rect width="128" height="128" rx="12" fill="#0c1720"/>
+  <circle cx="64" cy="64" r="42" fill="#15324a"/>
+  <path stroke="#8fd7ff" stroke-width="8" stroke-linecap="round" d="M64 22v84M28 43l72 42M100 43 28 85"/>
+  <path stroke="#dfe3e6" stroke-width="4" stroke-linecap="round" d="m47 33 17 13 17-13M47 95l17-13 17 13M30 60l21-4 8-20M98 60l-21-4-8-20"/>
+  <circle cx="64" cy="64" r="11" fill="#dfe3e6"/>
+</svg>

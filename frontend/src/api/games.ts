@@ -165,44 +165,7 @@ const demoReviewSummary: Record<string, GameReviewSummary> = {
   }
 };
 
-const demoAchievementSummary: Record<string, GameAchievementSummary> = {
-  GAME_CS2: {
-    achievementCount: 3,
-    averageGlobalRate: 42,
-    achievements: [
-      {
-        achievementId: 'ACH_CS2_FIRST_MATCH',
-        achievementName: '完成第一场比赛',
-        description: '完成一次 CS2 演示对局。',
-        globalRate: 68
-      },
-      {
-        achievementId: 'ACH_CS2_FIRST_DROP',
-        achievementName: '首次掉落',
-        description: '获得一件饰品掉落。',
-        globalRate: 31
-      }
-    ]
-  },
-  GAME_DST: {
-    achievementCount: 4,
-    averageGlobalRate: 36,
-    achievements: [
-      {
-        achievementId: 'ACH_DST_FIRE',
-        achievementName: '第一簇营火',
-        description: '在夜晚到来前点燃营火。',
-        globalRate: 54
-      },
-      {
-        achievementId: 'ACH_DST_WINTER',
-        achievementName: '越冬者',
-        description: '在演示存档中度过冬季。',
-        globalRate: 18
-      }
-    ]
-  }
-};
+const demoAchievementSummary: Record<string, GameAchievementSummary> = {};
 
 function unwrap<T>(response: ApiEnvelope<T>): T {
   if (response.code !== 0) {

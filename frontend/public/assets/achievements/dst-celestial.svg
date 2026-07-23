@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="celestial island">
+  <rect width="128" height="128" rx="12" fill="#08151a"/>
+  <circle cx="64" cy="48" r="30" fill="#9de7d7" opacity=".28"/>
+  <path fill="#9de7d7" d="m64 14 8 24 25 1-20 15 7 24-20-14-20 14 7-24-20-15 25-1 8-24Z"/>
+  <path fill="#275c63" d="M25 96c16-13 28-17 39-17s23 4 39 17v12H25V96Z"/>
+  <path stroke="#dfe3e6" stroke-width="5" stroke-linecap="round" d="M38 101h52"/>
+</svg>

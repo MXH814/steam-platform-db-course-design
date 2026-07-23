@@ -3,7 +3,7 @@
     <nav class="store-blue-nav" aria-label="商店导航">
       <RouterLink to="/">您的商店</RouterLink>
       <RouterLink :to="`/games/${gameId}`">游戏详情</RouterLink>
-      <RouterLink :to="`/games/${gameId}/community`">社区评测</RouterLink>
+      <RouterLink :to="{ name: 'game-community', params: { gameId } }">社区评测</RouterLink>
       <RouterLink :to="`/library/${gameId}`">库内查看</RouterLink>
     </nav>
 
@@ -12,7 +12,7 @@
         <p class="steam-kicker">商店页面</p>
         <h1>{{ game.title }}</h1>
       </div>
-      <RouterLink class="subtle-link" :to="`/games/${gameId}/community`">查看社区中心</RouterLink>
+      <RouterLink class="subtle-link" :to="{ name: 'game-community', params: { gameId } }">查看社区中心</RouterLink>
     </header>
 
     <section class="store-hero">
@@ -71,7 +71,7 @@
         <section class="store-panel review-snapshot">
           <div class="panel-title-row">
             <h2>玩家评测</h2>
-            <RouterLink :to="`/games/${gameId}/community`">查看全部评测</RouterLink>
+            <RouterLink :to="{ name: 'game-community', params: { gameId } }">查看全部评测</RouterLink>
           </div>
           <div v-if="loadingReviews" class="store-state">正在加载评测...</div>
           <div v-else-if="reviews.length === 0" class="store-state">暂无评测。</div>
@@ -88,14 +88,14 @@
       <aside class="store-side-column">
         <section class="store-panel achievement-store-box">
           <div class="panel-title-row">
-            <h2>包括 {{ achievements.length }} 项 Steam 成就</h2>
-            <RouterLink :to="`/games/${gameId}/community`">查看全部</RouterLink>
+            <h2>项目成就（{{ achievements.length }} 项）</h2>
+            <RouterLink :to="{ name: 'game-community', params: { gameId } }">查看全部</RouterLink>
           </div>
           <div class="achievement-tile-row">
-            <div v-for="achievement in achievementPreview" :key="achievement.achId" :class="['achievement-tile', { locked: !achievement.isUnlocked }]">
-              {{ achievement.achName.slice(0, 1) }}
+                        <div v-for="achievement in achievementPreview" :key="achievement.achId" :class="['achievement-tile', { locked: !achievement.isUnlocked }]">
+              <img :src="achievement.iconUrl" :alt="achievement.achName" />
             </div>
-            <RouterLink v-if="achievements.length > achievementPreview.length" class="all-achievements" :to="`/games/${gameId}/community`">
+            <RouterLink v-if="achievements.length > achievementPreview.length" class="all-achievements" :to="{ name: 'game-community', params: { gameId } }">
               查看所有 {{ achievements.length }} 项
             </RouterLink>
           </div>
@@ -119,13 +119,14 @@ import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { listGameAchievements, listGameReviews } from '../api/communityApi';
 import { getApiError } from '../api/http';
-import type { AchievementListItem, ReviewListItem } from '../api/types';
+import type { ReviewListItem } from '../api/types';
+import { withAchievementIcons, type AchievementDisplayItem } from '../data/achievementCatalog';
 import { getGameMeta } from '../data/gameCatalog';
 
 const route = useRoute();
 const gameId = computed(() => String(route.params.gameId || 'GAME_DST'));
 const game = computed(() => getGameMeta(gameId.value));
-const achievements = ref<AchievementListItem[]>([]);
+const achievements = ref<AchievementDisplayItem[]>([]);
 const reviews = ref<ReviewListItem[]>([]);
 const loadingReviews = ref(false);
 const notice = ref('');
@@ -153,7 +154,7 @@ async function loadStore() {
       listGameAchievements(gameId.value),
       listGameReviews(gameId.value, 12)
     ]);
-    achievements.value = achievementRows;
+    achievements.value = withAchievementIcons(achievementRows);
     reviews.value = reviewRows;
   } catch (error) {
     notice.value = getApiError(error);

@@ -9,9 +9,9 @@
         <h1>{{ game.title }}</h1>
         <p>{{ game.subtitle }}</p>
         <nav class="steam-tabs" aria-label="游戏页面导航">
-          <RouterLink :to="`/games/${gameId}`">商店页面</RouterLink>
-          <RouterLink :to="`/library/${gameId}`">库内详情</RouterLink>
-          <RouterLink :to="`/games/${gameId}/community`">评测与成就</RouterLink>
+          <RouterLink :to="{ name: 'game-detail', params: { gameId } }">商店页面</RouterLink>
+          <RouterLink :to="{ name: 'game-library', params: { gameId } }">库内详情</RouterLink>
+          <RouterLink :to="{ name: 'game-community', params: { gameId } }">评测与成就</RouterLink>
         </nav>
       </div>
       <aside class="header-achievement-summary">
@@ -158,7 +158,7 @@
         <section class="steam-panel achievement-sidebar">
           <div class="sidebar-head">
             <div>
-              <p class="steam-kicker">Steam 成就</p>
+              <p class="steam-kicker">项目成就</p>
               <h2>{{ unlockedAchievements.length }}/{{ achievements.length }} 已解锁</h2>
             </div>
             <button class="steam-button secondary" type="button" @click="loadAchievements">刷新</button>
@@ -168,7 +168,7 @@
           <div v-else-if="achievements.length === 0" class="steam-state inline">暂无成就数据。</div>
           <div v-else class="achievement-list">
             <article v-for="achievement in achievements" :key="achievement.achId" class="achievement-row">
-              <div :class="['achievement-icon', { locked: !achievement.isUnlocked }]">{{ achievement.achName.slice(0, 1) }}</div>
+              <img :class="['achievement-icon', { locked: !achievement.isUnlocked }]" :src="achievement.iconUrl" :alt="achievement.achName" />
               <div>
                 <strong>{{ achievement.achName }}</strong>
                 <span>{{ achievement.description || '暂无描述' }}</span>
@@ -218,7 +218,8 @@ import {
   updateGameReview
 } from '../api/communityApi';
 import { getApiError } from '../api/http';
-import type { AchievementListItem, ReviewListItem, ReviewVersionItem } from '../api/types';
+import type { ReviewListItem, ReviewVersionItem } from '../api/types';
+import { withAchievementIcons, type AchievementDisplayItem } from '../data/achievementCatalog';
 import { getGameMeta } from '../data/gameCatalog';
 import { useAuthStore } from '../stores/auth';
 
@@ -228,7 +229,7 @@ const gameId = computed(() => String(route.params.gameId || 'GAME_DST'));
 const game = computed(() => getGameMeta(gameId.value));
 
 const reviews = ref<ReviewListItem[]>([]);
-const achievements = ref<AchievementListItem[]>([]);
+const achievements = ref<AchievementDisplayItem[]>([]);
 const versions = ref<ReviewVersionItem[]>([]);
 const loadingReviews = ref(false);
 const loadingAchievements = ref(false);
@@ -305,8 +306,10 @@ async function loadReviews() {
 async function loadAchievements() {
   loadingAchievements.value = true;
   try {
-    achievements.value = await listGameAchievements(gameId.value);
+    const achievementRows = await listGameAchievements(gameId.value);
+    achievements.value = withAchievementIcons(achievementRows);
   } catch (requestError) {
+    achievements.value = [];
     error.value = friendlyError(requestError);
   } finally {
     loadingAchievements.value = false;
@@ -902,6 +905,7 @@ button:disabled {
 .achievement-icon {
   width: 54px;
   height: 54px;
+  object-fit: cover;
   font-size: 1.4rem;
   font-weight: 900;
 }
