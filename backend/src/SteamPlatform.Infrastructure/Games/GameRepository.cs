@@ -152,7 +152,7 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
         var aggregate = await connection.QuerySingleAsync<AchievementSummaryAggregate>(new CommandDefinition(
             """
             select count(*) as AchievementCount,
-                   avg(global_rate) as AverageGlobalRate
+                   cast(round(avg(global_rate), 2) as number(7, 2)) as AverageGlobalRate
               from achievement
              where game_id = :GameId
             """,
