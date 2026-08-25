@@ -7,7 +7,12 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "smoke:realtime": "node scripts/realtime-smoke.mjs"
+    "smoke:realtime": "node scripts/realtime-smoke.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:cloud": "node scripts/run-cloud-e2e.mjs",
+    "test:e2e:defense:cloud": "node scripts/run-cloud-e2e.mjs --defense-only",
+    "record:defense:cloud": "node scripts/run-cloud-e2e.mjs --record",
+    "test:e2e:report": "playwright show-report ../output/playwright/html-report"
   },
   "dependencies": {
     "@lucide/vue": "^1.23.0",
@@ -18,6 +23,7 @@
     "vue-router": "^4.4.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@vitejs/plugin-vue": "^5.2.1",
     "typescript": "~5.6.3",
     "vite": "^6.4.3",

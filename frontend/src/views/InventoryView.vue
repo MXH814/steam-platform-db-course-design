@@ -167,10 +167,10 @@ async function simulateDrop() {
   try {
     const item = await dropInventoryItem(activeGameId.value);
     droppedItem.value = item;
-    successMessage.value = `已获得 ${item.itemName}`;
     await refreshInventory();
     activeGameId.value = item.gameId as InventoryGameId;
     selectedItemId.value = item.itemId;
+    successMessage.value = `已获得 ${item.itemName}`;
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '模拟掉落失败';
   } finally {
@@ -265,10 +265,10 @@ async function sellSelectedItem() {
       itemId: item.itemId,
       targetPrice
     });
-    successMessage.value = `已为 ${item.itemName} 创建出售挂单。`;
     showSellDialog.value = false;
     await refreshInventory();
     selectedItemId.value = item.itemId;
+    successMessage.value = `已为 ${item.itemName} 创建出售挂单。`;
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '出售挂单创建失败';
   } finally {

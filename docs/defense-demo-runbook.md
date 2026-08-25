@@ -214,3 +214,5 @@ unset STEAM_ORACLE_ADMIN_CONNECTION STEAM_APP_DB_PASSWORD
 - 最终清理恢复运行编号：`20260825170313202A`。
 - 云端功能版本：`a1784bf`；API、Oracle 健康检查均为 `OK`。
 - 本地验收：后端 188 项、演示恢复工具 4 项、数据库 36 项测试通过，Vue 生产构建通过。
+- Playwright 云端完整回归 11/11 通过，结束后恢复运行编号为 `202608251745528ED6`；执行规范见 `docs/playwright-regression-runbook.md`。
+- 备用录屏为 1920 x 1080、25 fps、22.12 秒 WebM；录屏链 1/1 通过，结束后恢复运行编号为 `202608251746364404`。
