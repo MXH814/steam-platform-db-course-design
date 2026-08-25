@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "smoke:realtime": "node scripts/realtime-smoke.mjs"
   },
   "dependencies": {
     "@lucide/vue": "^1.23.0",
