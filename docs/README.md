@@ -8,3 +8,4 @@
 
 - `group-c-core-transaction-contract.md`：Group C 核心交易总契约。
 - `c2-wallet-module-readme.md`：C2/胡知鱼钱包模块说明。
+- `defense-demo-runbook.md`：固定答辩演示顺序、讲解词、预期数据和故障备用步骤。
