@@ -266,6 +266,9 @@ VALUES ('ITEM_OFFER_P001', 'ITPL_CS2_P90_ELITE_BUILD', 'P001', 0.1840, 'LOCKED',
 INSERT INTO INVENTORY_ITEM (item_id, template_id, user_id, wear_rating, status, acquire_time, version)
 VALUES ('ITEM_OFFER_P002', 'ITPL_CS2_P250_CYBER_SHELL', 'P002', 0.0910, 'LOCKED', TIMESTAMP '2026-07-05 12:53:00', 1);
 
+INSERT INTO INVENTORY_ITEM (item_id, template_id, user_id, wear_rating, status, acquire_time, version)
+VALUES ('ITEM_TRADEABLE_P002', 'ITPL_CS2_P250_SEE_YA_LATER', 'P002', 0.2410, 'NORMAL', TIMESTAMP '2026-07-05 12:54:00', 0);
+
 INSERT INTO MARKET_ORDER (market_order_id, user_id, template_id, item_id, order_type, target_price, frozen_amount, status, create_time)
 VALUES ('MO_CS2_BUY_1', 'P001', 'ITPL_CS2_AK_REDLINE', NULL, 'BUY', 45.00, 0.00, 'TRADED', TIMESTAMP '2026-07-05 14:00:00');
 
@@ -295,6 +298,9 @@ VALUES ('ITL_OFFER_DROP_001', 'ITEM_OFFER_P001', NULL, 'P001', 'DROP', TIMESTAMP
 
 INSERT INTO ITEM_TRANSFER_LEDGER (transfer_id, item_id, from_user_id, to_user_id, transfer_type, transfer_time)
 VALUES ('ITL_OFFER_DROP_002', 'ITEM_OFFER_P002', NULL, 'P002', 'DROP', TIMESTAMP '2026-07-05 12:53:00');
+
+INSERT INTO ITEM_TRANSFER_LEDGER (transfer_id, item_id, from_user_id, to_user_id, transfer_type, transfer_time)
+VALUES ('ITL_TRADEABLE_DROP_002', 'ITEM_TRADEABLE_P002', NULL, 'P002', 'DROP', TIMESTAMP '2026-07-05 12:54:00');
 
 INSERT INTO WALLET_TRANSACTION (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, payment_method, create_time)
 VALUES ('WT_DST_BUY_001', 'W001', 'BUY_GAME', 'O_DST_001', 'DEBIT', 24.00, 200.00, 176.00, 'idem-wallet-dst-buy-001', 'STEAM_WALLET', TIMESTAMP '2026-07-05 10:01:00');
