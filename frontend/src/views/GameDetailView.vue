@@ -81,6 +81,7 @@ import Cs2DetailSections from '../components/Cs2DetailSections.vue';
 import GameFilterBar from '../components/GameFilterBar.vue';
 import GenericGameDetailSections from '../components/GenericGameDetailSections.vue';
 import PageState from '../components/PageState.vue';
+import { useAuthStore } from '../stores/auth';
 
 type ModuleState<T> = {
   loading: boolean;
@@ -90,6 +91,7 @@ type ModuleState<T> = {
 
 const route = useRoute();
 const router = useRouter();
+const auth = useAuthStore();
 const storeQuery = ref<GameQuery>({ search: '', priceFilter: 'all', sort: 'default' });
 
 const game = ref<GameDetail | null>(null);
@@ -131,6 +133,13 @@ async function loadModule<T>(state: ModuleState<T>, loader: () => Promise<T>) {
 }
 
 async function loadOwnership(gameId: string) {
+  if (!auth.isAuthenticated) {
+    ownership.loading = false;
+    ownership.error = '';
+    ownership.owned = false;
+    return;
+  }
+
   ownership.loading = true;
   ownership.error = '';
   try {
@@ -179,6 +188,11 @@ onMounted(loadDetail);
 
 async function handlePrimaryAction() {
   if (!game.value || ownership.owned || actionLoading.value) return;
+
+  if (!auth.isAuthenticated) {
+    await router.push({ name: 'login', query: { redirect: route.fullPath } });
+    return;
+  }
 
   actionLoading.value = true;
   actionError.value = '';
