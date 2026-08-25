@@ -6,10 +6,7 @@
     summary="Counter-Strike 2 延续经典的团队竞技玩法，并带来全新的视觉效果、动态烟雾和社区饰品经济。"
   >
     <template #media>
-      <div class="media-preview"><img :src="meta.heroImage" alt="Counter-Strike 2 游戏画面" /></div>
-      <div class="thumb-strip" aria-label="媒体缩略图">
-        <img v-for="item in 5" :key="item" :class="{ active: item === 1 }" :src="item % 2 ? meta.headerImage : meta.heroImage" alt="" />
-      </div>
+      <SteamMediaGallery title="Counter-Strike 2" :poster="meta.headerImage" :items="mediaItems" />
     </template>
 
     <template #summary-art>
@@ -112,10 +109,11 @@
 import { computed } from 'vue';
 import type { GameAchievementSummary, GameAchievementSummaryItem, GameDetail, GameItemSummary, GameReviewSummary } from '../api/types';
 import { getAchievementIcon } from '../data/achievementCatalog';
-import { getGameMeta } from '../data/gameCatalog';
+import { getGameMedia, getGameMeta } from '../data/gameCatalog';
 import GameSummarySection from './GameSummarySection.vue';
 import SteamGameDetailTemplate from './SteamGameDetailTemplate.vue';
 import SteamInfoPanel from './SteamInfoPanel.vue';
+import SteamMediaGallery from './SteamMediaGallery.vue';
 
 type ModuleState<T> = {
   loading: boolean;
@@ -143,6 +141,7 @@ const emit = defineEmits<{
 
 const communityRoute = computed(() => ({ name: 'game-community', params: { gameId: props.game.gameId } }));
 const meta = computed(() => getGameMeta(props.game.gameId));
+const mediaItems = computed(() => getGameMedia(props.game.gameId));
 const workshopRoute = computed(() => ({ name: 'game-community', params: { gameId: props.game.gameId }, query: { section: 'workshop' } }));
 
 function money(value: number | null) {
@@ -159,46 +158,11 @@ function summaryAchievementIcon(item: GameAchievementSummaryItem) {
 </script>
 
 <style scoped>
-.media-preview {
-  height: 420px;
-  overflow: hidden;
-  background: #080d13;
-}
-
-.media-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 .cs2-capsule {
   display: block;
   width: 100%;
   aspect-ratio: 460 / 215;
   object-fit: cover;
-}
-
-.thumb-strip img {
-  width: 100%;
-  height: 58px;
-  object-fit: cover;
-  opacity: 0.62;
-}
-
-.thumb-strip img.active {
-  outline: 2px solid #ffffff;
-  opacity: 1;
-}
-
-.thumb-strip {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.35rem;
-  padding-top: 0.45rem;
-}
-
-.thumb-strip .active {
-  border-color: var(--steam-blue);
 }
 
 .summary-tags,
@@ -369,12 +333,6 @@ function summaryAchievementIcon(item: GameAchievementSummaryItem) {
 }
 
 @media (max-width: 620px) {
-  .cs2-banner,
-  .media-preview {
-    min-height: 260px;
-  }
-
-  .thumb-strip,
   .stat-grid {
     grid-template-columns: 1fr;
   }

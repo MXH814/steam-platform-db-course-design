@@ -21,6 +21,31 @@ export interface GameCatalogItem {
   }>;
 }
 
+export interface GameMediaItem {
+  type: 'video' | 'image';
+  src: string;
+  label: string;
+}
+
+const gameMediaCatalog: Record<string, GameMediaItem[]> = {
+  GAME_CS2: [
+    { type: 'video', src: '/assets/media/cs2-launch-trailer-720p.mp4', label: 'CS2 发布预告片' },
+    ...Array.from({ length: 5 }, (_, index) => ({
+      type: 'image' as const,
+      src: `/assets/media/cs2-screenshot-${index + 1}.jpg`,
+      label: `CS2 游戏截图 ${index + 1}`
+    }))
+  ],
+  GAME_DST: [
+    { type: 'video', src: '/assets/media/dst-gameplay-trailer-720p.mp4', label: '饥荒联机版游戏预告片' },
+    ...Array.from({ length: 5 }, (_, index) => ({
+      type: 'image' as const,
+      src: `/assets/media/dst-screenshot-${index + 1}.jpg`,
+      label: `饥荒联机版游戏截图 ${index + 1}`
+    }))
+  ]
+};
+
 const fallbackGame: GameCatalogItem = {
   gameId: 'GAME_DST',
   title: "Don't Starve Together / 饥荒联机版",
@@ -82,4 +107,8 @@ export const gameCatalog: Record<string, GameCatalogItem> = {
 
 export function getGameMeta(gameId: string): GameCatalogItem {
   return gameCatalog[gameId] ?? { ...fallbackGame, gameId, shortName: gameId, title: gameId };
+}
+
+export function getGameMedia(gameId: string): GameMediaItem[] {
+  return gameMediaCatalog[gameId] ?? [];
 }

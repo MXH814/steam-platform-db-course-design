@@ -6,7 +6,13 @@
     :summary="detailSummary"
   >
     <template #media>
-      <div class="game-media"><img :src="meta.heroImage" :alt="`${game.gameName} 游戏画面`" /></div>
+      <SteamMediaGallery
+        v-if="mediaItems.length"
+        :title="game.gameName"
+        :poster="meta.headerImage"
+        :items="mediaItems"
+      />
+      <div v-else class="game-media"><img :src="meta.heroImage" :alt="`${game.gameName} 游戏画面`" /></div>
     </template>
 
     <template #summary-art>
@@ -122,11 +128,12 @@
 import { computed } from 'vue';
 import type { GameAchievementSummary, GameAchievementSummaryItem, GameContentPackage, GameDetail, GameItemSummary, GameReviewSummary } from '../api/types';
 import { getAchievementIcon } from '../data/achievementCatalog';
-import { getGameMeta } from '../data/gameCatalog';
+import { getGameMedia, getGameMeta } from '../data/gameCatalog';
 import GamePriceBlock from './GamePriceBlock.vue';
 import GameSummarySection from './GameSummarySection.vue';
 import SteamGameDetailTemplate from './SteamGameDetailTemplate.vue';
 import SteamInfoPanel from './SteamInfoPanel.vue';
+import SteamMediaGallery from './SteamMediaGallery.vue';
 
 type ModuleState<T> = {
   loading: boolean;
@@ -153,6 +160,7 @@ const emit = defineEmits<{
 
 const isDst = computed(() => props.game.shortName === 'DST');
 const meta = computed(() => getGameMeta(props.game.gameId));
+const mediaItems = computed(() => getGameMedia(props.game.gameId));
 const communityRoute = computed(() => ({ name: 'game-community', params: { gameId: props.game.gameId } }));
 const workshopRoute = computed(() => ({ name: 'game-community', params: { gameId: props.game.gameId }, query: { section: 'workshop' } }));
 
