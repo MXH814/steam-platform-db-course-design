@@ -656,6 +656,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
               from player_library pl
               join game g on g.game_id = pl.game_id
              where pl.user_id = :UserId
+               and pl.status = 'NORMAL'
              order by pl.last_play_time desc nulls last, g.game_name
             """,
             new { UserId = userId },
@@ -705,6 +706,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
               join game g on g.game_id = pl.game_id
              where pl.user_id = :UserId
                and pl.game_id = :GameId
+               and pl.status = 'NORMAL'
             """,
             new { UserId = userId, GameId = normalizedGameId },
             cancellationToken: cancellationToken));

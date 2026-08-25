@@ -64,6 +64,18 @@ public sealed class CoreTransactionServiceGuardTests
         Assert.StartsWith("MinutesToAdd must be greater than 0.", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Library_reads_only_normal_entries()
+    {
+        var source = File.ReadAllText(FindCoreTransactionServiceSource());
+        var listLibraryStart = source.IndexOf("public async Task<IReadOnlyList<LibraryEntry>> ListLibraryAsync", StringComparison.Ordinal);
+        var addPlaytimeStart = source.IndexOf("public async Task<LibraryEntry> AddPlaytimeAsync", listLibraryStart, StringComparison.Ordinal);
+
+        Assert.True(listLibraryStart >= 0 && addPlaytimeStart > listLibraryStart, "Library service methods could not be located.");
+        var listLibrarySource = source[listLibraryStart..addPlaytimeStart];
+        Assert.Contains("pl.status = 'NORMAL'", listLibrarySource, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Theory]
     [InlineData("", "reason", "OrderId is required.")]
     [InlineData("O_DST_001", "", "Reason is required.")]
@@ -308,6 +320,28 @@ public sealed class CoreTransactionServiceGuardTests
     private sealed class SingleConnectionFactory(DbConnection connection) : IDbConnectionFactory
     {
         public DbConnection CreateConnection() => connection;
+    }
+
+    private static string FindCoreTransactionServiceSource()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(
+                directory.FullName,
+                "src",
+                "SteamPlatform.Infrastructure",
+                "CoreTransactions",
+                "CoreTransactionService.cs");
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException("CoreTransactionService.cs was not found from the test output directory.");
     }
 
     private sealed class ScriptedReaderConnection(params IReadOnlyDictionary<string, object?>[] rows) : DbConnection
