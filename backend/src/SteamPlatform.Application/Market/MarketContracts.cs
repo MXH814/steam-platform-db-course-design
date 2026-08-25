@@ -18,7 +18,7 @@ public interface IMarketRepository
 
     Task CancelOrderAsync(string userId, string marketOrderId, CancellationToken cancellationToken);
 
-    Task<MarketTradeDto> MatchAsync(MatchMarketRequest request, CancellationToken cancellationToken);
+    Task<MarketTradeDto> MatchAsync(string requestedByUserId, MatchMarketRequest request, CancellationToken cancellationToken);
 }
 
 public sealed record CreateMarketOrderRequest(
@@ -27,7 +27,7 @@ public sealed record CreateMarketOrderRequest(
     string? ItemId,
     decimal TargetPrice);
 
-public sealed record MatchMarketRequest(string? TemplateId);
+public sealed record MatchMarketRequest(string? TemplateId, string? BuyOrderId = null);
 
 public sealed class MarketListingDto
 {

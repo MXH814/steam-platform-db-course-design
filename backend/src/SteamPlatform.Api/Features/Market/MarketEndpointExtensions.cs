@@ -81,13 +81,15 @@ public static class MarketEndpointExtensions
             IMarketRepository repository,
             CancellationToken cancellationToken) =>
         {
-            if (EndpointGuards.DenyUnless(httpContext, out _, "PLAYER") is { } denied)
+            if (EndpointGuards.DenyUnless(httpContext, out var claims, "PLAYER") is { } denied)
             {
                 return denied;
             }
 
-            var normalized = new MatchMarketRequest(NormalizeOptional(request.TemplateId));
-            var trade = await repository.MatchAsync(normalized, cancellationToken);
+            var normalized = new MatchMarketRequest(
+                NormalizeOptional(request.TemplateId),
+                NormalizeOptional(request.BuyOrderId));
+            var trade = await repository.MatchAsync(claims!.PrincipalId, normalized, cancellationToken);
             return Results.Ok(ApiResponse<MarketTradeDto>.Success(trade));
         });
 

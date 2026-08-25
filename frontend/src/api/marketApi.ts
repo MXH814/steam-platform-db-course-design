@@ -92,8 +92,11 @@ export function cancelOrder(marketOrderId: string) {
   return unwrap<object>(http.post(`/api/market/orders/${marketOrderId}/cancel`, {}));
 }
 
-export function matchMarket(templateId?: string) {
-  return unwrap<MarketTrade>(http.post('/api/market/match', { templateId: templateId || null }));
+export function matchMarket(templateId?: string, buyOrderId?: string) {
+  return unwrap<MarketTrade>(http.post('/api/market/match', {
+    templateId: templateId || null,
+    buyOrderId: buyOrderId || null
+  }));
 }
 
 export function getTrades() {

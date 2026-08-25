@@ -410,7 +410,7 @@ public sealed class MarketRepository : IMarketRepository
         }
     }
 
-    public async Task<MarketTradeDto> MatchAsync(MatchMarketRequest request, CancellationToken cancellationToken)
+    public async Task<MarketTradeDto> MatchAsync(string requestedByUserId, MatchMarketRequest request, CancellationToken cancellationToken)
     {
         await using var connection = _connectionFactory.CreateConnection();
         await connection.OpenAsync(cancellationToken);
@@ -439,11 +439,14 @@ public sealed class MarketRepository : IMarketRepository
                    AND s.target_price <= b.target_price
                   WHERE b.order_type = 'BUY'
                     AND b.status = 'MATCHING'
+                    AND b.user_id <> s.user_id
                     AND (:TemplateId IS NULL OR b.template_id = :TemplateId)
+                    AND (:BuyOrderId IS NULL OR b.market_order_id = :BuyOrderId)
+                    AND (:BuyOrderId IS NULL OR b.user_id = :RequestedByUserId)
                   ORDER BY s.target_price ASC, b.target_price DESC, s.create_time ASC, b.create_time ASC
                 )
                 WHERE ROWNUM = 1
-                """, new { request.TemplateId }, transaction, cancellationToken: cancellationToken));
+                """, new { request.TemplateId, request.BuyOrderId, RequestedByUserId = requestedByUserId }, transaction, cancellationToken: cancellationToken));
 
             if (match is null)
             {

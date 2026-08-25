@@ -304,7 +304,7 @@ async function buySelectedNow() {
       targetPrice: selectedListing.value!.lowestSellPrice!
     });
     try {
-      const trade = await matchMarket(selectedListing.value!.templateId);
+      const trade = await matchMarket(selectedListing.value!.templateId, order.marketOrderId);
       successMessage.value = `已购买 ${trade.itemName}，成交价 ${money(trade.tradePrice)}。`;
     } catch (error) {
       try {
@@ -315,6 +315,15 @@ async function buySelectedNow() {
       throw error;
     }
     showOrderComposer.value = false;
+    await refreshAll();
+  });
+}
+
+async function executeNextMatch() {
+  await runAction(async () => {
+    const trade = await matchMarket();
+    successMessage.value = `撮合完成：${trade.itemName}，${trade.sellerId} → ${trade.buyerId}，成交价 ${money(trade.tradePrice)}。`;
+    transferItemId.value = trade.itemId;
     await refreshAll();
   });
 }
@@ -564,6 +573,10 @@ watch(
           <span>社区市场</span>
           <h2>我的成交记录</h2>
         </div>
+        <button type="button" :disabled="actionLoading || !isPlayer" @click="executeNextMatch">
+          <ArrowRightLeft :size="17" />
+          执行下一笔撮合
+        </button>
       </header>
       <div v-if="!isPlayer" class="market-empty compact">
         <ShieldAlert :size="30" />
