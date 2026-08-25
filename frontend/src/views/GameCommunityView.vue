@@ -11,7 +11,9 @@
         <nav class="steam-tabs" aria-label="游戏页面导航">
           <RouterLink :to="{ name: 'game-detail', params: { gameId } }">商店页面</RouterLink>
           <RouterLink :to="{ name: 'game-library', params: { gameId } }">库内详情</RouterLink>
-          <RouterLink :to="{ name: 'game-community', params: { gameId } }">评测与成就</RouterLink>
+          <RouterLink :class="{ selected: activeSection === 'reviews' }" :to="{ name: 'game-community', params: { gameId } }">评测</RouterLink>
+          <RouterLink :class="{ selected: activeSection === 'achievements' }" :to="{ name: 'game-community', params: { gameId }, query: { tab: 'achievements' } }">成就</RouterLink>
+          <RouterLink :class="{ selected: activeSection === 'workshop' }" :to="{ name: 'game-community', params: { gameId }, query: { section: 'workshop' } }">创意工坊</RouterLink>
         </nav>
       </div>
       <aside class="header-achievement-summary">
@@ -24,8 +26,45 @@
     <div v-if="message" class="steam-alert success">{{ message }}</div>
     <div v-if="error" class="steam-alert error">{{ error }}</div>
 
-    <section class="community-layout">
-      <main class="review-main">
+    <section v-if="activeSection === 'workshop'" class="workshop-view">
+      <header class="workshop-toolbar steam-panel">
+        <div>
+          <p class="steam-kicker">社区创意工坊</p>
+          <h2>浏览 {{ game.shortName }} 社区作品</h2>
+          <p>课程演示条目，可搜索、排序、查看详情并订阅到当前浏览器。</p>
+        </div>
+        <div class="workshop-controls">
+          <input v-model.trim="workshopSearch" type="search" placeholder="搜索工坊作品" aria-label="搜索工坊作品" />
+          <select v-model="workshopSort" aria-label="工坊排序">
+            <option value="popular">最受欢迎</option>
+            <option value="recent">最近更新</option>
+            <option value="subscribed">我的订阅</option>
+          </select>
+        </div>
+      </header>
+
+      <div v-if="filteredWorkshopItems.length === 0" class="steam-panel steam-state">当前条件下没有工坊作品。</div>
+      <div v-else class="workshop-grid">
+        <article v-for="item in filteredWorkshopItems" :key="item.id" class="workshop-card">
+          <img :src="item.image" :alt="item.title" />
+          <div>
+            <small>{{ item.category }} · 更新于 {{ item.updated }}</small>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.summary }}</p>
+            <span>{{ item.subscribers.toLocaleString() }} 次订阅</span>
+          </div>
+          <footer>
+            <button type="button" @click="selectedWorkshop = item">查看详情</button>
+            <button type="button" :class="{ subscribed: isWorkshopSubscribed(item.id) }" @click="toggleWorkshopSubscription(item.id)">
+              {{ isWorkshopSubscribed(item.id) ? '取消订阅' : '订阅' }}
+            </button>
+          </footer>
+        </article>
+      </div>
+    </section>
+
+    <section v-else class="community-layout" :class="{ 'achievement-focus': activeSection === 'achievements' }">
+      <main v-if="activeSection !== 'achievements'" class="review-main">
         <section class="review-composer steam-panel">
           <div class="composer-head">
             <div>
@@ -211,6 +250,23 @@
         <footer><span>发布于 {{ formatTime(expandedReview.versionCreateTime) }}</span><button type="button" :class="{ active: interactionFor(expandedReview.reviewId).starred }" @click="toggleInteraction(expandedReview.reviewId, 'starred')">{{ interactionFor(expandedReview.reviewId).starred ? '已收藏' : '收藏评测' }}</button></footer>
       </article>
     </div>
+
+    <div v-if="selectedWorkshop" class="review-dialog-backdrop" @click.self="selectedWorkshop = null">
+      <article class="review-dialog workshop-dialog" role="dialog" aria-modal="true" aria-labelledby="workshop-dialog-title">
+        <header>
+          <div><span>{{ selectedWorkshop.category }}</span><h2 id="workshop-dialog-title">{{ selectedWorkshop.title }}</h2></div>
+          <button type="button" aria-label="关闭工坊详情" @click="selectedWorkshop = null">×</button>
+        </header>
+        <img :src="selectedWorkshop.image" :alt="selectedWorkshop.title" />
+        <p>{{ selectedWorkshop.details }}</p>
+        <footer>
+          <span>{{ selectedWorkshop.subscribers.toLocaleString() }} 次订阅 · {{ selectedWorkshop.updated }} 更新</span>
+          <button type="button" :class="{ active: isWorkshopSubscribed(selectedWorkshop.id) }" @click="toggleWorkshopSubscription(selectedWorkshop.id)">
+            {{ isWorkshopSubscribed(selectedWorkshop.id) ? '已订阅，点击取消' : '订阅此作品' }}
+          </button>
+        </footer>
+      </article>
+    </div>
   </section>
 </template>
 
@@ -251,6 +307,58 @@ const error = ref('');
 const reviewFilter = ref<'all' | 'recommended' | 'notRecommended'>('all');
 const reviewSort = ref<'helpful' | 'recent'>('helpful');
 const expandedReview = ref<ReviewListItem | null>(null);
+const workshopSearch = ref('');
+const workshopSort = ref<'popular' | 'recent' | 'subscribed'>('popular');
+
+interface WorkshopItem {
+  id: string;
+  title: string;
+  category: string;
+  summary: string;
+  details: string;
+  image: string;
+  subscribers: number;
+  updated: string;
+}
+
+const selectedWorkshop = ref<WorkshopItem | null>(null);
+const workshopSubscriptionsKey = 'game-deck-workshop-subscriptions';
+const workshopSubscriptions = ref<string[]>(loadWorkshopSubscriptions());
+const activeSection = computed<'reviews' | 'achievements' | 'workshop'>(() => {
+  if (route.query.section === 'workshop') return 'workshop';
+  if (route.query.tab === 'achievements') return 'achievements';
+  return 'reviews';
+});
+const workshopItems = computed<WorkshopItem[]>(() => {
+  const isCs2 = gameId.value === 'GAME_CS2';
+  const titles = isCs2
+    ? ['Aim Training Arena', 'Mirage Night Practice', 'Retake Utility Lab', 'Warehouse Wingman']
+    : ['四季生存扩展', '海岛营地合集', '自动整理箱', '远古遗迹挑战'];
+  const categories = isCs2 ? ['训练地图', '竞技地图', '战术工具', '搭档地图'] : ['世界模组', '建筑合集', '实用工具', '冒险模组'];
+  const images = [game.value.heroImage, game.value.headerImage, game.value.coverImage, game.value.heroImage];
+
+  return titles.map((title, index) => ({
+    id: `${gameId.value}-WORKSHOP-${index + 1}`,
+    title,
+    category: categories[index],
+    summary: isCs2 ? '为课程演示准备的社区地图与战术训练内容。' : '为联机生存演示准备的玩法、建筑与便利性扩展。',
+    details: `这是 ${game.value.title} 的课程项目工坊演示条目，完整展示作品浏览、搜索、排序、详情与订阅状态，不声称与官方工坊数据实时同步。`,
+    image: images[index],
+    subscribers: [24812, 14650, 9320, 5784][index],
+    updated: ['今天', '本周', '7月8日', '7月5日'][index]
+  }));
+});
+const filteredWorkshopItems = computed(() => {
+  const keyword = workshopSearch.value.toLocaleLowerCase();
+  const rows = workshopItems.value.filter((item) => {
+    const matchesSearch = !keyword || `${item.title} ${item.category} ${item.summary}`.toLocaleLowerCase().includes(keyword);
+    const matchesSubscription = workshopSort.value !== 'subscribed' || isWorkshopSubscribed(item.id);
+    return matchesSearch && matchesSubscription;
+  });
+
+  if (workshopSort.value === 'recent') return rows;
+  return [...rows].sort((left, right) => right.subscribers - left.subscribers);
+});
 
 interface ReviewInteraction {
   starred: boolean;
@@ -436,6 +544,26 @@ function persistInteractions() {
   localStorage.setItem(interactionStorageKey, JSON.stringify(interactions.value));
 }
 
+function loadWorkshopSubscriptions(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(workshopSubscriptionsKey) || '[]') as string[];
+  } catch {
+    return [];
+  }
+}
+
+function isWorkshopSubscribed(itemId: string) {
+  return workshopSubscriptions.value.includes(itemId);
+}
+
+function toggleWorkshopSubscription(itemId: string) {
+  workshopSubscriptions.value = isWorkshopSubscribed(itemId)
+    ? workshopSubscriptions.value.filter((id) => id !== itemId)
+    : [...workshopSubscriptions.value, itemId];
+  localStorage.setItem(workshopSubscriptionsKey, JSON.stringify(workshopSubscriptions.value));
+  message.value = isWorkshopSubscribed(itemId) ? '工坊作品已订阅。' : '已取消订阅。';
+}
+
 function friendlyError(requestError: unknown) {
   const apiError = getApiError(requestError);
   if (apiError.includes('GAME_NOT_OWNED')) {
@@ -574,7 +702,7 @@ function formatRate(value: number | null) {
   background: rgba(43, 78, 104, 0.88);
 }
 
-.steam-tabs a.router-link-active,
+.steam-tabs a.selected,
 .steam-tabs a:hover {
   color: #ffffff;
   background: linear-gradient(90deg, #2a6fa0, #66c0f4);
@@ -1102,10 +1230,129 @@ button:disabled {
   box-shadow: none;
 }
 
+.community-layout.achievement-focus {
+  grid-template-columns: minmax(0, 980px);
+  justify-content: center;
+}
+
+.workshop-view {
+  display: grid;
+  gap: 14px;
+}
+
+.workshop-toolbar,
+.workshop-controls,
+.workshop-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workshop-toolbar h2,
+.workshop-card h3,
+.workshop-toolbar p {
+  margin: 0;
+}
+
+.workshop-toolbar > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.workshop-toolbar > div:first-child > p:last-child,
+.workshop-card p,
+.workshop-card span {
+  color: #8f98a0;
+}
+
+.workshop-controls input,
+.workshop-controls select {
+  min-height: 38px;
+  border: 1px solid #0f1821;
+  border-radius: 2px;
+  padding: 0 12px;
+  color: #d6e4ef;
+  background: #172432;
+}
+
+.workshop-controls input {
+  width: min(320px, 38vw);
+}
+
+.workshop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.workshop-card {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(102, 192, 244, 0.14);
+  border-radius: 2px;
+  background: linear-gradient(135deg, rgba(34, 61, 83, 0.96), rgba(20, 31, 43, 0.98));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.workshop-card > img {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  object-fit: cover;
+}
+
+.workshop-card > div {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 15px;
+}
+
+.workshop-card h3 {
+  color: #ecf4fa;
+  font-size: 1.12rem;
+}
+
+.workshop-card p {
+  line-height: 1.5;
+}
+
+.workshop-card footer {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  border-top: 1px solid rgba(102, 192, 244, 0.12);
+  padding: 9px 12px;
+  background: rgba(8, 14, 21, 0.28);
+}
+
+.workshop-card button {
+  min-height: 34px;
+  border: 0;
+  padding: 0 13px;
+  color: #dce9f3;
+  background: #355c79;
+  cursor: pointer;
+}
+
+.workshop-card button:hover,
+.workshop-card button.subscribed {
+  color: #ffffff;
+  background: #5c7e10;
+}
+
+.workshop-dialog > img {
+  width: 100%;
+  max-height: 330px;
+  object-fit: cover;
+}
+
 @media (max-width: 1180px) {
   .steam-game-header,
   .community-layout,
-  .review-columns {
+  .review-columns,
+  .workshop-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1117,7 +1364,8 @@ button:disabled {
 @media (max-width: 740px) {
   .steam-game-header,
   .steam-review-card,
-  .achievement-row {
+  .achievement-row,
+  .workshop-card {
     grid-template-columns: 1fr;
   }
 
@@ -1133,8 +1381,21 @@ button:disabled {
   .review-controls label,
   .review-controls select,
   .composer-actions > div,
-  .steam-button {
+  .steam-button,
+  .workshop-controls,
+  .workshop-controls input,
+  .workshop-controls select {
     width: 100%;
+  }
+
+  .workshop-toolbar,
+  .workshop-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workshop-card > img {
+    max-height: 230px;
   }
 }
 </style>
