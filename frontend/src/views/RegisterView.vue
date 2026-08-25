@@ -13,7 +13,7 @@
 
       <label>
         <span>昵称</span>
-        <input v-model.trim="form.nickname" required />
+        <input v-model.trim="form.nickname" autocomplete="nickname" required />
       </label>
 
       <label>

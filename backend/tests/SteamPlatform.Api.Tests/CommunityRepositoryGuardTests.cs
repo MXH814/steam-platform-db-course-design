@@ -12,6 +12,16 @@ namespace SteamPlatform.Api.Tests;
 public sealed class CommunityRepositoryGuardTests
 {
     [Fact]
+    public void Review_list_joins_playtime_by_author_and_game()
+    {
+        var source = File.ReadAllText(FindReviewRepositorySource());
+
+        Assert.Contains("pl.user_id = gr.user_id", source, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("pl.game_id = gr.game_id", source, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("nvl(pl.play_minutes, 0) as PlayMinutes", source, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Create_review_rejects_unowned_game_before_writing_review()
     {
         var factory = new ScriptedScalarConnectionFactory(1, 0);
@@ -50,6 +60,23 @@ public sealed class CommunityRepositoryGuardTests
 
     private static bool ContainsSql(string command, string expected) =>
         command.Contains(expected, StringComparison.OrdinalIgnoreCase);
+
+    private static string FindReviewRepositorySource()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(directory.FullName, "src", "SteamPlatform.Infrastructure", "Community", "ReviewRepository.cs");
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException("ReviewRepository.cs was not found from the test output directory.");
+    }
 
     private sealed class ScriptedScalarConnectionFactory : IDbConnectionFactory
     {

@@ -23,7 +23,7 @@
               </div>
               <div>
                 <dt>发行日期</dt>
-                <dd>{{ game.releaseDate || '待后端补充' }}</dd>
+                <dd>{{ formatReleaseDate(game.releaseDate) }}</dd>
               </div>
               <div>
                 <dt>开发商</dt>
@@ -72,6 +72,11 @@ const props = withDefaults(
 );
 
 const summaryText = computed(() => props.summary || props.game.description || props.game.summary || '该游戏详情信息等待后端继续补充。');
+
+function formatReleaseDate(value: string | null | undefined) {
+  if (!value) return '待后端补充';
+  return new Date(value).toLocaleDateString('zh-CN');
+}
 </script>
 
 <style scoped>

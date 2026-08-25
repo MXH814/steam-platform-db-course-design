@@ -242,6 +242,7 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
                    gr.user_id as UserId,
                    p.nickname as Nickname,
                    gr.game_id as GameId,
+                   nvl(pl.play_minutes, 0) as PlayMinutes,
                    gr.thumbs_up as ThumbsUp,
                    gr.status as Status,
                    gr.create_time as CreateTime,
@@ -251,6 +252,10 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
                    rv.create_time as VersionCreateTime
               from game_review gr
               join player p on p.user_id = gr.user_id
+              left join player_library pl
+                on pl.user_id = gr.user_id
+               and pl.game_id = gr.game_id
+               and pl.status = 'NORMAL'
               join latest_version lv on lv.review_id = gr.review_id
               join review_version rv
                 on rv.review_id = lv.review_id
@@ -285,6 +290,7 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
         public string UserId { get; init; } = "";
         public string Nickname { get; init; } = "";
         public string GameId { get; init; } = "";
+        public int PlayMinutes { get; init; }
         public int ThumbsUp { get; init; }
         public string Status { get; init; } = "";
         public DateTime CreateTime { get; init; }
@@ -298,6 +304,7 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
             UserId,
             Nickname,
             GameId,
+            PlayMinutes,
             ThumbsUp,
             Status,
             CreateTime,

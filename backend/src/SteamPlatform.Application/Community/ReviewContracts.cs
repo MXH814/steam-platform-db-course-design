@@ -9,6 +9,7 @@ public sealed record ReviewListItem(
     string UserId,
     string Nickname,
     string GameId,
+    int PlayMinutes,
     int ThumbsUp,
     string Status,
     DateTime CreateTime,

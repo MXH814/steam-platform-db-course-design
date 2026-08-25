@@ -624,7 +624,7 @@ function estimateHelpfulness(review: ReviewListItem) {
 }
 
 function estimatedPlaytime(review: ReviewListItem) {
-  return Math.max(3, Math.round((review.content.length * 0.7 + review.versionNo * 8) * 10) / 10).toFixed(1);
+  return (review.playMinutes / 60).toFixed(1);
 }
 
 function formatTime(value: string) {

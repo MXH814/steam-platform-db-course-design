@@ -58,6 +58,7 @@ export interface ReviewListItem {
   userId: string;
   nickname: string;
   gameId: string;
+  playMinutes: number;
   thumbsUp: number;
   status: string;
   createTime: string;
