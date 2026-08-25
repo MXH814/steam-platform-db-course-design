@@ -39,6 +39,9 @@ const router = useRouter();
 const auth = useAuthStore();
 const activeGameId = ref<InventoryGameId>(normalizeGameId(route.query.gameId));
 const searchTerm = ref('');
+const advancedFilterOpen = ref(false);
+const rarityFilter = ref('ALL');
+const statusFilter = ref('ALL');
 const templates = ref<ItemTemplate[]>([]);
 const inventory = ref<InventoryItem[]>([]);
 const selectedItemId = ref('');
@@ -57,19 +60,20 @@ const showSellDialog = ref(false);
 const activeGame = computed(() => games.find((game) => game.id === activeGameId.value) ?? games[0]);
 const activeTemplates = computed(() => templates.value.filter((template) => template.gameId === activeGameId.value));
 const activeItems = computed(() => inventory.value.filter((item) => item.gameId === activeGameId.value));
+const rarityOptions = computed(() => [...new Set(activeItems.value.map((item) => item.rarity))].sort());
+const statusOptions = computed(() => [...new Set(activeItems.value.map((item) => item.status))].sort());
 
 const filteredItems = computed(() => {
   const keyword = searchTerm.value.trim().toLowerCase();
-  if (!keyword) {
-    return activeItems.value;
-  }
-
-  return activeItems.value.filter((item) =>
-    [item.itemName, item.itemId, item.templateId, item.rarity, item.status]
+  return activeItems.value.filter((item) => {
+    const matchesKeyword = !keyword || [item.itemName, item.itemId, item.templateId, item.rarity, item.status]
       .join(' ')
       .toLowerCase()
-      .includes(keyword)
-  );
+      .includes(keyword);
+    const matchesRarity = rarityFilter.value === 'ALL' || item.rarity === rarityFilter.value;
+    const matchesStatus = statusFilter.value === 'ALL' || item.status === statusFilter.value;
+    return matchesKeyword && matchesRarity && matchesStatus;
+  });
 });
 
 const selectedItem = computed(() =>
@@ -96,6 +100,8 @@ function normalizeGameId(value: unknown): InventoryGameId {
 
 function selectGame(gameId: InventoryGameId) {
   activeGameId.value = gameId;
+  rarityFilter.value = 'ALL';
+  statusFilter.value = 'ALL';
   router.replace({
     query: {
       ...route.query,
@@ -104,7 +110,7 @@ function selectGame(gameId: InventoryGameId) {
   });
 }
 
-watch([activeGameId, searchTerm], () => {
+watch([activeGameId, searchTerm, rarityFilter, statusFilter], () => {
   currentPage.value = 1;
   selectFirstVisibleItem();
 });
@@ -374,10 +380,17 @@ function transferParty(value?: string | null) {
             <Search :size="17" />
             <input v-model="searchTerm" placeholder="在库存物品中搜索" />
           </label>
-          <button class="filter-button" type="button">
+          <button class="filter-button" type="button" :class="{ active: advancedFilterOpen || rarityFilter !== 'ALL' || statusFilter !== 'ALL' }" :aria-expanded="advancedFilterOpen" @click="advancedFilterOpen = !advancedFilterOpen">
             <SlidersHorizontal :size="16" />
-            显示高级筛选条件...
+            {{ advancedFilterOpen ? '收起高级筛选' : '显示高级筛选条件...' }}
           </button>
+        </div>
+
+        <div v-if="advancedFilterOpen" class="advanced-filter-panel">
+          <label><span>稀有度</span><select v-model="rarityFilter"><option value="ALL">全部稀有度</option><option v-for="rarity in rarityOptions" :key="rarity" :value="rarity">{{ rarity }}</option></select></label>
+          <label><span>物品状态</span><select v-model="statusFilter"><option value="ALL">全部状态</option><option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option></select></label>
+          <button type="button" @click="rarityFilter = 'ALL'; statusFilter = 'ALL'; searchTerm = ''">清除筛选</button>
+          <span>当前显示 {{ filteredItems.length }} / {{ activeItems.length }} 件物品</span>
         </div>
 
         <p v-if="errorMessage" class="steam-message error">{{ errorMessage }}</p>
@@ -775,6 +788,48 @@ function transferParty(value?: string | null) {
 .filter-button {
   color: #e7edf4;
   background: #05080b;
+}
+
+.filter-button.active {
+  color: #ffffff;
+  background: #2f6385;
+}
+
+.advanced-filter-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr)) auto auto;
+  align-items: end;
+  gap: 12px;
+  margin: -1px 0 12px;
+  padding: 12px 14px;
+  border: 1px solid #364756;
+  color: #8f9ba8;
+  background: #111a23;
+}
+
+.advanced-filter-panel label {
+  gap: 4px;
+  font-size: 0.76rem;
+}
+
+.advanced-filter-panel select {
+  min-height: 34px;
+  border-radius: 0;
+  padding: 0 8px;
+}
+
+.advanced-filter-panel button {
+  min-height: 34px;
+  border: 0;
+  padding: 0 12px;
+  color: #dce8f2;
+  background: #355873;
+  cursor: pointer;
+}
+
+.advanced-filter-panel > span {
+  align-self: center;
+  font-size: 0.76rem;
 }
 
 .steam-message {
@@ -1228,6 +1283,9 @@ button:disabled {
 }
 
 @media (max-width: 1120px) {
+  .advanced-filter-panel {
+    grid-template-columns: 1fr 1fr;
+  }
   .inventory-page {
     width: 100%;
   }

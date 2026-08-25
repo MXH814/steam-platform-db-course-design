@@ -9,12 +9,17 @@
           <h1>主页</h1>
         </div>
         <div class="home-tools" aria-label="游戏库工具">
-          <button type="button" title="筛选" aria-label="筛选">
+          <button type="button" title="筛选" aria-label="筛选" :class="{ active: filterOpen || showPlayedOnly }" @click="filterOpen = !filterOpen">
             <SlidersHorizontal :size="17" />
           </button>
-          <button type="button" title="排序" aria-label="排序">
+          <button type="button" :title="sortMode === 'recent' ? '当前按最近游玩排序，点击按名称排序' : '当前按名称排序，点击按最近游玩排序'" aria-label="切换排序方式" :class="{ active: sortMode === 'name' }" @click="toggleSort">
             <ArrowDownUp :size="17" />
           </button>
+          <div v-if="filterOpen" class="library-filter-popover">
+            <strong>筛选游戏库</strong>
+            <label><input v-model="showPlayedOnly" type="checkbox" /> 只显示有游玩记录的游戏</label>
+            <button type="button" @click="showPlayedOnly = false; filterOpen = false">重置筛选</button>
+          </div>
         </div>
       </header>
 
@@ -48,11 +53,11 @@
             <h2>最近游戏</h2>
             <ChevronDown :size="16" />
           </div>
-          <span>{{ library.length }} 款已入库游戏</span>
+          <span>{{ displayedLibrary.length }} / {{ library.length }} 款已入库游戏 · {{ sortMode === 'recent' ? '最近游玩' : '名称' }}排序</span>
         </header>
 
         <div v-if="library.length" class="recent-grid">
-          <article v-for="entry in sortedLibrary" :key="entry.libId" class="recent-game">
+          <article v-for="entry in displayedLibrary" :key="entry.libId" class="recent-game">
             <RouterLink :to="{ name: 'game-library', params: { gameId: entry.gameId } }">
               <img :src="gameMeta(entry.gameId).coverImage" :alt="entry.gameName" />
             </RouterLink>
@@ -94,12 +99,18 @@ const library = ref<LibraryEntry[]>([]);
 const error = ref('');
 const message = ref('');
 const playingGameId = ref('');
+const filterOpen = ref(false);
+const showPlayedOnly = ref(false);
+const sortMode = ref<'recent' | 'name'>('recent');
 
-const sortedLibrary = computed(() => [...library.value].sort((a, b) => {
-  const left = a.lastPlayTime ? new Date(a.lastPlayTime).getTime() : 0;
-  const right = b.lastPlayTime ? new Date(b.lastPlayTime).getTime() : 0;
-  return right - left;
-}));
+const displayedLibrary = computed(() => library.value
+  .filter((entry) => !showPlayedOnly.value || entry.playMinutes > 0)
+  .sort((a, b) => {
+    if (sortMode.value === 'name') return a.gameName.localeCompare(b.gameName, 'zh-CN');
+    const left = a.lastPlayTime ? new Date(a.lastPlayTime).getTime() : 0;
+    const right = b.lastPlayTime ? new Date(b.lastPlayTime).getTime() : 0;
+    return right - left;
+  }));
 
 const newsStories = [
   {
@@ -147,6 +158,10 @@ async function play(gameId: string) {
   } finally {
     playingGameId.value = '';
   }
+}
+
+function toggleSort() {
+  sortMode.value = sortMode.value === 'recent' ? 'name' : 'recent';
 }
 
 const gameMeta = getGameMeta;
@@ -200,6 +215,7 @@ onMounted(load);
 }
 
 .home-tools {
+  position: relative;
   gap: 5px;
 }
 
@@ -213,6 +229,47 @@ onMounted(load);
   color: #aeb8c5;
   background: #2b3543;
   cursor: pointer;
+}
+
+.home-tools > button.active,
+.home-tools > button:hover {
+  color: #ffffff;
+  background: #3d5268;
+}
+
+.library-filter-popover {
+  position: absolute;
+  z-index: 6;
+  top: 38px;
+  right: 0;
+  display: grid;
+  gap: 9px;
+  width: 260px;
+  padding: 12px;
+  border: 1px solid #465563;
+  background: #26323e;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.42);
+}
+
+.library-filter-popover label {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.library-filter-popover input {
+  width: 16px;
+  height: 16px;
+}
+
+.library-filter-popover button {
+  width: auto;
+  padding: 0 9px;
+  color: #d7e8f4;
+  background: #365673;
 }
 
 .library-message {

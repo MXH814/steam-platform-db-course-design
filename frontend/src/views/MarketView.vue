@@ -32,6 +32,7 @@ import { useAuthStore } from '../stores/auth';
 type TabKey = 'market' | 'orders' | 'trades' | 'transfers';
 type SortKey = 'popular' | 'price-asc' | 'price-desc' | 'name';
 type CategoryKey = 'pistol' | 'smg' | 'rifle' | 'sniper' | 'case' | 'sticker';
+type MarketKind = 'in-game' | 'platform';
 
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'market', label: '市场首页' },
@@ -66,6 +67,7 @@ const searchQuery = ref('');
 const selectedCategories = ref<CategoryKey[]>([]);
 const sortKey = ref<SortKey>('popular');
 const includeDescription = ref(false);
+const marketKind = ref<MarketKind>('in-game');
 const showOrderComposer = ref(false);
 const selectedListing = ref<MarketListing | null>(null);
 
@@ -107,6 +109,7 @@ function applyRouteFilters() {
 }
 
 const filteredListings = computed(() => {
+  if (marketKind.value === 'platform') return [];
   const query = searchQuery.value.trim().toLowerCase();
   const rows = listings.value.filter((item) => {
     const matchesQuery =
@@ -147,6 +150,15 @@ function toggleCategory(key: CategoryKey) {
 
 function removeCategory(key: CategoryKey) {
   selectedCategories.value = selectedCategories.value.filter((item) => item !== key);
+}
+
+function setMarketKind(kind: MarketKind) {
+  marketKind.value = kind;
+  selectedCategories.value = [];
+  searchQuery.value = '';
+  successMessage.value = kind === 'platform'
+    ? '已切换到平台物品。本课程数据库目前的可交易实例均属于 CS2 游戏内物品。'
+    : '已切换到 Counter-Strike 2 游戏内物品。';
 }
 
 function versionedImageUrl(value?: string | null) {
@@ -387,8 +399,8 @@ watch(
       <aside class="filter-sidebar">
         <h2 class="filter-title">筛选条件</h2>
         <div class="filter-kind-tabs">
-          <button class="active" type="button">游戏内物品</button>
-          <button type="button">Steam 物品</button>
+          <button type="button" :class="{ active: marketKind === 'in-game' }" @click="setMarketKind('in-game')">游戏内物品</button>
+          <button type="button" :class="{ active: marketKind === 'platform' }" @click="setMarketKind('platform')">平台物品</button>
         </div>
 
         <div class="filter-heading">
@@ -465,8 +477,8 @@ watch(
         </div>
         <div v-else-if="!filteredListings.length" class="market-empty">
           <PackageSearch :size="34" />
-          <strong>没有找到符合条件的物品</strong>
-          <span>请尝试其他关键词或分类。</span>
+          <strong>{{ marketKind === 'platform' ? '暂无平台收藏品' : '没有找到符合条件的物品' }}</strong>
+          <span>{{ marketKind === 'platform' ? '切换回“游戏内物品”可浏览 CS2 饰品市场。' : '请尝试其他关键词或分类。' }}</span>
         </div>
         <div v-else class="item-grid">
           <article

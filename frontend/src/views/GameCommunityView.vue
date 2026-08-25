@@ -115,17 +115,17 @@
                     <span>{{ review.isRecommend ? '推荐' : '不推荐' }}</span>
                     <small>{{ estimatedPlaytime(review) }} 小时游戏时间记录</small>
                   </div>
-                  <button class="star-button" type="button" @click="showFrontendOnlyNotice('收藏评测需要后端收藏接口。')">☆</button>
+                  <button class="star-button" type="button" :class="{ active: interactionFor(review.reviewId).starred }" :aria-label="interactionFor(review.reviewId).starred ? '取消收藏评测' : '收藏评测'" @click="toggleInteraction(review.reviewId, 'starred')">{{ interactionFor(review.reviewId).starred ? '★' : '☆' }}</button>
                 </header>
                 <small>发布于：{{ formatDate(review.versionCreateTime) }}</small>
                 <p>{{ review.content }}</p>
-                <button v-if="review.content.length > 160" class="read-more" type="button" @click="showFrontendOnlyNotice('全文弹窗可前端继续增强，当前先直接展示完整内容。')">阅读全文</button>
+                <button v-if="review.content.length > 160" class="read-more" type="button" @click="expandedReview = review">阅读全文</button>
                 <footer class="review-footer">
                   <span>这篇评测是否有价值？</span>
-                  <button type="button" @click="showFrontendOnlyNotice('“有价值”投票需要后端记录。')">是</button>
-                  <button type="button" @click="showFrontendOnlyNotice('“无价值”投票需要后端记录。')">否</button>
-                  <button type="button" @click="showFrontendOnlyNotice('欢乐/奖励需要后端互动接口。')">欢乐</button>
-                  <button type="button" @click="showFrontendOnlyNotice('奖励评测需要后端奖励接口。')">奖励</button>
+                  <button type="button" :class="{ active: interactionFor(review.reviewId).vote === 'up' }" @click="voteReview(review.reviewId, 'up')">是 {{ review.thumbsUp + (interactionFor(review.reviewId).vote === 'up' ? 1 : 0) }}</button>
+                  <button type="button" :class="{ active: interactionFor(review.reviewId).vote === 'down' }" @click="voteReview(review.reviewId, 'down')">否</button>
+                  <button type="button" :class="{ active: interactionFor(review.reviewId).funny }" @click="toggleInteraction(review.reviewId, 'funny')">欢乐</button>
+                  <button type="button" :class="{ active: interactionFor(review.reviewId).awarded }" @click="toggleInteraction(review.reviewId, 'awarded')">{{ interactionFor(review.reviewId).awarded ? '已奖励' : '奖励' }}</button>
                   <button type="button" @click="loadVersions(review.reviewId)">版本历史</button>
                   <button v-if="canEdit(review)" type="button" @click="startEdit(review)">编辑</button>
                 </footer>
@@ -140,13 +140,13 @@
                 <span :class="['mini-vote', { negative: !review.isRecommend }]">{{ review.isRecommend ? '荐' : '否' }}</span>
                 <strong>{{ review.nickname }}</strong>
                 <small>{{ estimatedPlaytime(review) }} 小时</small>
-                <button type="button" @click="showFrontendOnlyNotice('收藏评测需要后端收藏接口。')">☆</button>
+                <button type="button" :class="{ active: interactionFor(review.reviewId).starred }" @click="toggleInteraction(review.reviewId, 'starred')">{{ interactionFor(review.reviewId).starred ? '★' : '☆' }}</button>
               </header>
               <small>发布于：{{ formatDate(review.versionCreateTime) }}</small>
               <p>{{ review.content }}</p>
               <footer>
-                <button type="button" @click="showFrontendOnlyNotice('“有价值”投票需要后端记录。')">是</button>
-                <button type="button" @click="showFrontendOnlyNotice('“无价值”投票需要后端记录。')">否</button>
+                <button type="button" :class="{ active: interactionFor(review.reviewId).vote === 'up' }" @click="voteReview(review.reviewId, 'up')">是</button>
+                <button type="button" :class="{ active: interactionFor(review.reviewId).vote === 'down' }" @click="voteReview(review.reviewId, 'down')">否</button>
                 <button type="button" @click="loadVersions(review.reviewId)">历史</button>
               </footer>
             </article>
@@ -203,6 +203,14 @@
         </section>
       </aside>
     </section>
+
+    <div v-if="expandedReview" class="review-dialog-backdrop" @click.self="expandedReview = null">
+      <article class="review-dialog" role="dialog" aria-modal="true" aria-labelledby="review-dialog-title">
+        <header><div><span>{{ expandedReview.isRecommend ? '推荐' : '不推荐' }}</span><h2 id="review-dialog-title">{{ expandedReview.nickname }} 的完整评测</h2></div><button type="button" aria-label="关闭完整评测" @click="expandedReview = null">×</button></header>
+        <p>{{ expandedReview.content }}</p>
+        <footer><span>发布于 {{ formatTime(expandedReview.versionCreateTime) }}</span><button type="button" :class="{ active: interactionFor(expandedReview.reviewId).starred }" @click="toggleInteraction(expandedReview.reviewId, 'starred')">{{ interactionFor(expandedReview.reviewId).starred ? '已收藏' : '收藏评测' }}</button></footer>
+      </article>
+    </div>
   </section>
 </template>
 
@@ -242,6 +250,17 @@ const message = ref('');
 const error = ref('');
 const reviewFilter = ref<'all' | 'recommended' | 'notRecommended'>('all');
 const reviewSort = ref<'helpful' | 'recent'>('helpful');
+const expandedReview = ref<ReviewListItem | null>(null);
+
+interface ReviewInteraction {
+  starred: boolean;
+  vote: '' | 'up' | 'down';
+  funny: boolean;
+  awarded: boolean;
+}
+
+const interactionStorageKey = 'game-deck-review-interactions';
+const interactions = ref<Record<string, ReviewInteraction>>(loadStoredInteractions());
 
 const reviewForm = reactive({
   isRecommend: true,
@@ -387,8 +406,34 @@ function canEdit(review: ReviewListItem) {
   return auth.currentUser?.principalId === review.userId;
 }
 
-function showFrontendOnlyNotice(text: string) {
-  message.value = text;
+function interactionFor(reviewId: string): ReviewInteraction {
+  return interactions.value[reviewId] ?? { starred: false, vote: '', funny: false, awarded: false };
+}
+
+function toggleInteraction(reviewId: string, key: 'starred' | 'funny' | 'awarded') {
+  const current = interactionFor(reviewId);
+  interactions.value = { ...interactions.value, [reviewId]: { ...current, [key]: !current[key] } };
+  persistInteractions();
+  message.value = key === 'starred' ? '评测收藏状态已更新。' : key === 'funny' ? '欢乐标记已更新。' : '社区奖励状态已更新。';
+}
+
+function voteReview(reviewId: string, vote: 'up' | 'down') {
+  const current = interactionFor(reviewId);
+  interactions.value = { ...interactions.value, [reviewId]: { ...current, vote: current.vote === vote ? '' : vote } };
+  persistInteractions();
+  message.value = '评测价值投票已更新。';
+}
+
+function loadStoredInteractions(): Record<string, ReviewInteraction> {
+  try {
+    return JSON.parse(localStorage.getItem(interactionStorageKey) || '{}') as Record<string, ReviewInteraction>;
+  } catch {
+    return {};
+  }
+}
+
+function persistInteractions() {
+  localStorage.setItem(interactionStorageKey, JSON.stringify(interactions.value));
 }
 
 function friendlyError(requestError: unknown) {
@@ -784,6 +829,10 @@ button:disabled {
   font-size: 1.5rem;
 }
 
+.star-button.active {
+  color: #f3c85f;
+}
+
 .review-body > small,
 .recent-review-card > small,
 .version-row small {
@@ -827,6 +876,85 @@ button:disabled {
   padding: 0 10px;
   color: #66c0f4;
   background: rgba(103, 193, 245, 0.12);
+}
+
+.review-footer button.active,
+.recent-review-card button.active {
+  color: #ffffff;
+  background: #3f789f;
+  box-shadow: inset 0 -2px #78b8e2;
+}
+
+.review-dialog-backdrop {
+  position: fixed;
+  z-index: 75;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 7, 11, 0.78);
+  backdrop-filter: blur(5px);
+}
+
+.review-dialog {
+  width: min(760px, 100%);
+  max-height: 82vh;
+  overflow-y: auto;
+  border: 1px solid #516273;
+  background: #1f2c39;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+
+.review-dialog > header,
+.review-dialog > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 15px 18px;
+  background: #17222d;
+}
+
+.review-dialog h2,
+.review-dialog header span,
+.review-dialog > p {
+  margin: 0;
+}
+
+.review-dialog header span,
+.review-dialog footer span {
+  color: #66c0f4;
+  font-size: 0.76rem;
+}
+
+.review-dialog header button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  color: #d7e1ea;
+  background: #2c3947;
+  cursor: pointer;
+}
+
+.review-dialog > p {
+  padding: 22px;
+  color: #d6dfe7;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.review-dialog footer button {
+  min-height: 34px;
+  border: 0;
+  padding: 0 13px;
+  color: #dce9f3;
+  background: #355c79;
+  cursor: pointer;
+}
+
+.review-dialog footer button.active {
+  color: #fff4c4;
+  background: #765f2f;
 }
 
 .recent-review-card {

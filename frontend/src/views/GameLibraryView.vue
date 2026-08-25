@@ -9,9 +9,14 @@
             <Play :size="25" fill="currentColor" />
             <span>{{ playing ? '记录中...' : ownedEntry ? '开始游戏' : '尚未入库' }}</span>
           </button>
-          <button class="play-menu" type="button" title="启动选项" aria-label="启动选项">
+          <button class="play-menu" type="button" title="启动选项" aria-label="启动选项" :aria-expanded="showLaunchMenu" @click="toggleLaunchMenu">
             <ChevronDown :size="18" />
           </button>
+          <div v-if="showLaunchMenu" class="launch-menu">
+            <button type="button" :disabled="!ownedEntry" @click="chooseLaunch('normal')">开始游戏</button>
+            <button type="button" :disabled="!ownedEntry" @click="chooseLaunch('offline')">以离线模式启动</button>
+            <button type="button" @click="verifyFiles">验证文件完整性</button>
+          </div>
 
           <div class="game-identity">
             <img :src="game.coverImage" :alt="game.title" />
@@ -37,7 +42,7 @@
           </dl>
 
           <div class="command-tools">
-            <button type="button" title="设置" aria-label="设置">
+            <button type="button" title="设置" aria-label="设置" :aria-expanded="showSettings" @click="toggleSettings">
               <Settings :size="19" />
             </button>
             <RouterLink :to="{ name: 'game-detail', params: { gameId } }" title="商店页面" aria-label="商店页面">
@@ -46,6 +51,12 @@
             <RouterLink :to="{ name: 'game-community', params: { gameId } }" title="社区中心" aria-label="社区中心">
               <Heart :size="20" fill="currentColor" />
             </RouterLink>
+          </div>
+          <div v-if="showSettings" class="game-settings-popover">
+            <strong>{{ game.title }} 设置</strong>
+            <label><input v-model="cloudSyncEnabled" type="checkbox" @change="saveSettings" /> 启用云存档同步</label>
+            <label><input v-model="overlayEnabled" type="checkbox" @change="saveSettings" /> 在游戏中启用平台界面</label>
+            <button type="button" @click="verifyFiles">验证已安装文件</button>
           </div>
         </section>
 
@@ -230,6 +241,10 @@ const playing = ref(false);
 const notice = ref('');
 const noteDraft = ref('');
 const noteSaved = ref(false);
+const showLaunchMenu = ref(false);
+const showSettings = ref(false);
+const cloudSyncEnabled = ref(localStorage.getItem('game-deck-cloud-sync') !== 'false');
+const overlayEnabled = ref(localStorage.getItem('game-deck-overlay') !== 'false');
 const friends = ['Stephen', 'Alice', 'Bob', 'Klei', 'Valve'];
 
 const ownedEntry = computed(() => library.value.find((entry) => entry.gameId === gameId.value) || null);
@@ -282,6 +297,37 @@ async function playGame() {
   }
 }
 
+async function chooseLaunch(mode: 'normal' | 'offline') {
+  showLaunchMenu.value = false;
+  if (mode === 'offline') {
+    notice.value = `${game.value.title} 已进入离线启动演示；本次不会同步新的云数据。`;
+    return;
+  }
+  await playGame();
+}
+
+function toggleLaunchMenu() {
+  showLaunchMenu.value = !showLaunchMenu.value;
+  if (showLaunchMenu.value) showSettings.value = false;
+}
+
+function toggleSettings() {
+  showSettings.value = !showSettings.value;
+  if (showSettings.value) showLaunchMenu.value = false;
+}
+
+function verifyFiles() {
+  showLaunchMenu.value = false;
+  showSettings.value = false;
+  notice.value = '已完成文件完整性检查：所有课程演示资源均可用。';
+}
+
+function saveSettings() {
+  localStorage.setItem('game-deck-cloud-sync', String(cloudSyncEnabled.value));
+  localStorage.setItem('game-deck-overlay', String(overlayEnabled.value));
+  notice.value = '游戏属性已保存到本机。';
+}
+
 function compactDate(value?: string | null) {
   if (!value) return '尚未运行';
   return new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric' }).format(new Date(value));
@@ -324,6 +370,7 @@ function saveNote() {
 }
 
 .game-command-bar {
+  position: relative;
   display: grid;
   grid-template-columns: 190px 34px minmax(180px, 1fr) auto auto;
   align-items: center;
@@ -331,6 +378,66 @@ function saveNote() {
   margin: 0 22px;
   background: linear-gradient(90deg, rgba(36, 44, 56, 0.98), rgba(40, 43, 51, 0.96));
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.36);
+}
+
+.launch-menu,
+.game-settings-popover {
+  position: absolute;
+  z-index: 8;
+  display: grid;
+  border: 1px solid #4b5967;
+  background: #303b48;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.48);
+}
+
+.launch-menu {
+  top: 61px;
+  left: 198px;
+  width: 220px;
+  padding: 5px;
+}
+
+.launch-menu button,
+.game-settings-popover button {
+  min-height: 34px;
+  border: 0;
+  padding: 0 10px;
+  color: #d6dfe7;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.launch-menu button:hover,
+.game-settings-popover button:hover {
+  color: #ffffff;
+  background: #39769f;
+}
+
+.game-settings-popover {
+  top: 67px;
+  right: 0;
+  gap: 9px;
+  width: 285px;
+  padding: 13px;
+}
+
+.game-settings-popover label {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.game-settings-popover input {
+  width: 16px;
+  height: 16px;
+}
+
+.game-settings-popover button {
+  background: #26323f;
 }
 
 .play-button,

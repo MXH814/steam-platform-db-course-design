@@ -1,19 +1,23 @@
 <template>
-  <aside class="library-rail">
+  <aside class="library-rail" :class="{ compact: compactView }">
     <div class="rail-title-row">
       <RouterLink class="rail-home" to="/library">
         <Home :size="16" />
         主页
       </RouterLink>
-      <button type="button" title="切换视图" aria-label="切换视图">
+      <button type="button" title="切换紧凑视图" aria-label="切换紧凑视图" :aria-pressed="compactView" @click="compactView = !compactView">
         <Grid2X2 :size="16" />
       </button>
     </div>
 
-    <button class="rail-filter" type="button">
-      游戏和软件
+    <button class="rail-filter" type="button" :aria-expanded="filterOpen" @click="filterOpen = !filterOpen">
+      {{ filterMode === 'all' ? '游戏和软件' : '最近玩过' }}
       <ChevronDown :size="15" />
     </button>
+    <div v-if="filterOpen" class="rail-filter-menu">
+      <button type="button" :class="{ active: filterMode === 'all' }" @click="setFilter('all')">全部游戏</button>
+      <button type="button" :class="{ active: filterMode === 'recent' }" @click="setFilter('recent')">最近玩过</button>
+    </div>
 
     <label class="rail-search">
       <Search :size="15" />
@@ -58,27 +62,62 @@ const props = defineProps<{
 }>();
 
 const search = ref('');
+const compactView = ref(false);
+const filterOpen = ref(false);
+const filterMode = ref<'all' | 'recent'>('all');
 const filteredEntries = computed(() => {
   const keyword = search.value.trim().toLocaleLowerCase('zh-CN');
-  if (!keyword) return props.entries;
-  return props.entries.filter((entry) => entry.gameName.toLocaleLowerCase('zh-CN').includes(keyword));
+  return props.entries.filter((entry) => {
+    const matchesKeyword = !keyword || entry.gameName.toLocaleLowerCase('zh-CN').includes(keyword);
+    const matchesFilter = filterMode.value === 'all' || entry.playMinutes > 0;
+    return matchesKeyword && matchesFilter;
+  });
 });
 
 const gameMeta = getGameMeta;
+
+function setFilter(mode: 'all' | 'recent') {
+  filterMode.value = mode;
+  filterOpen.value = false;
+}
 </script>
 
 <style scoped>
 .library-rail {
   position: sticky;
-  top: 58px;
+  top: 114px;
   display: grid;
   grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
   width: 268px;
-  height: calc(100vh - 58px);
+  height: calc(100vh - 114px);
   min-height: 560px;
   border-right: 1px solid #080c11;
   background: #171f2a;
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.24);
+}
+
+.rail-filter-menu {
+  display: grid;
+  margin: -4px 8px 6px;
+  padding: 4px;
+  background: #303b49;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.36);
+}
+
+.rail-filter-menu button {
+  min-height: 30px;
+  border: 0;
+  padding: 0 9px;
+  color: #b4bec9;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.rail-filter-menu button:hover,
+.rail-filter-menu button.active {
+  color: #ffffff;
+  background: #3f5369;
 }
 
 .rail-title-row,
@@ -182,6 +221,15 @@ const gameMeta = getGameMeta;
   width: 28px;
   height: 28px;
   object-fit: cover;
+}
+
+.library-rail.compact .rail-game-list a {
+  min-height: 29px;
+}
+
+.library-rail.compact .rail-game-list img {
+  width: 22px;
+  height: 22px;
 }
 
 .rail-game-list span {

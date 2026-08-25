@@ -22,7 +22,7 @@
           <strong>{{ game.storeLine }}</strong>
         </div>
         <div class="thumb-strip">
-          <button v-for="tag in game.tags" :key="tag" type="button">{{ tag }}</button>
+          <button v-for="tag in game.tags" :key="tag" type="button" @click="router.push({ name: 'store-section', params: { section: 'categories' }, query: { tag } })">{{ tag }}</button>
         </div>
       </div>
 
@@ -58,8 +58,7 @@
             <p>购买或入库后，评价与成就模块会通过 PLAYER_LIBRARY 做资产确权。</p>
           </div>
           <RouterLink v-if="gameId !== 'GAME_CS2'" class="steam-green-button checkout-store-link" :to="`/checkout/game/${gameId}`">加入购物车</RouterLink>
-          <button v-else class="steam-green-button checkout-store-link" type="button" @click="notice = '免费游戏请在游戏详情页使用免费入库。'">免费入库</button>
-          <button class="steam-green-button legacy-store-button" type="button" @click="notice = '购买入口由 Group C 接口负责，当前页面保留商店展示位置。'">加入购物车</button>
+          <button v-else class="steam-green-button checkout-store-link" type="button" @click="router.push({ name: 'game-detail', params: { gameId } })">免费入库</button>
         </section>
 
         <section class="store-panel">
@@ -105,7 +104,7 @@
 
         <section class="store-panel side-links">
           <h2>链接与信息</h2>
-          <button v-for="link in game.links" :key="link" type="button" @click="notice = `${link} 需要对应模块接口或外部链接。`">{{ link }}</button>
+          <button v-for="link in game.links" :key="link" type="button" @click="openGameLink(link)">{{ link }}</button>
         </section>
       </aside>
     </section>
@@ -116,7 +115,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { listGameAchievements, listGameReviews } from '../api/communityApi';
 import { getApiError } from '../api/http';
 import type { ReviewListItem } from '../api/types';
@@ -124,6 +123,7 @@ import { withAchievementIcons, type AchievementDisplayItem } from '../data/achie
 import { getGameMeta } from '../data/gameCatalog';
 
 const route = useRoute();
+const router = useRouter();
 const gameId = computed(() => String(route.params.gameId || 'GAME_DST'));
 const game = computed(() => getGameMeta(gameId.value));
 const achievements = ref<AchievementDisplayItem[]>([]);
@@ -161,6 +161,14 @@ async function loadStore() {
   } finally {
     loadingReviews.value = false;
   }
+}
+
+function openGameLink(link: string) {
+  if (link.includes('库存')) return void router.push({ name: 'inventory', query: { gameId: gameId.value } });
+  if (link.includes('市场')) return void router.push({ name: 'market', query: { gameId: gameId.value } });
+  if (link.includes('交易')) return void router.push({ name: 'market-trades' });
+  if (link.includes('讨论') || link.includes('新闻') || link.includes('更新')) return void router.push({ name: 'game-community', params: { gameId: gameId.value } });
+  window.open(`https://store.steampowered.com/app/${game.value.appId}`, '_blank', 'noopener,noreferrer');
 }
 </script>
 
