@@ -36,21 +36,23 @@
             </div>
           </div>
           <div class="supernav-entry" @mouseenter="openMenu('community')" @mouseleave="scheduleMenuClose">
-            <RouterLink to="/games/GAME_DST/community" @focus="openMenu('community')">社区</RouterLink>
+            <RouterLink to="/community" @focus="openMenu('community')">社区</RouterLink>
             <div v-if="activeMenu === 'community'" class="supernav-menu" @mouseenter="cancelMenuClose">
-              <RouterLink to="/games/GAME_DST/community">社区主页</RouterLink>
-              <RouterLink to="/games/GAME_CS2/community">讨论与评测</RouterLink>
+              <RouterLink to="/community">社区主页</RouterLink>
+              <RouterLink to="/community?tab=discussions">讨论区</RouterLink>
+              <RouterLink to="/games/GAME_CS2/community">游戏中心</RouterLink>
               <RouterLink to="/inventory">库存</RouterLink>
               <RouterLink to="/market">市场</RouterLink>
             </div>
           </div>
           <div v-if="auth.isAuthenticated" class="supernav-entry" @mouseenter="openMenu('profile')" @mouseleave="scheduleMenuClose">
-            <RouterLink to="/account" @focus="openMenu('profile')">{{ auth.currentUser?.account }}</RouterLink>
+            <RouterLink to="/profile" @focus="openMenu('profile')">{{ auth.currentUser?.account }}</RouterLink>
             <div v-if="activeMenu === 'profile'" class="supernav-menu" @mouseenter="cancelMenuClose">
-              <RouterLink to="/account">个人资料</RouterLink>
+              <RouterLink to="/profile">个人资料</RouterLink>
               <button type="button" @click="openFriends">好友</button>
-              <RouterLink to="/games/GAME_DST/community">内容</RouterLink>
+              <RouterLink to="/community">内容</RouterLink>
               <RouterLink to="/inventory">库存</RouterLink>
+              <RouterLink to="/trade-offers">交易报价</RouterLink>
               <RouterLink to="/wallet">钱包</RouterLink>
             </div>
           </div>
@@ -75,7 +77,7 @@
             <span class="account-avatar">{{ accountInitial }}</span><span>{{ auth.currentUser?.account }}</span><ChevronDown :size="14" />
           </button>
           <div v-if="activeMenu === 'account'" class="account-popover">
-            <RouterLink to="/account">账户明细</RouterLink><RouterLink to="/wallet">钱包余额</RouterLink><RouterLink to="/wallet/history">购买历史</RouterLink>
+            <RouterLink to="/profile">查看我的资料</RouterLink><RouterLink to="/account">账户明细</RouterLink><RouterLink to="/wallet">钱包余额</RouterLink><RouterLink to="/wallet/history">购买历史</RouterLink>
             <button type="button" @click="logout">退出账户</button>
           </div>
           <RouterLink v-if="!auth.isAuthenticated" class="install-login" to="/login">登录</RouterLink>
@@ -164,6 +166,7 @@
           <p v-if="friendsLoading">正在同步好友列表...</p>
           <p v-else-if="!filteredFriends.length">暂无匹配的好友。</p>
         </div>
+        <div class="friend-drawer-links"><RouterLink to="/community?tab=people" @click="activeDrawer = ''"><UserPlus :size="15" />添加好友</RouterLink><RouterLink to="/trade-offers" @click="activeDrawer = ''"><ArrowLeftRight :size="15" />交易报价</RouterLink></div>
         <section v-if="selectedFriend" class="chat-pane">
           <header>{{ selectedFriend.nickname }}</header><div class="chat-log"><p v-if="!chatMessages.length">现在可以开始聊天了。</p><p v-for="chat in chatMessages" :key="chat.messageId" :class="{ mine: chat.senderId === auth.currentUser?.principalId }"><small>{{ chat.senderNickname }}</small>{{ chat.content }}</p></div>
           <form @submit.prevent="sendChat"><input v-model.trim="chatDraft" maxlength="1000" placeholder="发送消息" /><button type="submit" :disabled="!chatDraft || sendingChat" aria-label="发送消息"><Send :size="16" /></button></form>
@@ -182,13 +185,13 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { Bell, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Cloud, Download, Gamepad2, Menu, Play, Plus, Search, Send, Users, WalletCards, X } from '@lucide/vue';
+import { ArrowLeftRight, Bell, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Cloud, Download, Gamepad2, Menu, Play, Plus, Search, Send, UserPlus, Users, WalletCards, X } from '@lucide/vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getLibrary, type LibraryEntry } from './api/coreApi';
 import { http } from './api/http';
 import { acceptFriend, listFriends, listMessages, listNotifications as listUserNotifications, markNotificationRead, sendMessage } from './api/socialApi';
 import { SocialRealtimeClient } from './api/socialRealtime';
-import type { DirectMessageItem, FriendListItem, SysNotice, UserNotificationItem } from './api/types';
+import type { DirectMessageItem, DiscussionTopicView, FriendListItem, SysNotice, TradeOfferView, UserNotificationItem } from './api/types';
 import { getGameMeta } from './data/gameCatalog';
 import { useAuthStore } from './stores/auth';
 
@@ -268,7 +271,9 @@ watch(() => auth.isAuthenticated && auth.currentUser?.role === 'PLAYER', async (
     await realtime.connect({
       onDirectMessage: receiveRealtimeMessage,
       onNotification: receiveRealtimeNotification,
-      onFriendChanged: loadFriends
+      onFriendChanged: loadFriends,
+      onTradeOfferChanged: receiveTradeOffer,
+      onDiscussionReply: receiveDiscussionReply
     });
   } catch {
     showToast('实时连接暂未建立，页面操作仍会正常保存。');
@@ -387,6 +392,8 @@ function receiveRealtimeMessage(message: DirectMessageItem) {
 function receiveRealtimeNotification(notice: UserNotificationItem) {
   if (!userNotifications.value.some((row) => row.notificationId === notice.notificationId)) userNotifications.value = [notice, ...userNotifications.value];
 }
+function receiveTradeOffer(offer: TradeOfferView, received: boolean) { showToast(received ? `${offer.senderNickname} 发来新的交易报价` : `交易报价状态已更新为${offer.status}`); }
+function receiveDiscussionReply(topic: DiscussionTopicView) { showToast(`讨论“${topic.title}”收到新回复`); }
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); showToast('已返回页面顶部'); }
 function goToGames() { router.push(auth.isAuthenticated ? '/library' : '/store'); }
 function showToast(text: string) { toast.value = text; if (toastTimer) window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => { toast.value = ''; }, 2400); }

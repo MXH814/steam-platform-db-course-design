@@ -55,6 +55,24 @@ public sealed class VerifyScriptTests
         }
     }
 
+    [Fact]
+    public void Community_engagement_migration_is_idempotent_and_creates_all_expansion_tables()
+    {
+        var migration = SqlFile.CommunityEngagementMigration;
+
+        Assert.Contains("ensure_table", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ensure_index", migration, StringComparison.OrdinalIgnoreCase);
+        foreach (var table in new[]
+                 {
+                     "PLAYER_PROFILE", "BADGE_CATALOG", "PLAYER_BADGE",
+                     "TRADE_OFFER", "TRADE_OFFER_ITEM", "COMMUNITY_POST",
+                     "COMMUNITY_POST_REACTION", "DISCUSSION_TOPIC", "DISCUSSION_REPLY"
+                 })
+        {
+            Assert.Contains(table, migration, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     [Theory]
     [InlineData("PLAYER")]
     [InlineData("ADMIN_USER")]

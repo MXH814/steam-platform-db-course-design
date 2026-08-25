@@ -1,12 +1,14 @@
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { getStoredToken } from './http';
-import type { DirectMessageItem, UserNotificationItem, WorkshopItemView } from './types';
+import type { DirectMessageItem, DiscussionTopicView, TradeOfferView, UserNotificationItem, WorkshopItemView } from './types';
 
 export interface SocialRealtimeHandlers {
   onDirectMessage?: (message: DirectMessageItem) => void;
   onNotification?: (notification: UserNotificationItem) => void;
   onFriendChanged?: () => void;
   onWorkshopSubscriptionChanged?: (item: WorkshopItemView) => void;
+  onTradeOfferChanged?: (offer: TradeOfferView, received: boolean) => void;
+  onDiscussionReply?: (topic: DiscussionTopicView) => void;
 }
 
 export class SocialRealtimeClient {
@@ -32,6 +34,9 @@ export class SocialRealtimeClient {
     connection.on('FriendRequestAccepted', () => handlers.onFriendChanged?.());
     connection.on('ReviewInteractionReceived', (payload: UserNotificationItem) => handlers.onNotification?.(payload));
     connection.on('WorkshopSubscriptionChanged', (payload: WorkshopItemView) => handlers.onWorkshopSubscriptionChanged?.(payload));
+    connection.on('TradeOfferReceived', (payload: TradeOfferView) => handlers.onTradeOfferChanged?.(payload, true));
+    connection.on('TradeOfferChanged', (payload: TradeOfferView) => handlers.onTradeOfferChanged?.(payload, false));
+    connection.on('DiscussionReplyReceived', (payload: DiscussionTopicView) => handlers.onDiscussionReply?.(payload));
 
     this.connection = connection;
     try {

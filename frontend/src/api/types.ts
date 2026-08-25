@@ -152,6 +152,142 @@ export interface UserNotificationItem {
   readAt: string | null;
 }
 
+export type ProfileVisibility = 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+export type ProfileAvatarKey = 'AVATAR_BLUE' | 'AVATAR_ORANGE' | 'AVATAR_GREEN' | 'AVATAR_PURPLE';
+export type ProfileBackgroundKey = 'BACKGROUND_CS2' | 'BACKGROUND_DST' | 'BACKGROUND_LIBRARY';
+export type ProfileThemeKey = 'STEAM_BLUE' | 'TACTICAL_ORANGE' | 'SURVIVAL_GREEN';
+
+export interface ProfileBadgeView {
+  badgeId: string;
+  badgeName: string;
+  description: string;
+  iconKey: string;
+  xpValue: number;
+  rarity: 'COMMON' | 'RARE' | 'EPIC' | string;
+  earnedAt: string;
+  isFeatured: boolean;
+}
+
+export interface PlayerProfileView {
+  userId: string;
+  nickname: string;
+  headline: string | null;
+  bio: string | null;
+  avatarKey: ProfileAvatarKey;
+  backgroundKey: ProfileBackgroundKey;
+  themeKey: ProfileThemeKey;
+  showcaseGameId: string | null;
+  showcaseGameName: string | null;
+  profileVisibility: ProfileVisibility;
+  friendCount: number;
+  totalXp: number;
+  badges: ProfileBadgeView[];
+  updatedAt: string;
+  isOwnProfile: boolean;
+}
+
+export interface UpdatePlayerProfileRequest {
+  headline: string | null;
+  bio: string | null;
+  avatarKey: ProfileAvatarKey;
+  backgroundKey: ProfileBackgroundKey;
+  themeKey: ProfileThemeKey;
+  showcaseGameId: string | null;
+  profileVisibility: ProfileVisibility;
+}
+
+export interface PlayerSearchItem {
+  userId: string;
+  nickname: string;
+  avatarKey: ProfileAvatarKey;
+  headline: string | null;
+  relationId: string | null;
+  relationStatus: string | null;
+  isIncomingRequest: boolean;
+}
+
+export interface TradeOfferItemView {
+  itemId: string;
+  templateId: string;
+  gameId: string;
+  itemName: string;
+  rarity: string;
+  imageUrl: string | null;
+  wearRating: number | null;
+  itemRole: 'OFFERED' | 'REQUESTED';
+  ownerIdAtCreate: string;
+}
+
+export interface TradeableInventoryItemView {
+  itemId: string;
+  templateId: string;
+  gameId: string;
+  itemName: string;
+  rarity: string;
+  imageUrl: string | null;
+  wearRating: number | null;
+}
+
+export interface TradeOfferView {
+  offerId: string;
+  senderId: string;
+  senderNickname: string;
+  recipientId: string;
+  recipientNickname: string;
+  message: string | null;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELED' | 'EXPIRED' | string;
+  createdAt: string;
+  respondedAt: string | null;
+  version: number;
+  offeredItems: TradeOfferItemView[];
+  requestedItems: TradeOfferItemView[];
+  canAccept: boolean;
+  canDecline: boolean;
+  canCancel: boolean;
+}
+
+export interface CommunityPostView {
+  postId: string;
+  authorId: string;
+  authorNickname: string;
+  avatarKey: ProfileAvatarKey;
+  gameId: string | null;
+  gameName: string | null;
+  postType: 'STATUS' | 'ACHIEVEMENT' | 'SCREENSHOT' | 'TRADE' | string;
+  content: string;
+  mediaUrl: string | null;
+  visibility: 'PUBLIC' | 'FRIENDS';
+  createdAt: string;
+  likeCount: number;
+  awardCount: number;
+  myReaction: 'LIKE' | 'AWARD' | null;
+}
+
+export interface DiscussionReplyView {
+  replyId: string;
+  authorId: string;
+  authorNickname: string;
+  avatarKey: ProfileAvatarKey;
+  body: string;
+  createdAt: string;
+}
+
+export interface DiscussionTopicView {
+  topicId: string;
+  gameId: string;
+  gameName: string;
+  authorId: string;
+  authorNickname: string;
+  avatarKey: ProfileAvatarKey;
+  title: string;
+  body: string;
+  status: 'OPEN' | 'LOCKED' | string;
+  createdAt: string;
+  updatedAt: string;
+  replyCount: number;
+  replies: DiscussionReplyView[];
+}
+
 export interface ApiEnvelope<T> {
   code: number;
   message: string;

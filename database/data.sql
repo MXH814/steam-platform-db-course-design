@@ -260,6 +260,12 @@ VALUES ('ITEM_CS2_002', 'ITPL_CS2_AK_REDLINE', 'P001', 0.3320, 'NORMAL', TIMESTA
 INSERT INTO INVENTORY_ITEM (item_id, template_id, user_id, wear_rating, status, acquire_time, version)
 VALUES ('ITEM_DST_001', 'ITPL_DST_HOLLY_WREATH', 'P001', NULL, 'NORMAL', TIMESTAMP '2026-07-05 12:50:00', 1);
 
+INSERT INTO INVENTORY_ITEM (item_id, template_id, user_id, wear_rating, status, acquire_time, version)
+VALUES ('ITEM_OFFER_P001', 'ITPL_CS2_P90_ELITE_BUILD', 'P001', 0.1840, 'LOCKED', TIMESTAMP '2026-07-05 12:52:00', 1);
+
+INSERT INTO INVENTORY_ITEM (item_id, template_id, user_id, wear_rating, status, acquire_time, version)
+VALUES ('ITEM_OFFER_P002', 'ITPL_CS2_P250_CYBER_SHELL', 'P002', 0.0910, 'LOCKED', TIMESTAMP '2026-07-05 12:53:00', 1);
+
 INSERT INTO MARKET_ORDER (market_order_id, user_id, template_id, item_id, order_type, target_price, frozen_amount, status, create_time)
 VALUES ('MO_CS2_BUY_1', 'P001', 'ITPL_CS2_AK_REDLINE', NULL, 'BUY', 45.00, 0.00, 'TRADED', TIMESTAMP '2026-07-05 14:00:00');
 
@@ -283,6 +289,12 @@ VALUES ('ITL_CS2_DROP_002', 'ITEM_CS2_002', NULL, 'P002', 'DROP', TIMESTAMP '202
 
 INSERT INTO ITEM_TRANSFER_LEDGER (transfer_id, item_id, from_user_id, to_user_id, transfer_type, transfer_time)
 VALUES ('ITL_CS2_TRADE_001', 'ITEM_CS2_002', 'P002', 'P001', 'TRADE', TIMESTAMP '2026-07-05 14:02:00');
+
+INSERT INTO ITEM_TRANSFER_LEDGER (transfer_id, item_id, from_user_id, to_user_id, transfer_type, transfer_time)
+VALUES ('ITL_OFFER_DROP_001', 'ITEM_OFFER_P001', NULL, 'P001', 'DROP', TIMESTAMP '2026-07-05 12:52:00');
+
+INSERT INTO ITEM_TRANSFER_LEDGER (transfer_id, item_id, from_user_id, to_user_id, transfer_type, transfer_time)
+VALUES ('ITL_OFFER_DROP_002', 'ITEM_OFFER_P002', NULL, 'P002', 'DROP', TIMESTAMP '2026-07-05 12:53:00');
 
 INSERT INTO WALLET_TRANSACTION (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, payment_method, create_time)
 VALUES ('WT_DST_BUY_001', 'W001', 'BUY_GAME', 'O_DST_001', 'DEBIT', 24.00, 200.00, 176.00, 'idem-wallet-dst-buy-001', 'STEAM_WALLET', TIMESTAMP '2026-07-05 10:01:00');
@@ -340,6 +352,84 @@ VALUES ('NTF_DEMO_001', 'P001', 'DIRECT_MESSAGE', 'Bob 发来新消息', 'CS2 �
 
 INSERT INTO USER_NOTIFICATION (notification_id, user_id, notification_type, title, message, target_url, is_read, created_at, read_at)
 VALUES ('NTF_DEMO_002', 'P001', 'WORKSHOP_UPDATE', '工坊作品已更新', '四季生存扩展发布了新的团队任务。', '/games/GAME_DST/community?section=workshop', 0, TIMESTAMP '2026-07-08 09:05:00', NULL);
+
+INSERT INTO PLAYER_PROFILE (user_id, headline, bio, avatar_key, background_key, theme_key, showcase_game_id, profile_visibility, updated_at)
+VALUES ('P001', '生存游戏与饰品收藏爱好者', '正在完善 CS2 饰品交易和饥荒联机版生存挑战展示。', 'AVATAR_BLUE', 'BACKGROUND_CS2', 'STEAM_BLUE', 'GAME_CS2', 'PUBLIC', TIMESTAMP '2026-07-08 10:00:00');
+
+INSERT INTO PLAYER_PROFILE (user_id, headline, bio, avatar_key, background_key, theme_key, showcase_game_id, profile_visibility, updated_at)
+VALUES ('P002', '合作生存与社区工坊创作者', '喜欢制作联机模组，也会关注 CS2 社区市场。', 'AVATAR_ORANGE', 'BACKGROUND_DST', 'SURVIVAL_GREEN', 'GAME_DST', 'PUBLIC', TIMESTAMP '2026-07-08 10:05:00');
+
+INSERT INTO BADGE_CATALOG (badge_id, badge_name, description, icon_key, xp_value, rarity)
+VALUES ('BDG_EARLY_MEMBER', '平台先行者', '完成账号注册并加入课程演示平台。', 'SPARKLES', 100, 'COMMON');
+
+INSERT INTO BADGE_CATALOG (badge_id, badge_name, description, icon_key, xp_value, rarity)
+VALUES ('BDG_DST_SURVIVOR', '荒野生存者', '完成饥荒联机版首个生存挑战。', 'CAMPFIRE', 250, 'RARE');
+
+INSERT INTO BADGE_CATALOG (badge_id, badge_name, description, icon_key, xp_value, rarity)
+VALUES ('BDG_CS2_TRADER', '饰品交易员', '完成一次 CS2 饰品市场交易。', 'GEM', 300, 'EPIC');
+
+INSERT INTO BADGE_CATALOG (badge_id, badge_name, description, icon_key, xp_value, rarity)
+VALUES ('BDG_COMMUNITY_HELPER', '社区热心人', '积极参与评测、工坊与讨论互动。', 'MESSAGES', 180, 'RARE');
+
+INSERT INTO PLAYER_BADGE (user_id, badge_id, earned_at, is_featured)
+VALUES ('P001', 'BDG_EARLY_MEMBER', TIMESTAMP '2026-07-05 09:00:00', 0);
+
+INSERT INTO PLAYER_BADGE (user_id, badge_id, earned_at, is_featured)
+VALUES ('P001', 'BDG_CS2_TRADER', TIMESTAMP '2026-07-05 14:02:00', 1);
+
+INSERT INTO PLAYER_BADGE (user_id, badge_id, earned_at, is_featured)
+VALUES ('P001', 'BDG_DST_SURVIVOR', TIMESTAMP '2026-07-05 18:00:00', 0);
+
+INSERT INTO PLAYER_BADGE (user_id, badge_id, earned_at, is_featured)
+VALUES ('P002', 'BDG_EARLY_MEMBER', TIMESTAMP '2026-07-05 09:05:00', 0);
+
+INSERT INTO PLAYER_BADGE (user_id, badge_id, earned_at, is_featured)
+VALUES ('P002', 'BDG_COMMUNITY_HELPER', TIMESTAMP '2026-07-08 09:30:00', 1);
+
+INSERT INTO TRADE_OFFER (offer_id, sender_id, recipient_id, message, status, created_at, responded_at, version)
+VALUES ('TO_DEMO_001', 'P001', 'P002', '用 P90 | Elite Build 交换你的 P250 | Cyber Shell，可以吗？', 'PENDING', TIMESTAMP '2026-07-08 11:00:00', NULL, 0);
+
+INSERT INTO TRADE_OFFER_ITEM (offer_id, item_id, item_role, owner_id_at_create)
+VALUES ('TO_DEMO_001', 'ITEM_OFFER_P001', 'OFFERED', 'P001');
+
+INSERT INTO TRADE_OFFER_ITEM (offer_id, item_id, item_role, owner_id_at_create)
+VALUES ('TO_DEMO_001', 'ITEM_OFFER_P002', 'REQUESTED', 'P002');
+
+INSERT INTO COMMUNITY_POST (post_id, author_id, game_id, post_type, content, media_url, visibility, status, created_at, updated_at)
+VALUES ('POST_DEMO_001', 'P001', 'GAME_DST', 'STATUS', '和 Bob 完成了第一晚生存，营地终于稳定下来了。', NULL, 'PUBLIC', 'VISIBLE', TIMESTAMP '2026-07-08 12:00:00', TIMESTAMP '2026-07-08 12:00:00');
+
+INSERT INTO COMMUNITY_POST (post_id, author_id, game_id, post_type, content, media_url, visibility, status, created_at, updated_at)
+VALUES ('POST_DEMO_002', 'P002', 'GAME_DST', 'SCREENSHOT', '远古遗迹挑战路线测试完成，准备发布到创意工坊。', '/assets/media/dst-screenshot-3.jpg', 'PUBLIC', 'VISIBLE', TIMESTAMP '2026-07-08 12:10:00', TIMESTAMP '2026-07-08 12:10:00');
+
+INSERT INTO COMMUNITY_POST (post_id, author_id, game_id, post_type, content, media_url, visibility, status, created_at, updated_at)
+VALUES ('POST_DEMO_003', 'P001', 'GAME_CS2', 'ACHIEVEMENT', '解锁了 Defuse Expert，下一目标是 Ace Round。', '/assets/media/cs2-screenshot-2.jpg', 'PUBLIC', 'VISIBLE', TIMESTAMP '2026-07-08 12:20:00', TIMESTAMP '2026-07-08 12:20:00');
+
+INSERT INTO COMMUNITY_POST (post_id, author_id, game_id, post_type, content, media_url, visibility, status, created_at, updated_at)
+VALUES ('POST_DEMO_004', 'P002', 'GAME_CS2', 'TRADE', '正在查看新的 CS2 物品报价，欢迎好友交流收藏。', NULL, 'FRIENDS', 'VISIBLE', TIMESTAMP '2026-07-08 12:30:00', TIMESTAMP '2026-07-08 12:30:00');
+
+INSERT INTO COMMUNITY_POST_REACTION (post_id, user_id, reaction_type, created_at)
+VALUES ('POST_DEMO_001', 'P002', 'LIKE', TIMESTAMP '2026-07-08 12:05:00');
+
+INSERT INTO COMMUNITY_POST_REACTION (post_id, user_id, reaction_type, created_at)
+VALUES ('POST_DEMO_002', 'P001', 'AWARD', TIMESTAMP '2026-07-08 12:15:00');
+
+INSERT INTO COMMUNITY_POST_REACTION (post_id, user_id, reaction_type, created_at)
+VALUES ('POST_DEMO_003', 'P002', 'LIKE', TIMESTAMP '2026-07-08 12:25:00');
+
+INSERT INTO DISCUSSION_TOPIC (topic_id, game_id, author_id, title, body, status, created_at, updated_at)
+VALUES ('TOPIC_DST_001', 'GAME_DST', 'P001', '新手第一年应该优先准备什么？', '我们准备双人开局，希望讨论秋季到冬季的资源和营地规划。', 'OPEN', TIMESTAMP '2026-07-08 13:00:00', TIMESTAMP '2026-07-08 13:10:00');
+
+INSERT INTO DISCUSSION_TOPIC (topic_id, game_id, author_id, title, body, status, created_at, updated_at)
+VALUES ('TOPIC_CS2_001', 'GAME_CS2', 'P002', '如何练习 Mirage 常用烟雾？', '想配合创意工坊训练图整理一套固定练习流程。', 'OPEN', TIMESTAMP '2026-07-08 13:20:00', TIMESTAMP '2026-07-08 13:25:00');
+
+INSERT INTO DISCUSSION_REPLY (reply_id, topic_id, author_id, body, status, created_at, updated_at)
+VALUES ('REPLY_DST_001', 'TOPIC_DST_001', 'P002', '先稳定食物、木材和保暖物资，冬季前再扩展探索范围。', 'VISIBLE', TIMESTAMP '2026-07-08 13:10:00', TIMESTAMP '2026-07-08 13:10:00');
+
+INSERT INTO DISCUSSION_REPLY (reply_id, topic_id, author_id, body, status, created_at, updated_at)
+VALUES ('REPLY_CS2_001', 'TOPIC_CS2_001', 'P001', '可以先订阅 Aim Training Arena，再按 A 点、B 点分别保存投掷站位。', 'VISIBLE', TIMESTAMP '2026-07-08 13:25:00', TIMESTAMP '2026-07-08 13:25:00');
+
+INSERT INTO USER_NOTIFICATION (notification_id, user_id, notification_type, title, message, target_url, is_read, created_at, read_at)
+VALUES ('NTF_DEMO_003', 'P002', 'TRADE_OFFER', '收到新的交易报价', 'Alice 希望与你交换两件 CS2 饰品。', '/trade-offers', 0, TIMESTAMP '2026-07-08 11:00:00', NULL);
 
 COMMIT;
 

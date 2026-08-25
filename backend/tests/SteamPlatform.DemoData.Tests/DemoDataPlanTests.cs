@@ -11,9 +11,9 @@ public sealed class DemoDataPlanTests
     {
         var manifest = DemoDataManifest.Load(_root, Path.Combine("database", "demo", "manifest.json"));
 
-        Assert.Equal(33, manifest.InsertionOrder.Count);
+        Assert.Equal(42, manifest.InsertionOrder.Count);
         Assert.Equal("PLAYER", manifest.InsertionOrder[0]);
-        Assert.Equal("USER_NOTIFICATION", manifest.InsertionOrder[^1]);
+        Assert.Equal("DISCUSSION_REPLY", manifest.InsertionOrder[^1]);
         Assert.Equal(manifest.InsertionOrder.Reverse(), manifest.DeletionOrder);
         Assert.DoesNotContain("DEMO_RESET_RUN", manifest.InsertionOrder);
     }
@@ -24,7 +24,7 @@ public sealed class DemoDataPlanTests
         var manifest = DemoDataManifest.Load(_root, Path.Combine("database", "demo", "manifest.json"));
         var statements = SqlScriptParser.ParseBaseline(File.ReadAllText(manifest.ResolveBaselinePath(_root)));
 
-        Assert.True(statements.Count >= 90, $"Expected a comprehensive baseline, got {statements.Count} statements.");
+        Assert.True(statements.Count >= 130, $"Expected a comprehensive baseline, got {statements.Count} statements.");
         Assert.All(statements, statement => Assert.StartsWith("INSERT INTO ", statement, StringComparison.OrdinalIgnoreCase));
         Assert.Contains(statements, statement => statement.Contains("Don''t Starve Together", StringComparison.Ordinal));
         Assert.Contains(statements, statement => statement.Contains("ITPL_CS2_AWP_DRAGON_LORE", StringComparison.Ordinal));

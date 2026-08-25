@@ -22,7 +22,10 @@ public sealed class SchemaContractTests
     private static readonly string[] ExpectedEnhancementTables =
     [
         "FRIEND_RELATION", "DIRECT_MESSAGE", "REVIEW_REACTION",
-        "WORKSHOP_ITEM", "WORKSHOP_SUBSCRIPTION", "USER_NOTIFICATION"
+        "WORKSHOP_ITEM", "WORKSHOP_SUBSCRIPTION", "USER_NOTIFICATION",
+        "PLAYER_PROFILE", "BADGE_CATALOG", "PLAYER_BADGE",
+        "TRADE_OFFER", "TRADE_OFFER_ITEM", "COMMUNITY_POST",
+        "COMMUNITY_POST_REACTION", "DISCUSSION_TOPIC", "DISCUSSION_REPLY"
     ];
 
     [Fact]
@@ -32,7 +35,7 @@ public sealed class SchemaContractTests
             .Select(match => match.Groups[1].Value.ToUpperInvariant())
             .ToArray();
 
-        Assert.Equal(36, tables.Length);
+        Assert.Equal(45, tables.Length);
         Assert.Empty(ExpectedTables.Except(tables));
         Assert.Empty(ExpectedEnhancementTables.Except(tables));
         Assert.Empty(ExpectedOperationalTables.Except(tables));
@@ -51,6 +54,9 @@ public sealed class SchemaContractTests
         Assert.Contains("FK_MESSAGE_RELATION", TableBlock("DIRECT_MESSAGE"), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("PK_REVIEW_REACTION", TableBlock("REVIEW_REACTION"), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("PK_WORKSHOP_SUBSCRIPTION", TableBlock("WORKSHOP_SUBSCRIPTION"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CK_TRADE_OFFER_STATUS", TableBlock("TRADE_OFFER"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("FK_OFFER_ITEM_INVENTORY", TableBlock("TRADE_OFFER_ITEM"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("FK_DISCUSSION_REPLY_TOPIC", TableBlock("DISCUSSION_REPLY"), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -1006,6 +1006,32 @@ textarea:focus {
 .friend-list i.playing { background: #7aaa44; }
 .friend-list i.away { background: #af974f; }
 
+.friend-drawer-links {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid #2d4052;
+  border-bottom: 1px solid #2d4052;
+  background: #131f2b;
+}
+
+.friend-drawer-links a {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px;
+  color: #c7d5e0;
+  background: #263b4e;
+  font-size: 0.76rem;
+}
+
+.friend-drawer-links a:hover {
+  color: #ffffff;
+  background: #3b647f;
+}
+
 .chat-pane {
   display: grid;
   grid-template-rows: 38px minmax(120px, 1fr) auto;
