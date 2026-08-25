@@ -17,6 +17,11 @@ export default defineConfig(({ mode }) => {
         '/health': {
           target: apiProxyTarget,
           changeOrigin: true
+        },
+        '/hubs': {
+          target: apiProxyTarget,
+          changeOrigin: true,
+          ws: true
         }
       }
     }

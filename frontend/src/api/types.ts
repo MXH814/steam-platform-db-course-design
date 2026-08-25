@@ -94,6 +94,64 @@ export interface UnlockAchievementResult {
   unlockTime: string;
 }
 
+export interface FriendListItem {
+  relationId: string;
+  userId: string;
+  nickname: string;
+  relationStatus: 'PENDING' | 'ACCEPTED' | 'BLOCKED' | string;
+  isIncomingRequest: boolean;
+  latestMessage: string | null;
+  latestMessageAt: string | null;
+}
+
+export interface DirectMessageItem {
+  messageId: string;
+  relationId: string;
+  senderId: string;
+  senderNickname: string;
+  content: string;
+  sentAt: string;
+  readAt: string | null;
+}
+
+export interface ReviewInteractionItem {
+  reviewId: string;
+  voteType: 'UP' | 'DOWN' | null;
+  isStarred: boolean;
+  isFunny: boolean;
+  isAwarded: boolean;
+  upVotes: number;
+  downVotes: number;
+  funnyCount: number;
+  awardCount: number;
+}
+
+export interface WorkshopItemView {
+  workshopItemId: string;
+  gameId: string;
+  creatorUserId: string | null;
+  creatorNickname: string | null;
+  title: string;
+  category: string;
+  summary: string;
+  details: string;
+  imageUrl: string | null;
+  subscriberCount: number;
+  isSubscribed: boolean;
+  updatedAt: string;
+}
+
+export interface UserNotificationItem {
+  notificationId: string;
+  notificationType: string;
+  title: string;
+  message: string;
+  targetUrl: string | null;
+  isRead: boolean;
+  createdAt: string;
+  readAt: string | null;
+}
+
 export interface ApiEnvelope<T> {
   code: number;
   message: string;

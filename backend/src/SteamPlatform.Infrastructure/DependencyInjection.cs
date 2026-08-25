@@ -8,6 +8,7 @@ using SteamPlatform.Application.Games;
 using SteamPlatform.Application.Inventory;
 using SteamPlatform.Application.Market;
 using SteamPlatform.Application.Notices;
+using SteamPlatform.Application.Social;
 using SteamPlatform.Infrastructure.Auth;
 using SteamPlatform.Infrastructure.Community;
 using SteamPlatform.Infrastructure.CoreTransactions;
@@ -16,6 +17,7 @@ using SteamPlatform.Infrastructure.Games;
 using SteamPlatform.Infrastructure.Inventory;
 using SteamPlatform.Infrastructure.Market;
 using SteamPlatform.Infrastructure.Notices;
+using SteamPlatform.Infrastructure.Social;
 
 namespace SteamPlatform.Infrastructure;
 
@@ -43,6 +45,8 @@ public static class DependencyInjection
         services.AddScoped<IReviewRepository, ReviewRepository>();
         services.AddScoped<IAchievementRepository, AchievementRepository>();
         services.AddScoped<IMarketRepository, MarketRepository>();
+        services.AddScoped<ISocialRepository, SocialRepository>();
+        services.AddScoped<ISocialService, SocialService>();
         services.AddScoped<IDatabaseHealthProbe, OracleDatabaseHealthProbe>();
 
         return services;

@@ -19,6 +19,12 @@ public sealed class SchemaContractTests
         "DEMO_RESET_RUN", "DEMO_RESET_TABLE", "DEMO_RESET_EVENT"
     ];
 
+    private static readonly string[] ExpectedEnhancementTables =
+    [
+        "FRIEND_RELATION", "DIRECT_MESSAGE", "REVIEW_REACTION",
+        "WORKSHOP_ITEM", "WORKSHOP_SUBSCRIPTION", "USER_NOTIFICATION"
+    ];
+
     [Fact]
     public void Schema_defines_expected_27_core_tables()
     {
@@ -26,10 +32,25 @@ public sealed class SchemaContractTests
             .Select(match => match.Groups[1].Value.ToUpperInvariant())
             .ToArray();
 
-        Assert.Equal(30, tables.Length);
+        Assert.Equal(36, tables.Length);
         Assert.Empty(ExpectedTables.Except(tables));
+        Assert.Empty(ExpectedEnhancementTables.Except(tables));
         Assert.Empty(ExpectedOperationalTables.Except(tables));
-        Assert.Empty(tables.Except(ExpectedTables.Concat(ExpectedOperationalTables)));
+        Assert.Empty(tables.Except(ExpectedTables.Concat(ExpectedEnhancementTables).Concat(ExpectedOperationalTables)));
+    }
+
+    [Fact]
+    public void Schema_defines_social_enhancement_tables_with_relational_constraints()
+    {
+        foreach (var table in ExpectedEnhancementTables)
+        {
+            Assert.Contains($"CREATE TABLE {table}", SqlFile.Schema, StringComparison.OrdinalIgnoreCase);
+        }
+
+        Assert.Contains("UK_FRIEND_PAIR", TableBlock("FRIEND_RELATION"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("FK_MESSAGE_RELATION", TableBlock("DIRECT_MESSAGE"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("PK_REVIEW_REACTION", TableBlock("REVIEW_REACTION"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("PK_WORKSHOP_SUBSCRIPTION", TableBlock("WORKSHOP_SUBSCRIPTION"), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -941,7 +941,11 @@ textarea:focus {
   display: grid;
 }
 
-.friend-list > button {
+.friend-row {
+  position: relative;
+}
+
+.friend-row > button:first-child {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) 9px;
   align-items: center;
@@ -955,9 +959,21 @@ textarea:focus {
   text-align: left;
 }
 
-.friend-list > button:hover,
-.friend-list > button.active {
+.friend-row > button:first-child:hover,
+.friend-row > button:first-child.active {
   background: #354557;
+}
+
+.friend-row .friend-accept {
+  position: absolute;
+  z-index: 1;
+  right: 24px;
+  bottom: 5px;
+  border: 0;
+  padding: 2px 7px;
+  color: #ffffff;
+  background: #5c7e10;
+  cursor: pointer;
 }
 
 .friend-avatar {
@@ -970,7 +986,7 @@ textarea:focus {
   background: #314b61;
 }
 
-.friend-list > button > span:nth-child(2) {
+.friend-row > button:first-child > span:nth-child(2) {
   display: grid;
 }
 
@@ -1026,6 +1042,12 @@ textarea:focus {
   justify-self: end;
   color: #ffffff;
   background: #36698d;
+}
+
+.chat-log p small {
+  display: block;
+  color: #6ea6ca;
+  font-size: 0.65rem;
 }
 
 .chat-pane form {

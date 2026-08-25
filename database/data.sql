@@ -293,6 +293,54 @@ VALUES ('WT_MARKET_SELL_001', 'W002', 'MARKET_SELL', 'TRD_CS2_001', 'CREDIT', 42
 INSERT INTO WALLET_TRANSACTION (txn_id, wallet_id, biz_type, biz_ref_id, funds_direction, amount, avail_bal_before, avail_bal_after, idempotency_key, payment_method, create_time)
 VALUES ('WT_MARKET_FREEZE_001', 'W002', 'MARKET_FREEZE', 'MO_CS2_BUY_2', 'FREEZE', 50.00, 292.75, 242.75, 'idem-wallet-market-freeze-001', 'STEAM_WALLET', TIMESTAMP '2026-07-05 14:10:00');
 
+INSERT INTO FRIEND_RELATION (relation_id, user_low_id, user_high_id, requested_by, status, created_at, responded_at)
+VALUES ('FR_P001_P002', 'P001', 'P002', 'P001', 'ACCEPTED', TIMESTAMP '2026-07-05 15:00:00', TIMESTAMP '2026-07-05 15:01:00');
+
+INSERT INTO DIRECT_MESSAGE (message_id, relation_id, sender_id, content, status, sent_at, read_at)
+VALUES ('MSG_DEMO_001', 'FR_P001_P002', 'P002', 'CS2 市场演示准备好了吗？', 'SENT', TIMESTAMP '2026-07-05 15:10:00', TIMESTAMP '2026-07-05 15:11:00');
+
+INSERT INTO DIRECT_MESSAGE (message_id, relation_id, sender_id, content, status, sent_at, read_at)
+VALUES ('MSG_DEMO_002', 'FR_P001_P002', 'P001', '准备好了，稍后用 AK-47 | Redline 完成撮合。', 'SENT', TIMESTAMP '2026-07-05 15:12:00', NULL);
+
+INSERT INTO REVIEW_REACTION (review_id, user_id, vote_type, is_starred, is_funny, is_awarded, updated_at)
+VALUES ('REV_DST_001', 'P002', 'UP', 1, 0, 1, TIMESTAMP '2026-07-05 15:20:00');
+
+INSERT INTO WORKSHOP_ITEM (workshop_item_id, game_id, creator_user_id, title, category, summary, details, image_url, status, created_at, updated_at)
+VALUES ('WS_CS2_AIM', 'GAME_CS2', 'P002', 'Aim Training Arena', '训练地图', '社区制作的瞄准与压枪训练场。', '支持多种武器、距离与移动目标组合，用于 CS2 训练演示。', '/assets/games/cs2-library-hero.jpg', 'PUBLISHED', TIMESTAMP '2026-07-05 16:00:00', TIMESTAMP '2026-07-08 10:00:00');
+
+INSERT INTO WORKSHOP_ITEM (workshop_item_id, game_id, creator_user_id, title, category, summary, details, image_url, status, created_at, updated_at)
+VALUES ('WS_CS2_MIRAGE', 'GAME_CS2', 'P001', 'Mirage Night Practice', '竞技地图', '夜间 Mirage 战术练习版本。', '保留主要点位并加入夜间灯光，适合课程展示地图详情和订阅。', '/assets/games/cs2-header.jpg', 'PUBLISHED', TIMESTAMP '2026-07-05 16:05:00', TIMESTAMP '2026-07-07 11:00:00');
+
+INSERT INTO WORKSHOP_ITEM (workshop_item_id, game_id, creator_user_id, title, category, summary, details, image_url, status, created_at, updated_at)
+VALUES ('WS_CS2_RETAKE', 'GAME_CS2', 'P002', 'Retake Utility Lab', '战术工具', '残局与道具投掷训练工具。', '提供常用烟雾、闪光和残局站位提示。', '/assets/games/cs2-library-cover.jpg', 'PUBLISHED', TIMESTAMP '2026-07-05 16:10:00', TIMESTAMP '2026-07-06 12:00:00');
+
+INSERT INTO WORKSHOP_ITEM (workshop_item_id, game_id, creator_user_id, title, category, summary, details, image_url, status, created_at, updated_at)
+VALUES ('WS_CS2_WINGMAN', 'GAME_CS2', 'P001', 'Warehouse Wingman', '搭档地图', '紧凑仓库主题搭档地图。', '为 2v2 快节奏对局设计的课程演示地图。', '/assets/games/cs2-library-hero.jpg', 'PUBLISHED', TIMESTAMP '2026-07-05 16:15:00', TIMESTAMP '2026-07-05 16:15:00');
+
+INSERT INTO WORKSHOP_ITEM (workshop_item_id, game_id, creator_user_id, title, category, summary, details, image_url, status, created_at, updated_at)
+VALUES ('WS_DST_SEASONS', 'GAME_DST', 'P002', '四季生存扩展', '世界模组', '强化四季天气与团队生存节奏。', '加入季节事件和团队任务，适合联机生存演示。', '/assets/games/dst-library-hero.jpg', 'PUBLISHED', TIMESTAMP '2026-07-05 16:20:00', TIMESTAMP '2026-07-08 09:00:00');
+
+INSERT INTO WORKSHOP_ITEM (workshop_item_id, game_id, creator_user_id, title, category, summary, details, image_url, status, created_at, updated_at)
+VALUES ('WS_DST_ISLAND', 'GAME_DST', 'P001', '海岛营地合集', '建筑合集', '海岛主题营地建筑与装饰合集。', '提供适合多人基地规划的装饰、照明和储物建筑。', '/assets/games/dst-header.jpg', 'PUBLISHED', TIMESTAMP '2026-07-05 16:25:00', TIMESTAMP '2026-07-07 09:00:00');
+
+INSERT INTO WORKSHOP_ITEM (workshop_item_id, game_id, creator_user_id, title, category, summary, details, image_url, status, created_at, updated_at)
+VALUES ('WS_DST_STORAGE', 'GAME_DST', 'P002', '自动整理箱', '实用工具', '按物品类型自动整理团队仓库。', '降低多人联机的物资整理成本，并展示订阅状态持久化。', '/assets/games/dst-library-cover.jpg', 'PUBLISHED', TIMESTAMP '2026-07-05 16:30:00', TIMESTAMP '2026-07-06 09:00:00');
+
+INSERT INTO WORKSHOP_ITEM (workshop_item_id, game_id, creator_user_id, title, category, summary, details, image_url, status, created_at, updated_at)
+VALUES ('WS_DST_RUINS', 'GAME_DST', 'P001', '远古遗迹挑战', '冒险模组', '面向多人队伍的遗迹挑战路线。', '包含阶段目标、战利品和自定义成就演示。', '/assets/games/dst-library-hero.jpg', 'PUBLISHED', TIMESTAMP '2026-07-05 16:35:00', TIMESTAMP '2026-07-05 16:35:00');
+
+INSERT INTO WORKSHOP_SUBSCRIPTION (workshop_item_id, user_id, subscribed_at)
+VALUES ('WS_DST_SEASONS', 'P001', TIMESTAMP '2026-07-05 17:00:00');
+
+INSERT INTO WORKSHOP_SUBSCRIPTION (workshop_item_id, user_id, subscribed_at)
+VALUES ('WS_CS2_AIM', 'P001', TIMESTAMP '2026-07-05 17:05:00');
+
+INSERT INTO USER_NOTIFICATION (notification_id, user_id, notification_type, title, message, target_url, is_read, created_at, read_at)
+VALUES ('NTF_DEMO_001', 'P001', 'DIRECT_MESSAGE', 'Bob 发来新消息', 'CS2 市场演示准备好了吗？', '/community', 1, TIMESTAMP '2026-07-05 15:10:00', TIMESTAMP '2026-07-05 15:11:00');
+
+INSERT INTO USER_NOTIFICATION (notification_id, user_id, notification_type, title, message, target_url, is_read, created_at, read_at)
+VALUES ('NTF_DEMO_002', 'P001', 'WORKSHOP_UPDATE', '工坊作品已更新', '四季生存扩展发布了新的团队任务。', '/games/GAME_DST/community?section=workshop', 0, TIMESTAMP '2026-07-08 09:05:00', NULL);
+
 COMMIT;
 
 PROMPT Steam course seed data inserted.

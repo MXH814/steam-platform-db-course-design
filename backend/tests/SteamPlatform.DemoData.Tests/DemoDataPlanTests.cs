@@ -7,13 +7,13 @@ public sealed class DemoDataPlanTests
     private readonly string _root = RepositoryRoot.Find();
 
     [Fact]
-    public void Manifest_covers_all_27_core_business_tables_in_dependency_order()
+    public void Manifest_covers_core_and_enhancement_business_tables_in_dependency_order()
     {
         var manifest = DemoDataManifest.Load(_root, Path.Combine("database", "demo", "manifest.json"));
 
-        Assert.Equal(27, manifest.InsertionOrder.Count);
+        Assert.Equal(33, manifest.InsertionOrder.Count);
         Assert.Equal("PLAYER", manifest.InsertionOrder[0]);
-        Assert.Equal("WALLET_TRANSACTION", manifest.InsertionOrder[^1]);
+        Assert.Equal("USER_NOTIFICATION", manifest.InsertionOrder[^1]);
         Assert.Equal(manifest.InsertionOrder.Reverse(), manifest.DeletionOrder);
         Assert.DoesNotContain("DEMO_RESET_RUN", manifest.InsertionOrder);
     }

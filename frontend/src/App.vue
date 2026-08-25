@@ -58,15 +58,18 @@
 
         <div class="client-actions">
           <button class="icon-link" type="button" title="通知" aria-label="通知" @click="toggleNotifications">
-            <Bell :size="16" /><i v-if="notifications.length" />
+            <Bell :size="16" /><i v-if="unreadNotificationCount" />
           </button>
           <div v-if="notificationOpen" class="notification-popover">
             <header><strong>通知</strong><button type="button" aria-label="关闭通知" @click="notificationOpen = false"><X :size="15" /></button></header>
             <p v-if="notificationsLoading">正在同步平台公告...</p>
+            <button v-for="notice in userNotifications.slice(0, 6)" :key="notice.notificationId" type="button" @click="openUserNotification(notice)">
+              <strong>{{ notice.isRead ? notice.title : `● ${notice.title}` }}</strong><span>{{ notice.message }}</span>
+            </button>
             <button v-for="(notice, index) in startupAnnouncements.slice(0, 4)" :key="notice.id" type="button" @click="openAnnouncement(index)">
               <strong>{{ notice.title }}</strong><span>{{ notice.content }}</span>
             </button>
-            <p v-if="!notificationsLoading && !startupAnnouncements.length">没有未读通知</p>
+            <p v-if="!notificationsLoading && !userNotifications.length && !startupAnnouncements.length">没有未读通知</p>
           </div>
           <button v-if="auth.isAuthenticated" class="account-link" type="button" :aria-expanded="activeMenu === 'account'" @click="toggleMenu('account')">
             <span class="account-avatar">{{ accountInitial }}</span><span>{{ auth.currentUser?.account }}</span><ChevronDown :size="14" />
@@ -152,13 +155,18 @@
         <header><div><Users :size="19" /><strong>好友与聊天</strong></div><button type="button" aria-label="关闭好友与聊天" @click="activeDrawer = ''"><X :size="17" /></button></header>
         <label class="friend-search"><Search :size="15" /><input v-model="friendSearch" type="search" placeholder="搜索好友" /></label>
         <div class="friend-list">
-          <button v-for="friend in filteredFriends" :key="friend.name" type="button" :class="{ active: selectedFriend === friend.name }" @click="selectedFriend = friend.name">
-            <span class="friend-avatar">{{ friend.name.slice(0, 1) }}</span><span><strong>{{ friend.name }}</strong><small>{{ friend.status }}</small></span><i :class="friend.state" />
-          </button>
+          <div v-for="friend in filteredFriends" :key="friend.userId" class="friend-row">
+            <button type="button" :class="{ active: selectedFriendId === friend.userId }" @click="selectFriend(friend.userId)">
+              <span class="friend-avatar">{{ friend.nickname.slice(0, 1) }}</span><span><strong>{{ friend.nickname }}</strong><small>{{ friend.latestMessage || relationLabel(friend) }}</small></span><i :class="friend.relationStatus === 'ACCEPTED' ? 'online' : 'away'" />
+            </button>
+            <button v-if="friend.isIncomingRequest" class="friend-accept" type="button" @click="approveFriend(friend.relationId)">接受</button>
+          </div>
+          <p v-if="friendsLoading">正在同步好友列表...</p>
+          <p v-else-if="!filteredFriends.length">暂无匹配的好友。</p>
         </div>
         <section v-if="selectedFriend" class="chat-pane">
-          <header>{{ selectedFriend }}</header><div class="chat-log"><p>现在可以开始聊天了。</p><p v-for="(chat, index) in chats[selectedFriend] || []" :key="index" class="mine">{{ chat }}</p></div>
-          <form @submit.prevent="sendChat"><input v-model.trim="chatDraft" placeholder="发送消息" /><button type="submit" :disabled="!chatDraft" aria-label="发送消息"><Send :size="16" /></button></form>
+          <header>{{ selectedFriend.nickname }}</header><div class="chat-log"><p v-if="!chatMessages.length">现在可以开始聊天了。</p><p v-for="chat in chatMessages" :key="chat.messageId" :class="{ mine: chat.senderId === auth.currentUser?.principalId }"><small>{{ chat.senderNickname }}</small>{{ chat.content }}</p></div>
+          <form @submit.prevent="sendChat"><input v-model.trim="chatDraft" maxlength="1000" placeholder="发送消息" /><button type="submit" :disabled="!chatDraft || sendingChat" aria-label="发送消息"><Send :size="16" /></button></form>
         </section>
       </aside>
     </Transition>
@@ -178,7 +186,9 @@ import { Bell, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Cloud, Down
 import { useRoute, useRouter } from 'vue-router';
 import { getLibrary, type LibraryEntry } from './api/coreApi';
 import { http } from './api/http';
-import type { SysNotice } from './api/types';
+import { acceptFriend, listFriends, listMessages, listNotifications as listUserNotifications, markNotificationRead, sendMessage } from './api/socialApi';
+import { SocialRealtimeClient } from './api/socialRealtime';
+import type { DirectMessageItem, FriendListItem, SysNotice, UserNotificationItem } from './api/types';
 import { getGameMeta } from './data/gameCatalog';
 import { useAuthStore } from './stores/auth';
 
@@ -202,6 +212,7 @@ const activeDrawer = ref<DrawerKey>('');
 const notificationOpen = ref(false);
 const notificationsLoading = ref(false);
 const notifications = ref<SysNotice[]>([]);
+const userNotifications = ref<UserNotificationItem[]>([]);
 const notificationsLoaded = ref(false);
 const startupAnnouncementOpen = ref(false);
 const startupAnnouncementIndex = ref(0);
@@ -209,19 +220,19 @@ const libraryLoading = ref(false);
 const libraryEntries = ref<LibraryEntry[]>([]);
 const toast = ref('');
 const friendSearch = ref('');
-const selectedFriend = ref('');
+const selectedFriendId = ref('');
 const chatDraft = ref('');
-const chats = ref<Record<string, string[]>>({});
+const chatMessages = ref<DirectMessageItem[]>([]);
+const friends = ref<FriendListItem[]>([]);
+const friendsLoading = ref(false);
+const sendingChat = ref(false);
+const realtime = new SocialRealtimeClient();
 const startupDismissKey = 'game-deck-startup-announcement-dismissed:2026-08-25';
 let menuTimer: number | undefined;
 let toastTimer: number | undefined;
-const friends = [
-  { name: 'Alice', status: '正在玩 Counter-Strike 2', state: 'playing' },
-  { name: 'Bob', status: '在线', state: 'online' },
-  { name: 'Klei', status: '正在玩 饥荒联机版', state: 'playing' },
-  { name: '课程设计小组', status: '离开', state: 'away' }
-];
-const filteredFriends = computed(() => { const keyword = friendSearch.value.trim().toLocaleLowerCase('zh-CN'); return friends.filter((friend) => !keyword || friend.name.toLocaleLowerCase('zh-CN').includes(keyword)); });
+const filteredFriends = computed(() => { const keyword = friendSearch.value.trim().toLocaleLowerCase('zh-CN'); return friends.value.filter((friend) => !keyword || friend.nickname.toLocaleLowerCase('zh-CN').includes(keyword)); });
+const selectedFriend = computed(() => friends.value.find((friend) => friend.userId === selectedFriendId.value) || null);
+const unreadNotificationCount = computed(() => userNotifications.value.filter((notice) => !notice.isRead).length);
 const accountInitial = computed(() => auth.currentUser?.account?.trim().charAt(0).toUpperCase() || '?');
 const gameMeta = getGameMeta;
 const fallbackAnnouncements: StartupAnnouncement[] = [
@@ -244,6 +255,25 @@ const currentAnnouncement = computed(() => startupAnnouncements.value[startupAnn
 
 watch(() => route.fullPath, () => { activeMenu.value = ''; mobileMenuOpen.value = false; notificationOpen.value = false; });
 watch(() => route.name, (name) => { if (name === 'store') void prepareStartupAnnouncement(); }, { immediate: true });
+watch(() => auth.isAuthenticated && auth.currentUser?.role === 'PLAYER', async (isPlayer) => {
+  await realtime.disconnect();
+  if (!isPlayer) {
+    friends.value = [];
+    userNotifications.value = [];
+    return;
+  }
+
+  await Promise.all([loadFriends(), loadUserNotifications()]);
+  try {
+    await realtime.connect({
+      onDirectMessage: receiveRealtimeMessage,
+      onNotification: receiveRealtimeNotification,
+      onFriendChanged: loadFriends
+    });
+  } catch {
+    showToast('实时连接暂未建立，页面操作仍会正常保存。');
+  }
+}, { immediate: true });
 function openMenu(menu: MenuKey) { cancelMenuClose(); activeMenu.value = menu; }
 function toggleMenu(menu: MenuKey) { activeMenu.value = activeMenu.value === menu ? '' : menu; notificationOpen.value = false; }
 function scheduleMenuClose() { cancelMenuClose(); menuTimer = window.setTimeout(() => { if (activeMenu.value !== 'account') activeMenu.value = ''; }, 160); }
@@ -251,12 +281,26 @@ function cancelMenuClose() { if (menuTimer) window.clearTimeout(menuTimer); }
 async function toggleNotifications() {
   notificationOpen.value = !notificationOpen.value; activeMenu.value = '';
   if (!notificationOpen.value) return;
-  await loadNotifications();
+  await Promise.all([loadNotifications(), loadUserNotifications()]);
 }
 async function loadNotifications() {
   if (notificationsLoaded.value) return;
   notificationsLoading.value = true;
   try { const { data } = await http.get<SysNotice[]>('/api/notices'); notifications.value = data; } catch { notifications.value = []; } finally { notificationsLoaded.value = true; notificationsLoading.value = false; }
+}
+async function loadUserNotifications() {
+  if (!auth.isAuthenticated || auth.currentUser?.role !== 'PLAYER') return;
+  try { userNotifications.value = await listUserNotifications(); } catch { userNotifications.value = []; }
+}
+async function openUserNotification(notice: UserNotificationItem) {
+  if (!notice.isRead) {
+    try {
+      const updated = await markNotificationRead(notice.notificationId);
+      userNotifications.value = userNotifications.value.map((row) => row.notificationId === updated.notificationId ? updated : row);
+    } catch { /* Keep navigation available if acknowledgement temporarily fails. */ }
+  }
+  notificationOpen.value = false;
+  if (notice.targetUrl) await router.push(notice.targetUrl);
 }
 async function prepareStartupAnnouncement() {
   if (route.name !== 'store' || sessionStorage.getItem(startupDismissKey) === 'true') return;
@@ -295,13 +339,58 @@ async function openDownloads() {
   libraryLoading.value = true;
   try { libraryEntries.value = await getLibrary(); } catch { showToast('暂时无法读取下载列表，请稍后重试。'); } finally { libraryLoading.value = false; }
 }
-function openFriends() { activeDrawer.value = 'friends'; activeMenu.value = ''; }
+async function openFriends() {
+  activeMenu.value = '';
+  if (!auth.isAuthenticated || auth.currentUser?.role !== 'PLAYER') {
+    await router.push({ name: 'login', query: { redirect: route.fullPath } });
+    return;
+  }
+  activeDrawer.value = 'friends';
+  await loadFriends();
+}
+async function loadFriends() {
+  if (!auth.isAuthenticated || auth.currentUser?.role !== 'PLAYER') return;
+  friendsLoading.value = true;
+  try {
+    friends.value = await listFriends();
+    if (selectedFriendId.value && !friends.value.some((friend) => friend.userId === selectedFriendId.value)) selectedFriendId.value = '';
+  } catch { showToast('好友列表同步失败，请稍后重试。'); }
+  finally { friendsLoading.value = false; }
+}
+async function selectFriend(userId: string) {
+  selectedFriendId.value = userId;
+  chatMessages.value = [];
+  try { chatMessages.value = await listMessages(userId); } catch { showToast('聊天记录同步失败，请稍后重试。'); }
+}
+async function approveFriend(relationId: string) {
+  try { await acceptFriend(relationId); await loadFriends(); showToast('好友请求已接受。'); } catch { showToast('暂时无法接受好友请求。'); }
+}
+function relationLabel(friend: FriendListItem) { return friend.relationStatus === 'ACCEPTED' ? '在线' : friend.isIncomingRequest ? '请求添加你为好友' : '好友请求待确认'; }
 function launchLibrary(gameId: string) { activeDrawer.value = ''; router.push({ name: 'game-library', params: { gameId } }); }
-function sendChat() { if (!selectedFriend.value || !chatDraft.value) return; chats.value[selectedFriend.value] = [...(chats.value[selectedFriend.value] || []), chatDraft.value]; chatDraft.value = ''; }
+async function sendChat() {
+  if (!selectedFriend.value || !chatDraft.value || sendingChat.value) return;
+  const content = chatDraft.value;
+  sendingChat.value = true;
+  try {
+    const message = await sendMessage(selectedFriend.value.userId, content);
+    chatMessages.value = [...chatMessages.value, message];
+    chatDraft.value = '';
+    await loadFriends();
+  } catch { showToast('消息发送失败，请稍后重试。'); }
+  finally { sendingChat.value = false; }
+}
+function receiveRealtimeMessage(message: DirectMessageItem) {
+  if (selectedFriendId.value === message.senderId && !chatMessages.value.some((row) => row.messageId === message.messageId)) chatMessages.value = [...chatMessages.value, message];
+  void loadFriends();
+  showToast(`${message.senderNickname} 发来一条新消息`);
+}
+function receiveRealtimeNotification(notice: UserNotificationItem) {
+  if (!userNotifications.value.some((row) => row.notificationId === notice.notificationId)) userNotifications.value = [notice, ...userNotifications.value];
+}
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); showToast('已返回页面顶部'); }
 function goToGames() { router.push(auth.isAuthenticated ? '/library' : '/store'); }
 function showToast(text: string) { toast.value = text; if (toastTimer) window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => { toast.value = ''; }, 2400); }
 function closeOverlays() { activeMenu.value = ''; activeDrawer.value = ''; notificationOpen.value = false; if (startupAnnouncementOpen.value) dismissStartupAnnouncement(); }
-function logout() { auth.logout(); closeOverlays(); router.push({ name: 'login' }); }
-onBeforeUnmount(() => { cancelMenuClose(); if (toastTimer) window.clearTimeout(toastTimer); });
+function logout() { void realtime.disconnect(); auth.logout(); closeOverlays(); router.push({ name: 'login' }); }
+onBeforeUnmount(() => { void realtime.disconnect(); cancelMenuClose(); if (toastTimer) window.clearTimeout(toastTimer); });
 </script>

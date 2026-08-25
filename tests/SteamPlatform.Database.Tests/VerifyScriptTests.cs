@@ -38,6 +38,23 @@ public sealed class VerifyScriptTests
         Assert.Contains("DEMO_RESET_EVENT", migration, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Social_realtime_migration_is_idempotent_and_creates_all_enhancement_tables()
+    {
+        var migration = SqlFile.SocialRealtimeMigration;
+
+        Assert.Contains("ensure_table", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ensure_index", migration, StringComparison.OrdinalIgnoreCase);
+        foreach (var table in new[]
+                 {
+                     "FRIEND_RELATION", "DIRECT_MESSAGE", "REVIEW_REACTION",
+                     "WORKSHOP_ITEM", "WORKSHOP_SUBSCRIPTION", "USER_NOTIFICATION"
+                 })
+        {
+            Assert.Contains(table, migration, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     [Theory]
     [InlineData("PLAYER")]
     [InlineData("ADMIN_USER")]

@@ -6,24 +6,42 @@ using SteamPlatform.Api.Features.Games;
 using SteamPlatform.Api.Features.Inventory;
 using SteamPlatform.Api.Features.Market;
 using SteamPlatform.Api.Features.Notices;
+using SteamPlatform.Api.Features.Social;
 using SteamPlatform.Api.Infrastructure;
+using SteamPlatform.Api.Realtime;
 using SteamPlatform.Application.Auth;
 using SteamPlatform.Application.Diagnostics;
+using SteamPlatform.Application.Social;
 using SteamPlatform.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
     .Configure<IAuthSigningKeyProvider>((options, signingKeyProvider) =>
     {
         options.MapInboundClaims = false;
         options.TokenValidationParameters = AuthTokenValidation.CreateParameters(signingKeyProvider.Key);
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrWhiteSpace(accessToken) && context.HttpContext.Request.Path.StartsWithSegments("/hubs/social"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddSteamPlatformInfrastructure();
+builder.Services.AddSingleton<ISocialRealtimeNotifier, SignalRSocialNotifier>();
 
 var app = builder.Build();
 
@@ -61,6 +79,8 @@ app.MapNoticeEndpoints();
 app.MapCoreTransactionEndpoints();
 app.MapCommunityEndpoints();
 app.MapMarketEndpoints();
+app.MapSocialEndpoints();
+app.MapHub<SocialHub>("/hubs/social").RequireAuthorization();
 
 app.Run();
 

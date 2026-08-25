@@ -1,0 +1,137 @@
+SET DEFINE OFF
+
+PROMPT Creating social interaction and realtime-notification foundation...
+
+DECLARE
+  PROCEDURE ensure_table(p_name VARCHAR2, p_sql VARCHAR2) IS
+    v_count NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_count FROM user_tables WHERE table_name = p_name;
+    IF v_count = 0 THEN
+      EXECUTE IMMEDIATE p_sql;
+    END IF;
+  END;
+BEGIN
+  ensure_table('FRIEND_RELATION', q'[
+    CREATE TABLE FRIEND_RELATION (
+      relation_id VARCHAR2(32) NOT NULL,
+      user_low_id VARCHAR2(32) NOT NULL,
+      user_high_id VARCHAR2(32) NOT NULL,
+      requested_by VARCHAR2(32) NOT NULL,
+      status VARCHAR2(20) DEFAULT 'PENDING' NOT NULL,
+      created_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
+      responded_at TIMESTAMP,
+      CONSTRAINT PK_FRIEND_RELATION PRIMARY KEY (relation_id),
+      CONSTRAINT FK_FRIEND_LOW_PLAYER FOREIGN KEY (user_low_id) REFERENCES PLAYER(user_id),
+      CONSTRAINT FK_FRIEND_HIGH_PLAYER FOREIGN KEY (user_high_id) REFERENCES PLAYER(user_id),
+      CONSTRAINT FK_FRIEND_REQUESTER FOREIGN KEY (requested_by) REFERENCES PLAYER(user_id),
+      CONSTRAINT UK_FRIEND_PAIR UNIQUE (user_low_id, user_high_id),
+      CONSTRAINT CK_FRIEND_PAIR_ORDER CHECK (user_low_id < user_high_id),
+      CONSTRAINT CK_FRIEND_REQUESTER CHECK (requested_by IN (user_low_id, user_high_id)),
+      CONSTRAINT CK_FRIEND_STATUS CHECK (status IN ('PENDING', 'ACCEPTED', 'DECLINED', 'BLOCKED'))
+    )]');
+
+  ensure_table('DIRECT_MESSAGE', q'[
+    CREATE TABLE DIRECT_MESSAGE (
+      message_id VARCHAR2(32) NOT NULL,
+      relation_id VARCHAR2(32) NOT NULL,
+      sender_id VARCHAR2(32) NOT NULL,
+      content CLOB NOT NULL,
+      status VARCHAR2(20) DEFAULT 'SENT' NOT NULL,
+      sent_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
+      read_at TIMESTAMP,
+      CONSTRAINT PK_DIRECT_MESSAGE PRIMARY KEY (message_id),
+      CONSTRAINT FK_MESSAGE_RELATION FOREIGN KEY (relation_id) REFERENCES FRIEND_RELATION(relation_id),
+      CONSTRAINT FK_MESSAGE_SENDER FOREIGN KEY (sender_id) REFERENCES PLAYER(user_id),
+      CONSTRAINT CK_MESSAGE_STATUS CHECK (status IN ('SENT', 'DELETED'))
+    )]');
+
+  ensure_table('REVIEW_REACTION', q'[
+    CREATE TABLE REVIEW_REACTION (
+      review_id VARCHAR2(32) NOT NULL,
+      user_id VARCHAR2(32) NOT NULL,
+      vote_type VARCHAR2(10),
+      is_starred NUMBER(1) DEFAULT 0 NOT NULL,
+      is_funny NUMBER(1) DEFAULT 0 NOT NULL,
+      is_awarded NUMBER(1) DEFAULT 0 NOT NULL,
+      updated_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
+      CONSTRAINT PK_REVIEW_REACTION PRIMARY KEY (review_id, user_id),
+      CONSTRAINT FK_REACTION_REVIEW FOREIGN KEY (review_id) REFERENCES GAME_REVIEW(review_id),
+      CONSTRAINT FK_REACTION_PLAYER FOREIGN KEY (user_id) REFERENCES PLAYER(user_id),
+      CONSTRAINT CK_REACTION_VOTE CHECK (vote_type IS NULL OR vote_type IN ('UP', 'DOWN')),
+      CONSTRAINT CK_REACTION_STAR CHECK (is_starred IN (0, 1)),
+      CONSTRAINT CK_REACTION_FUNNY CHECK (is_funny IN (0, 1)),
+      CONSTRAINT CK_REACTION_AWARD CHECK (is_awarded IN (0, 1))
+    )]');
+
+  ensure_table('WORKSHOP_ITEM', q'[
+    CREATE TABLE WORKSHOP_ITEM (
+      workshop_item_id VARCHAR2(32) NOT NULL,
+      game_id VARCHAR2(32) NOT NULL,
+      creator_user_id VARCHAR2(32),
+      title VARCHAR2(120) NOT NULL,
+      category VARCHAR2(50) NOT NULL,
+      summary VARCHAR2(500) NOT NULL,
+      details CLOB NOT NULL,
+      image_url VARCHAR2(255),
+      status VARCHAR2(20) DEFAULT 'PUBLISHED' NOT NULL,
+      created_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
+      updated_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
+      CONSTRAINT PK_WORKSHOP_ITEM PRIMARY KEY (workshop_item_id),
+      CONSTRAINT FK_WORKSHOP_GAME FOREIGN KEY (game_id) REFERENCES GAME(game_id),
+      CONSTRAINT FK_WORKSHOP_CREATOR FOREIGN KEY (creator_user_id) REFERENCES PLAYER(user_id),
+      CONSTRAINT CK_WORKSHOP_STATUS CHECK (status IN ('DRAFT', 'PUBLISHED', 'HIDDEN'))
+    )]');
+
+  ensure_table('WORKSHOP_SUBSCRIPTION', q'[
+    CREATE TABLE WORKSHOP_SUBSCRIPTION (
+      workshop_item_id VARCHAR2(32) NOT NULL,
+      user_id VARCHAR2(32) NOT NULL,
+      subscribed_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
+      CONSTRAINT PK_WORKSHOP_SUBSCRIPTION PRIMARY KEY (workshop_item_id, user_id),
+      CONSTRAINT FK_SUBSCRIPTION_ITEM FOREIGN KEY (workshop_item_id) REFERENCES WORKSHOP_ITEM(workshop_item_id),
+      CONSTRAINT FK_SUBSCRIPTION_PLAYER FOREIGN KEY (user_id) REFERENCES PLAYER(user_id)
+    )]');
+
+  ensure_table('USER_NOTIFICATION', q'[
+    CREATE TABLE USER_NOTIFICATION (
+      notification_id VARCHAR2(32) NOT NULL,
+      user_id VARCHAR2(32) NOT NULL,
+      notification_type VARCHAR2(30) NOT NULL,
+      title VARCHAR2(160) NOT NULL,
+      message VARCHAR2(1000) NOT NULL,
+      target_url VARCHAR2(500),
+      is_read NUMBER(1) DEFAULT 0 NOT NULL,
+      created_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
+      read_at TIMESTAMP,
+      CONSTRAINT PK_USER_NOTIFICATION PRIMARY KEY (notification_id),
+      CONSTRAINT FK_USER_NOTIFICATION_PLAYER FOREIGN KEY (user_id) REFERENCES PLAYER(user_id),
+      CONSTRAINT CK_USER_NOTIFICATION_TYPE CHECK (notification_type IN ('FRIEND_REQUEST', 'FRIEND_ACCEPTED', 'DIRECT_MESSAGE', 'REVIEW_REACTION', 'WORKSHOP_UPDATE', 'TRADE_OFFER', 'SYSTEM')),
+      CONSTRAINT CK_USER_NOTIFICATION_READ CHECK (is_read IN (0, 1))
+    )]');
+END;
+/
+
+DECLARE
+  PROCEDURE ensure_index(p_name VARCHAR2, p_sql VARCHAR2) IS
+    v_count NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_count FROM user_indexes WHERE index_name = p_name;
+    IF v_count = 0 THEN
+      EXECUTE IMMEDIATE p_sql;
+    END IF;
+  END;
+BEGIN
+  ensure_index('IDX_FRIEND_LOW_STATUS', 'CREATE INDEX IDX_FRIEND_LOW_STATUS ON FRIEND_RELATION(user_low_id, status)');
+  ensure_index('IDX_FRIEND_HIGH_STATUS', 'CREATE INDEX IDX_FRIEND_HIGH_STATUS ON FRIEND_RELATION(user_high_id, status)');
+  ensure_index('IDX_MESSAGE_RELATION_TIME', 'CREATE INDEX IDX_MESSAGE_RELATION_TIME ON DIRECT_MESSAGE(relation_id, sent_at)');
+  ensure_index('IDX_REACTION_USER_TIME', 'CREATE INDEX IDX_REACTION_USER_TIME ON REVIEW_REACTION(user_id, updated_at)');
+  ensure_index('IDX_WORKSHOP_GAME_STATUS', 'CREATE INDEX IDX_WORKSHOP_GAME_STATUS ON WORKSHOP_ITEM(game_id, status, updated_at)');
+  ensure_index('IDX_WORKSHOP_SUB_USER', 'CREATE INDEX IDX_WORKSHOP_SUB_USER ON WORKSHOP_SUBSCRIPTION(user_id, subscribed_at)');
+  ensure_index('IDX_USER_NOTIFICATION_UNREAD', 'CREATE INDEX IDX_USER_NOTIFICATION_UNREAD ON USER_NOTIFICATION(user_id, is_read, created_at)');
+END;
+/
+
+COMMIT;
+
+PROMPT Social interaction foundation is ready.

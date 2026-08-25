@@ -8,6 +8,7 @@ internal static class SqlFile
     public static string WalletPaymentMethodMigration => Read("database", "migrations", "20260712_wallet_payment_method_history.sql");
     public static string GroupDAchievementMigration => Read("database", "migrations", "20260713_group_d_achievement_seed.sql");
     public static string DemoResetAuditMigration => Read("database", "migrations", "20260825_demo_reset_audit.sql");
+    public static string SocialRealtimeMigration => Read("database", "migrations", "20260825_social_realtime_foundation.sql");
 
     private static string Read(params string[] path)
     {

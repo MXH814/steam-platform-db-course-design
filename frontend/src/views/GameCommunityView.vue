@@ -31,7 +31,7 @@
         <div>
           <p class="steam-kicker">社区创意工坊</p>
           <h2>浏览 {{ game.shortName }} 社区作品</h2>
-          <p>课程演示条目，可搜索、排序、查看详情并订阅到当前浏览器。</p>
+          <p>课程演示条目，可搜索、排序、查看详情并将订阅状态同步到 Oracle。</p>
         </div>
         <div class="workshop-controls">
           <input v-model.trim="workshopSearch" type="search" placeholder="搜索工坊作品" aria-label="搜索工坊作品" />
@@ -55,7 +55,7 @@
           </div>
           <footer>
             <button type="button" @click="selectedWorkshop = item">查看详情</button>
-            <button type="button" :class="{ subscribed: isWorkshopSubscribed(item.id) }" @click="toggleWorkshopSubscription(item.id)">
+            <button type="button" :disabled="!auth.isAuthenticated" :class="{ subscribed: isWorkshopSubscribed(item.id) }" @click="toggleWorkshopSubscription(item.id)">
               {{ isWorkshopSubscribed(item.id) ? '取消订阅' : '订阅' }}
             </button>
           </footer>
@@ -161,10 +161,10 @@
                 <button v-if="review.content.length > 160" class="read-more" type="button" @click="expandedReview = review">阅读全文</button>
                 <footer class="review-footer">
                   <span>这篇评测是否有价值？</span>
-                  <button type="button" :class="{ active: interactionFor(review.reviewId).vote === 'up' }" @click="voteReview(review.reviewId, 'up')">是 {{ review.thumbsUp + (interactionFor(review.reviewId).vote === 'up' ? 1 : 0) }}</button>
-                  <button type="button" :class="{ active: interactionFor(review.reviewId).vote === 'down' }" @click="voteReview(review.reviewId, 'down')">否</button>
-                  <button type="button" :class="{ active: interactionFor(review.reviewId).funny }" @click="toggleInteraction(review.reviewId, 'funny')">欢乐</button>
-                  <button type="button" :class="{ active: interactionFor(review.reviewId).awarded }" @click="toggleInteraction(review.reviewId, 'awarded')">{{ interactionFor(review.reviewId).awarded ? '已奖励' : '奖励' }}</button>
+                  <button type="button" :disabled="!auth.isAuthenticated" :class="{ active: interactionFor(review.reviewId).vote === 'up' }" @click="voteReview(review.reviewId, 'up')">是 {{ interactionFor(review.reviewId).upVotes }}</button>
+                  <button type="button" :disabled="!auth.isAuthenticated" :class="{ active: interactionFor(review.reviewId).vote === 'down' }" @click="voteReview(review.reviewId, 'down')">否 {{ interactionFor(review.reviewId).downVotes }}</button>
+                  <button type="button" :disabled="!auth.isAuthenticated" :class="{ active: interactionFor(review.reviewId).funny }" @click="toggleInteraction(review.reviewId, 'funny')">欢乐 {{ interactionFor(review.reviewId).funnyCount }}</button>
+                  <button type="button" :disabled="!auth.isAuthenticated" :class="{ active: interactionFor(review.reviewId).awarded }" @click="toggleInteraction(review.reviewId, 'awarded')">{{ interactionFor(review.reviewId).awarded ? '已奖励' : '奖励' }} {{ interactionFor(review.reviewId).awardCount }}</button>
                   <button type="button" @click="loadVersions(review.reviewId)">版本历史</button>
                   <button v-if="canEdit(review)" type="button" @click="startEdit(review)">编辑</button>
                 </footer>
@@ -184,8 +184,8 @@
               <small>发布于：{{ formatDate(review.versionCreateTime) }}</small>
               <p>{{ review.content }}</p>
               <footer>
-                <button type="button" :class="{ active: interactionFor(review.reviewId).vote === 'up' }" @click="voteReview(review.reviewId, 'up')">是</button>
-                <button type="button" :class="{ active: interactionFor(review.reviewId).vote === 'down' }" @click="voteReview(review.reviewId, 'down')">否</button>
+                <button type="button" :disabled="!auth.isAuthenticated" :class="{ active: interactionFor(review.reviewId).vote === 'up' }" @click="voteReview(review.reviewId, 'up')">是 {{ interactionFor(review.reviewId).upVotes }}</button>
+                <button type="button" :disabled="!auth.isAuthenticated" :class="{ active: interactionFor(review.reviewId).vote === 'down' }" @click="voteReview(review.reviewId, 'down')">否 {{ interactionFor(review.reviewId).downVotes }}</button>
                 <button type="button" @click="loadVersions(review.reviewId)">历史</button>
               </footer>
             </article>
@@ -261,7 +261,7 @@
         <p>{{ selectedWorkshop.details }}</p>
         <footer>
           <span>{{ selectedWorkshop.subscribers.toLocaleString() }} 次订阅 · {{ selectedWorkshop.updated }} 更新</span>
-          <button type="button" :class="{ active: isWorkshopSubscribed(selectedWorkshop.id) }" @click="toggleWorkshopSubscription(selectedWorkshop.id)">
+          <button type="button" :disabled="!auth.isAuthenticated" :class="{ active: isWorkshopSubscribed(selectedWorkshop.id) }" @click="toggleWorkshopSubscription(selectedWorkshop.id)">
             {{ isWorkshopSubscribed(selectedWorkshop.id) ? '已订阅，点击取消' : '订阅此作品' }}
           </button>
         </footer>
@@ -282,7 +282,13 @@ import {
   updateGameReview
 } from '../api/communityApi';
 import { getApiError } from '../api/http';
-import type { ReviewListItem, ReviewVersionItem } from '../api/types';
+import {
+  listReviewInteractions,
+  listWorkshopItems,
+  setReviewInteraction,
+  setWorkshopSubscription
+} from '../api/socialApi';
+import type { ReviewInteractionItem, ReviewListItem, ReviewVersionItem, WorkshopItemView } from '../api/types';
 import { withAchievementIcons, type AchievementDisplayItem } from '../data/achievementCatalog';
 import { getGameMeta } from '../data/gameCatalog';
 import { useAuthStore } from '../stores/auth';
@@ -319,34 +325,15 @@ interface WorkshopItem {
   image: string;
   subscribers: number;
   updated: string;
+  isSubscribed: boolean;
 }
 
 const selectedWorkshop = ref<WorkshopItem | null>(null);
-const workshopSubscriptionsKey = 'game-deck-workshop-subscriptions';
-const workshopSubscriptions = ref<string[]>(loadWorkshopSubscriptions());
+const workshopItems = ref<WorkshopItem[]>([]);
 const activeSection = computed<'reviews' | 'achievements' | 'workshop'>(() => {
   if (route.query.section === 'workshop') return 'workshop';
   if (route.query.tab === 'achievements') return 'achievements';
   return 'reviews';
-});
-const workshopItems = computed<WorkshopItem[]>(() => {
-  const isCs2 = gameId.value === 'GAME_CS2';
-  const titles = isCs2
-    ? ['Aim Training Arena', 'Mirage Night Practice', 'Retake Utility Lab', 'Warehouse Wingman']
-    : ['四季生存扩展', '海岛营地合集', '自动整理箱', '远古遗迹挑战'];
-  const categories = isCs2 ? ['训练地图', '竞技地图', '战术工具', '搭档地图'] : ['世界模组', '建筑合集', '实用工具', '冒险模组'];
-  const images = [game.value.heroImage, game.value.headerImage, game.value.coverImage, game.value.heroImage];
-
-  return titles.map((title, index) => ({
-    id: `${gameId.value}-WORKSHOP-${index + 1}`,
-    title,
-    category: categories[index],
-    summary: isCs2 ? '为课程演示准备的社区地图与战术训练内容。' : '为联机生存演示准备的玩法、建筑与便利性扩展。',
-    details: `这是 ${game.value.title} 的课程项目工坊演示条目，完整展示作品浏览、搜索、排序、详情与订阅状态，不声称与官方工坊数据实时同步。`,
-    image: images[index],
-    subscribers: [24812, 14650, 9320, 5784][index],
-    updated: ['今天', '本周', '7月8日', '7月5日'][index]
-  }));
 });
 const filteredWorkshopItems = computed(() => {
   const keyword = workshopSearch.value.toLocaleLowerCase();
@@ -365,10 +352,13 @@ interface ReviewInteraction {
   vote: '' | 'up' | 'down';
   funny: boolean;
   awarded: boolean;
+  upVotes: number;
+  downVotes: number;
+  funnyCount: number;
+  awardCount: number;
 }
 
-const interactionStorageKey = 'game-deck-review-interactions';
-const interactions = ref<Record<string, ReviewInteraction>>(loadStoredInteractions());
+const interactions = ref<Record<string, ReviewInteraction>>({});
 
 const reviewForm = reactive({
   isRecommend: true,
@@ -416,7 +406,7 @@ watch(gameId, loadCommunity, { immediate: true });
 async function loadCommunity() {
   message.value = '';
   error.value = '';
-  await Promise.all([loadReviews(), loadAchievements()]);
+  await Promise.all([loadReviews(), loadAchievements(), loadInteractions(), loadWorkshop()]);
 }
 
 async function loadReviews() {
@@ -515,53 +505,105 @@ function canEdit(review: ReviewListItem) {
 }
 
 function interactionFor(reviewId: string): ReviewInteraction {
-  return interactions.value[reviewId] ?? { starred: false, vote: '', funny: false, awarded: false };
+  return interactions.value[reviewId] ?? { starred: false, vote: '', funny: false, awarded: false, upVotes: 0, downVotes: 0, funnyCount: 0, awardCount: 0 };
 }
 
-function toggleInteraction(reviewId: string, key: 'starred' | 'funny' | 'awarded') {
+async function toggleInteraction(reviewId: string, key: 'starred' | 'funny' | 'awarded') {
+  if (!auth.isAuthenticated) return;
   const current = interactionFor(reviewId);
-  interactions.value = { ...interactions.value, [reviewId]: { ...current, [key]: !current[key] } };
-  persistInteractions();
-  message.value = key === 'starred' ? '评测收藏状态已更新。' : key === 'funny' ? '欢乐标记已更新。' : '社区奖励状态已更新。';
-}
-
-function voteReview(reviewId: string, vote: 'up' | 'down') {
-  const current = interactionFor(reviewId);
-  interactions.value = { ...interactions.value, [reviewId]: { ...current, vote: current.vote === vote ? '' : vote } };
-  persistInteractions();
-  message.value = '评测价值投票已更新。';
-}
-
-function loadStoredInteractions(): Record<string, ReviewInteraction> {
   try {
-    return JSON.parse(localStorage.getItem(interactionStorageKey) || '{}') as Record<string, ReviewInteraction>;
-  } catch {
-    return {};
+    const updated = await setReviewInteraction(reviewId, toInteractionRequest({ ...current, [key]: !current[key] }));
+    storeInteraction(updated);
+    message.value = key === 'starred' ? '评测收藏状态已同步。' : key === 'funny' ? '欢乐标记已同步。' : '社区奖励状态已同步。';
+  } catch (requestError) {
+    error.value = friendlyError(requestError);
   }
 }
 
-function persistInteractions() {
-  localStorage.setItem(interactionStorageKey, JSON.stringify(interactions.value));
+async function voteReview(reviewId: string, vote: 'up' | 'down') {
+  if (!auth.isAuthenticated) return;
+  const current = interactionFor(reviewId);
+  try {
+    const updated = await setReviewInteraction(reviewId, toInteractionRequest({ ...current, vote: current.vote === vote ? '' : vote }));
+    storeInteraction(updated);
+    message.value = '评测价值投票已同步。';
+  } catch (requestError) {
+    error.value = friendlyError(requestError);
+  }
 }
 
-function loadWorkshopSubscriptions(): string[] {
+async function loadInteractions() {
   try {
-    return JSON.parse(localStorage.getItem(workshopSubscriptionsKey) || '[]') as string[];
-  } catch {
-    return [];
+    const rows = await listReviewInteractions(gameId.value);
+    interactions.value = Object.fromEntries(rows.map((row) => [row.reviewId, fromInteraction(row)]));
+  } catch (requestError) {
+    error.value = friendlyError(requestError);
+  }
+}
+
+async function loadWorkshop() {
+  try {
+    workshopItems.value = (await listWorkshopItems(gameId.value)).map(mapWorkshopItem);
+  } catch (requestError) {
+    workshopItems.value = [];
+    error.value = friendlyError(requestError);
   }
 }
 
 function isWorkshopSubscribed(itemId: string) {
-  return workshopSubscriptions.value.includes(itemId);
+  return workshopItems.value.find((item) => item.id === itemId)?.isSubscribed ?? false;
 }
 
-function toggleWorkshopSubscription(itemId: string) {
-  workshopSubscriptions.value = isWorkshopSubscribed(itemId)
-    ? workshopSubscriptions.value.filter((id) => id !== itemId)
-    : [...workshopSubscriptions.value, itemId];
-  localStorage.setItem(workshopSubscriptionsKey, JSON.stringify(workshopSubscriptions.value));
-  message.value = isWorkshopSubscribed(itemId) ? '工坊作品已订阅。' : '已取消订阅。';
+async function toggleWorkshopSubscription(itemId: string) {
+  if (!auth.isAuthenticated) return;
+  try {
+    const updated = mapWorkshopItem(await setWorkshopSubscription(itemId, !isWorkshopSubscribed(itemId)));
+    workshopItems.value = workshopItems.value.map((item) => item.id === itemId ? updated : item);
+    if (selectedWorkshop.value?.id === itemId) selectedWorkshop.value = updated;
+    message.value = updated.isSubscribed ? '工坊作品已同步订阅。' : '工坊订阅已取消。';
+  } catch (requestError) {
+    error.value = friendlyError(requestError);
+  }
+}
+
+function fromInteraction(row: ReviewInteractionItem): ReviewInteraction {
+  return {
+    starred: row.isStarred,
+    vote: row.voteType === 'UP' ? 'up' : row.voteType === 'DOWN' ? 'down' : '',
+    funny: row.isFunny,
+    awarded: row.isAwarded,
+    upVotes: row.upVotes,
+    downVotes: row.downVotes,
+    funnyCount: row.funnyCount,
+    awardCount: row.awardCount
+  };
+}
+
+function storeInteraction(row: ReviewInteractionItem) {
+  interactions.value = { ...interactions.value, [row.reviewId]: fromInteraction(row) };
+}
+
+function toInteractionRequest(interaction: ReviewInteraction) {
+  return {
+    voteType: interaction.vote === 'up' ? 'UP' as const : interaction.vote === 'down' ? 'DOWN' as const : null,
+    isStarred: interaction.starred,
+    isFunny: interaction.funny,
+    isAwarded: interaction.awarded
+  };
+}
+
+function mapWorkshopItem(row: WorkshopItemView): WorkshopItem {
+  return {
+    id: row.workshopItemId,
+    title: row.title,
+    category: row.category,
+    summary: row.summary,
+    details: row.details,
+    image: row.imageUrl || game.value.headerImage,
+    subscribers: row.subscriberCount,
+    updated: new Date(row.updatedAt).toLocaleDateString(),
+    isSubscribed: row.isSubscribed
+  };
 }
 
 function friendlyError(requestError: unknown) {
