@@ -61,7 +61,7 @@
         <div v-if="loadingTopics" class="panel-state">正在读取讨论区...</div>
         <div v-else class="topic-list">
           <button v-for="topic in topics" :key="topic.topicId" type="button" :class="{ selected: selectedTopic?.topicId === topic.topicId }" @click="openTopic(topic.topicId)">
-            <span class="topic-icon"><MessageSquare :size="20" /></span><span><strong>{{ topic.title }}</strong><small>{{ topic.authorNickname }} · {{ relativeTime(topic.updatedAt) }}</small><p>{{ topic.body }}</p></span><b>{{ topic.replyCount }}<small>回复</small></b>
+            <span class="topic-icon"><MessageSquare :size="20" /></span><span><strong>{{ topic.title }}</strong><small>{{ topic.authorNickname }} 发起 · {{ topic.replyCount ? '最近回复' : '发布于' }} {{ relativeTime(topic.updatedAt) }}</small><p>{{ topic.body }}</p></span><b>{{ topic.replyCount }}<small>回复</small></b>
           </button>
           <p v-if="!topics.length">该游戏还没有讨论主题。</p>
         </div>
