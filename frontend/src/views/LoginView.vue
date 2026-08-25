@@ -58,7 +58,7 @@ async function submit() {
 
   try {
     await auth.login(form);
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/account';
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/store';
     router.push(redirect);
   } catch (requestError) {
     error.value = getApiError(requestError);

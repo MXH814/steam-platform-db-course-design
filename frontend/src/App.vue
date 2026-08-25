@@ -63,10 +63,10 @@
           <div v-if="notificationOpen" class="notification-popover">
             <header><strong>通知</strong><button type="button" aria-label="关闭通知" @click="notificationOpen = false"><X :size="15" /></button></header>
             <p v-if="notificationsLoading">正在同步平台公告...</p>
-            <RouterLink v-for="notice in notifications.slice(0, 4)" :key="notice.noticeId" to="/" @click="notificationOpen = false">
+            <button v-for="(notice, index) in startupAnnouncements.slice(0, 4)" :key="notice.id" type="button" @click="openAnnouncement(index)">
               <strong>{{ notice.title }}</strong><span>{{ notice.content }}</span>
-            </RouterLink>
-            <p v-if="!notificationsLoading && !notifications.length">没有未读通知</p>
+            </button>
+            <p v-if="!notificationsLoading && !startupAnnouncements.length">没有未读通知</p>
           </div>
           <button v-if="auth.isAuthenticated" class="account-link" type="button" :aria-expanded="activeMenu === 'account'" @click="toggleMenu('account')">
             <span class="account-avatar">{{ accountInitial }}</span><span>{{ auth.currentUser?.account }}</span><ChevronDown :size="14" />
@@ -98,6 +98,42 @@
     </header>
 
     <main class="page" :class="{ 'page-wide': route.name === 'inventory', 'page-library': route.name === 'library' || route.name === 'game-library' }"><RouterView /></main>
+
+    <Transition name="announcement">
+      <div v-if="startupAnnouncementOpen && currentAnnouncement" class="startup-announcement-backdrop" @click.self="dismissStartupAnnouncement">
+        <article class="startup-announcement" role="dialog" aria-modal="true" aria-labelledby="startup-announcement-title">
+          <button class="announcement-close-icon" type="button" aria-label="关闭启动公告" @click="dismissStartupAnnouncement"><X :size="22" /></button>
+          <div class="announcement-media">
+            <img :src="currentAnnouncement.image" :alt="currentAnnouncement.title" />
+            <span>{{ currentAnnouncement.label }}</span>
+          </div>
+          <section class="announcement-copy">
+            <small>{{ currentAnnouncement.label }} · {{ currentAnnouncement.publishedAt }}</small>
+            <h2 id="startup-announcement-title">{{ currentAnnouncement.title }}</h2>
+            <p>{{ currentAnnouncement.content }}</p>
+            <button type="button" @click="openAnnouncementDetail">点击查看详细信息</button>
+          </section>
+          <nav class="announcement-pager" aria-label="公告轮播">
+            <button type="button" aria-label="上一条公告" @click="stepAnnouncement(-1)"><ChevronLeft :size="34" /></button>
+            <div>
+              <button
+                v-for="(notice, index) in startupAnnouncements"
+                :key="`dot-${notice.id}`"
+                type="button"
+                :class="{ active: startupAnnouncementIndex === index }"
+                :aria-label="`查看第 ${index + 1} 条公告`"
+                @click="startupAnnouncementIndex = index"
+              />
+            </div>
+            <button type="button" aria-label="下一条公告" @click="stepAnnouncement(1)"><ChevronRight :size="34" /></button>
+          </nav>
+          <footer>
+            <span>Game Deck 平台公告与课程演示内容</span>
+            <button type="button" @click="dismissStartupAnnouncement">关闭</button>
+          </footer>
+        </article>
+      </div>
+    </Transition>
 
     <Transition name="drawer">
       <aside v-if="activeDrawer === 'downloads'" class="client-drawer download-drawer" aria-label="下载">
@@ -138,7 +174,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { Bell, CheckCircle2, ChevronDown, Cloud, Download, Gamepad2, Menu, Play, Plus, Search, Send, Users, WalletCards, X } from '@lucide/vue';
+import { Bell, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Cloud, Download, Gamepad2, Menu, Play, Plus, Search, Send, Users, WalletCards, X } from '@lucide/vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getLibrary, type LibraryEntry } from './api/coreApi';
 import { http } from './api/http';
@@ -148,6 +184,15 @@ import { useAuthStore } from './stores/auth';
 
 type MenuKey = '' | 'store' | 'library' | 'community' | 'profile' | 'account';
 type DrawerKey = '' | 'downloads' | 'friends';
+interface StartupAnnouncement {
+  id: string;
+  title: string;
+  content: string;
+  image: string;
+  label: string;
+  route: string;
+  publishedAt: string;
+}
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
@@ -157,6 +202,9 @@ const activeDrawer = ref<DrawerKey>('');
 const notificationOpen = ref(false);
 const notificationsLoading = ref(false);
 const notifications = ref<SysNotice[]>([]);
+const notificationsLoaded = ref(false);
+const startupAnnouncementOpen = ref(false);
+const startupAnnouncementIndex = ref(0);
 const libraryLoading = ref(false);
 const libraryEntries = ref<LibraryEntry[]>([]);
 const toast = ref('');
@@ -164,6 +212,7 @@ const friendSearch = ref('');
 const selectedFriend = ref('');
 const chatDraft = ref('');
 const chats = ref<Record<string, string[]>>({});
+const startupDismissKey = 'game-deck-startup-announcement-dismissed:2026-08-25';
 let menuTimer: number | undefined;
 let toastTimer: number | undefined;
 const friends = [
@@ -175,17 +224,70 @@ const friends = [
 const filteredFriends = computed(() => { const keyword = friendSearch.value.trim().toLocaleLowerCase('zh-CN'); return friends.filter((friend) => !keyword || friend.name.toLocaleLowerCase('zh-CN').includes(keyword)); });
 const accountInitial = computed(() => auth.currentUser?.account?.trim().charAt(0).toUpperCase() || '?');
 const gameMeta = getGameMeta;
+const fallbackAnnouncements: StartupAnnouncement[] = [
+  { id: 'WELCOME-DST', title: '荒野生存特别活动现已开放', content: '进入饥荒联机版商店页面，查看买断制购买、内容包、社区评测和自定义成就完整流程。', image: '/assets/games/dst-library-hero.jpg', label: '特别活动', route: '/games/GAME_DST', publishedAt: '本周' },
+  { id: 'WELCOME-CS2', title: 'CS2 库存与社区市场全面联动', content: '免费加入游戏库，浏览饰品库存、市场挂单、价格历史、成交记录和资产转移账本。', image: '/assets/games/cs2-library-hero.jpg', label: '平台更新', route: '/games/GAME_CS2', publishedAt: '本周' },
+  { id: 'WELCOME-WORKSHOP', title: '社区创意工坊浏览功能上线', content: '现在可以搜索、排序、查看详情并订阅 CS2 与饥荒联机版的课程演示工坊作品。', image: '/assets/games/cs2-header.jpg', label: '社区更新', route: '/games/GAME_CS2/community?section=workshop', publishedAt: '今天' }
+];
+const startupAnnouncements = computed<StartupAnnouncement[]>(() => notifications.value.length
+  ? notifications.value.map((notice, index) => ({
+      id: notice.noticeId,
+      title: notice.title,
+      content: notice.content,
+      image: index % 2 === 0 ? '/assets/games/dst-library-hero.jpg' : '/assets/games/cs2-library-hero.jpg',
+      label: notice.priority >= 8 ? '重要公告' : '平台公告',
+      route: noticeRoute(notice),
+      publishedAt: new Date(notice.publishTime).toLocaleDateString('zh-CN')
+    }))
+  : fallbackAnnouncements);
+const currentAnnouncement = computed(() => startupAnnouncements.value[startupAnnouncementIndex.value] || null);
 
 watch(() => route.fullPath, () => { activeMenu.value = ''; mobileMenuOpen.value = false; notificationOpen.value = false; });
+watch(() => route.name, (name) => { if (name === 'store') void prepareStartupAnnouncement(); }, { immediate: true });
 function openMenu(menu: MenuKey) { cancelMenuClose(); activeMenu.value = menu; }
 function toggleMenu(menu: MenuKey) { activeMenu.value = activeMenu.value === menu ? '' : menu; notificationOpen.value = false; }
 function scheduleMenuClose() { cancelMenuClose(); menuTimer = window.setTimeout(() => { if (activeMenu.value !== 'account') activeMenu.value = ''; }, 160); }
 function cancelMenuClose() { if (menuTimer) window.clearTimeout(menuTimer); }
 async function toggleNotifications() {
   notificationOpen.value = !notificationOpen.value; activeMenu.value = '';
-  if (!notificationOpen.value || notifications.value.length) return;
+  if (!notificationOpen.value) return;
+  await loadNotifications();
+}
+async function loadNotifications() {
+  if (notificationsLoaded.value) return;
   notificationsLoading.value = true;
-  try { const { data } = await http.get<SysNotice[]>('/api/notices'); notifications.value = data; } catch { notifications.value = []; } finally { notificationsLoading.value = false; }
+  try { const { data } = await http.get<SysNotice[]>('/api/notices'); notifications.value = data; } catch { notifications.value = []; } finally { notificationsLoaded.value = true; notificationsLoading.value = false; }
+}
+async function prepareStartupAnnouncement() {
+  if (route.name !== 'store' || sessionStorage.getItem(startupDismissKey) === 'true') return;
+  await loadNotifications();
+  startupAnnouncementIndex.value = 0;
+  startupAnnouncementOpen.value = true;
+}
+function openAnnouncement(index: number) {
+  notificationOpen.value = false;
+  startupAnnouncementIndex.value = index;
+  startupAnnouncementOpen.value = true;
+}
+function dismissStartupAnnouncement() {
+  startupAnnouncementOpen.value = false;
+  sessionStorage.setItem(startupDismissKey, 'true');
+}
+function stepAnnouncement(direction: number) {
+  const total = startupAnnouncements.value.length;
+  if (!total) return;
+  startupAnnouncementIndex.value = (startupAnnouncementIndex.value + direction + total) % total;
+}
+function openAnnouncementDetail() {
+  const destination = currentAnnouncement.value?.route;
+  dismissStartupAnnouncement();
+  if (destination) router.push(destination);
+}
+function noticeRoute(notice: SysNotice) {
+  const text = `${notice.title} ${notice.content}`.toLocaleLowerCase();
+  if (text.includes('cs2') || text.includes('counter-strike')) return '/games/GAME_CS2';
+  if (text.includes('饥荒') || text.includes("don't starve") || text.includes('dst')) return '/games/GAME_DST';
+  return '/store';
 }
 async function openDownloads() {
   activeDrawer.value = 'downloads'; activeMenu.value = '';
@@ -199,7 +301,7 @@ function sendChat() { if (!selectedFriend.value || !chatDraft.value) return; cha
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); showToast('已返回页面顶部'); }
 function goToGames() { router.push(auth.isAuthenticated ? '/library' : '/store'); }
 function showToast(text: string) { toast.value = text; if (toastTimer) window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => { toast.value = ''; }, 2400); }
-function closeOverlays() { activeMenu.value = ''; activeDrawer.value = ''; notificationOpen.value = false; }
+function closeOverlays() { activeMenu.value = ''; activeDrawer.value = ''; notificationOpen.value = false; if (startupAnnouncementOpen.value) dismissStartupAnnouncement(); }
 function logout() { auth.logout(); closeOverlays(); router.push({ name: 'login' }); }
 onBeforeUnmount(() => { cancelMenuClose(); if (toastTimer) window.clearTimeout(toastTimer); });
 </script>

@@ -10,7 +10,6 @@ import GameCommunityView from './views/GameCommunityView.vue';
 import GameCheckoutView from './views/GameCheckoutView.vue';
 import GameDetailView from './views/GameDetailView.vue';
 import GameLibraryView from './views/GameLibraryView.vue';
-import HomeView from './views/HomeView.vue';
 import InventoryView from './views/InventoryView.vue';
 import LibraryView from './views/LibraryView.vue';
 import LoginView from './views/LoginView.vue';
@@ -30,7 +29,7 @@ import WalletRechargeCheckoutView from './views/WalletRechargeCheckoutView.vue';
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', name: 'home', component: HomeView },
+    { path: '/', name: 'home', redirect: { name: 'store' } },
     { path: '/store', name: 'store', component: StoreView },
     { path: '/store/:section(recommend|categories|playstyles|specials)', name: 'store-section', component: StoreCollectionView },
     { path: '/store/:section(recommend|categories|playstyles|specials)/:collectionId', name: 'store-collection-detail', component: StoreCollectionView },
