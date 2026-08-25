@@ -65,13 +65,49 @@ BEGIN
     AND column_name = 'WALLET_BALANCE';
   assert_zero('PLAYER.wallet_balance column count', v_count);
 
-  SELECT COUNT(*) INTO v_count FROM all_constraints WHERE owner = v_owner AND constraint_type = 'P';
+  SELECT COUNT(*) INTO v_count
+  FROM all_constraints
+  WHERE owner = v_owner
+    AND constraint_type = 'P'
+    AND table_name IN (
+      'PLAYER', 'WALLET_ACCOUNT', 'WALLET_TRANSACTION', 'DEVELOPER', 'ADMIN_USER',
+      'SYS_NOTICE', 'GAME', 'GAME_ORDER', 'ORDER_DETAIL', 'ORDER_STATUS_LOG',
+      'PAYMENT_TRANSACTION', 'REFUND_TICKET', 'REFUND_DETAIL', 'REFUND_AUDIT_LOG',
+      'PLAYER_LIBRARY', 'CDKEY_BATCH', 'CDKEY', 'CDKEY_REDEEM_LOG',
+      'GAME_REVIEW', 'REVIEW_VERSION', 'ACHIEVEMENT', 'PLAYER_ACHIEVEMENT',
+      'ITEM_TEMPLATE', 'INVENTORY_ITEM', 'MARKET_ORDER', 'MARKET_TRADE',
+      'ITEM_TRANSFER_LEDGER'
+    );
   assert_eq('primary key constraint count', v_count, 27);
 
-  SELECT COUNT(*) INTO v_count FROM all_constraints WHERE owner = v_owner AND constraint_type = 'R';
+  SELECT COUNT(*) INTO v_count
+  FROM all_constraints
+  WHERE owner = v_owner
+    AND constraint_type = 'R'
+    AND table_name IN (
+      'PLAYER', 'WALLET_ACCOUNT', 'WALLET_TRANSACTION', 'DEVELOPER', 'ADMIN_USER',
+      'SYS_NOTICE', 'GAME', 'GAME_ORDER', 'ORDER_DETAIL', 'ORDER_STATUS_LOG',
+      'PAYMENT_TRANSACTION', 'REFUND_TICKET', 'REFUND_DETAIL', 'REFUND_AUDIT_LOG',
+      'PLAYER_LIBRARY', 'CDKEY_BATCH', 'CDKEY', 'CDKEY_REDEEM_LOG',
+      'GAME_REVIEW', 'REVIEW_VERSION', 'ACHIEVEMENT', 'PLAYER_ACHIEVEMENT',
+      'ITEM_TEMPLATE', 'INVENTORY_ITEM', 'MARKET_ORDER', 'MARKET_TRADE',
+      'ITEM_TRANSFER_LEDGER'
+    );
   assert_eq('foreign key constraint count', v_count, 40);
 
-  SELECT COUNT(*) INTO v_count FROM all_constraints WHERE owner = v_owner AND constraint_type = 'U';
+  SELECT COUNT(*) INTO v_count
+  FROM all_constraints
+  WHERE owner = v_owner
+    AND constraint_type = 'U'
+    AND table_name IN (
+      'PLAYER', 'WALLET_ACCOUNT', 'WALLET_TRANSACTION', 'DEVELOPER', 'ADMIN_USER',
+      'SYS_NOTICE', 'GAME', 'GAME_ORDER', 'ORDER_DETAIL', 'ORDER_STATUS_LOG',
+      'PAYMENT_TRANSACTION', 'REFUND_TICKET', 'REFUND_DETAIL', 'REFUND_AUDIT_LOG',
+      'PLAYER_LIBRARY', 'CDKEY_BATCH', 'CDKEY', 'CDKEY_REDEEM_LOG',
+      'GAME_REVIEW', 'REVIEW_VERSION', 'ACHIEVEMENT', 'PLAYER_ACHIEVEMENT',
+      'ITEM_TEMPLATE', 'INVENTORY_ITEM', 'MARKET_ORDER', 'MARKET_TRADE',
+      'ITEM_TRANSFER_LEDGER'
+    );
   assert_eq('unique constraint count', v_count, 13);
 
   SELECT COUNT(*) INTO v_count FROM all_constraints WHERE owner = v_owner AND constraint_type = 'C';

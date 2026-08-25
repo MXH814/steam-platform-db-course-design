@@ -18,6 +18,26 @@ public sealed class VerifyScriptTests
         Assert.Contains("check constraint", SqlFile.VerifyPhase1, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Phase1_constraint_counts_are_scoped_to_core_tables()
+    {
+        Assert.True(
+            SqlFile.VerifyPhase1.Split("AND table_name IN", StringSplitOptions.None).Length >= 5,
+            "Core table, primary key, foreign key, and unique constraint checks should each use an explicit core-table list.");
+    }
+
+    [Fact]
+    public void Demo_reset_audit_migration_is_idempotent_and_creates_all_operational_tables()
+    {
+        var migration = SqlFile.DemoResetAuditMigration;
+
+        Assert.Contains("user_tables", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("user_indexes", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("DEMO_RESET_RUN", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("DEMO_RESET_TABLE", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("DEMO_RESET_EVENT", migration, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Theory]
     [InlineData("PLAYER")]
     [InlineData("ADMIN_USER")]

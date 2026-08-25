@@ -101,6 +101,36 @@ VALUES ('RV_DST_001', 'REV_DST_001', 1, 1, 'Co-op survival, seasonal skins, and 
 INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
 VALUES ('ACH_DST_SURVIVE_001', 'GAME_DST', 'First Night Together', 'Survive the first night with another player.', 42.50);
 
+INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
+VALUES ('ACH_DST_SCIENCE_MACHINE', 'GAME_DST', 'Science Started', 'Build a Science Machine and unlock the first survival recipes.', 37.80);
+
+INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
+VALUES ('ACH_DST_WINTER_SURVIVOR', 'GAME_DST', 'Winter Camp', 'Keep the camp and teammates alive through winter.', 18.40);
+
+INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
+VALUES ('ACH_DST_RUINS_DIVER', 'GAME_DST', 'Ruins Lantern', 'Explore the ruins and bring back ancient technology.', 12.10);
+
+INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
+VALUES ('ACH_DST_SHADOW_DUEL', 'GAME_DST', 'Shadow Duel', 'Defeat a shadow creature while keeping sanity stable.', 21.60);
+
+INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
+VALUES ('ACH_DST_CELESTIAL_CARTOGRAPHER', 'GAME_DST', 'Celestial Cartographer', 'Discover Lunar Island and collect moon tech materials.', 9.70);
+
+INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
+VALUES ('ACH_CS2_FIRST_ROUND', 'GAME_CS2', 'Pistol Round Opener', 'Win the opening pistol round.', 55.20);
+
+INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
+VALUES ('ACH_CS2_ACE', 'GAME_CS2', 'Ace Round', 'Eliminate all five enemies in one round.', 8.60);
+
+INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
+VALUES ('ACH_CS2_BOMB_PLANT', 'GAME_CS2', 'Bomb Site Secured', 'Plant the C4 as the attacking side.', 44.30);
+
+INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
+VALUES ('ACH_CS2_DEFUSE', 'GAME_CS2', 'Defuse Expert', 'Defuse the bomb in a key round.', 31.40);
+
+INSERT INTO ACHIEVEMENT (ach_id, game_id, ach_name, description, global_rate)
+VALUES ('ACH_CS2_MARKET_MAKER', 'GAME_CS2', 'Market Rookie', 'Complete one item market trade record.', 16.90);
+
 INSERT INTO PLAYER_ACHIEVEMENT (unlock_id, user_id, ach_id, unlock_time)
 VALUES ('PA_DST_001', 'P001', 'ACH_DST_SURVIVE_001', TIMESTAMP '2026-07-05 12:30:00');
 
@@ -108,7 +138,13 @@ INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_AK_REDLINE', 'GAME_CS2', 'AK-47 | Redline', 'EPIC', '/assets/items/cs2/cs2-ak-redline.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_AK_NEON_RIDER', 'GAME_CS2', 'AK-47 | Neon Rider', 'LEGENDARY', '/assets/items/cs2/cs2-ak-neon-rider.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_AWP_ASIIMOV', 'GAME_CS2', 'AWP | Asiimov', 'LEGENDARY', '/assets/items/cs2/cs2-awp-asiimov.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_AWP_DRAGON_LORE', 'GAME_CS2', 'AWP | Dragon Lore', 'LEGENDARY', '/assets/items/cs2/cs2-awp-dragon-lore.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_M4A1_PRINTSTREAM', 'GAME_CS2', 'M4A1-S | Printstream', 'LEGENDARY', '/assets/items/cs2/cs2-m4a1-printstream.png');
@@ -117,31 +153,67 @@ INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_GLOCK_WATER', 'GAME_CS2', 'Glock-18 | Water Elemental', 'RARE', '/assets/items/cs2/cs2-glock-water.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_GLOCK_FADE', 'GAME_CS2', 'Glock-18 | Fade', 'LEGENDARY', '/assets/items/cs2/cs2-glock-fade.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_USP_TRAITOR', 'GAME_CS2', 'USP-S | The Traitor', 'EPIC', '/assets/items/cs2/cs2-usp-traitor.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_USP_KILL_CONFIRMED', 'GAME_CS2', 'USP-S | Kill Confirmed', 'LEGENDARY', '/assets/items/cs2/cs2-usp-kill-confirmed.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_DEAGLE_BLAZE', 'GAME_CS2', 'Desert Eagle | Blaze', 'LEGENDARY', '/assets/items/cs2/cs2-deagle-blaze.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_DEAGLE_PRINTSTREAM', 'GAME_CS2', 'Desert Eagle | Printstream', 'EPIC', '/assets/items/cs2/cs2-deagle-printstream.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_CASE_DREAMS', 'GAME_CS2', 'Dreams & Nightmares Case', 'RARE', '/assets/items/cs2/cs2-dreams-case.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_FAMAS_MECHA', 'GAME_CS2', 'FAMAS | Mecha Industries', 'RARE', '/assets/items/cs2/cs2-famas-mecha.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_FAMAS_COMMEMORATION', 'GAME_CS2', 'FAMAS | Commemoration', 'EPIC', '/assets/items/cs2/cs2-famas-commemoration.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_GALIL_PHOENIX', 'GAME_CS2', 'Galil AR | Phoenix Blacklight', 'RARE', '/assets/items/cs2/cs2-galil-phoenix.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_GALIL_CHROMATIC', 'GAME_CS2', 'Galil AR | Chromatic Aberration', 'EPIC', '/assets/items/cs2/cs2-galil-chromatic.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_M4A4_TOOTH_FAIRY', 'GAME_CS2', 'M4A4 | Tooth Fairy', 'EPIC', '/assets/items/cs2/cs2-m4a4-tooth-fairy.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_M4A4_HOWL', 'GAME_CS2', 'M4A4 | Howl', 'LEGENDARY', '/assets/items/cs2/cs2-m4a4-howl.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_MP9_DARK_TIDE', 'GAME_CS2', 'MP9 | Dark Tide', 'UNCOMMON', '/assets/items/cs2/cs2-mp9-dark-tide.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_MP9_STARLIGHT', 'GAME_CS2', 'MP9 | Starlight Protector', 'EPIC', '/assets/items/cs2/cs2-mp9-starlight.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_P250_CYBER_SHELL', 'GAME_CS2', 'P250 | Cyber Shell', 'UNCOMMON', '/assets/items/cs2/cs2-p250-cyber-shell.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_P250_SEE_YA_LATER', 'GAME_CS2', 'P250 | See Ya Later', 'EPIC', '/assets/items/cs2/cs2-p250-see-ya-later.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_P90_ELITE_BUILD', 'GAME_CS2', 'P90 | Elite Build', 'COMMON', '/assets/items/cs2/cs2-p90-elite-build.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_P90_ASIIMOV', 'GAME_CS2', 'P90 | Asiimov', 'EPIC', '/assets/items/cs2/cs2-p90-asiimov.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_STICKER_CROWN', 'GAME_CS2', 'Sticker | Crown', 'RARE', '/assets/items/cs2/cs2-sticker-crown.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_CS2_TEC9_NUCLEAR', 'GAME_CS2', 'Tec-9 | Nuclear Threat', 'EPIC', '/assets/items/cs2/cs2-tec9-nuclear-threat.png');
+
+INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
+VALUES ('ITPL_CS2_TEC9_DECIMATOR', 'GAME_CS2', 'Tec-9 | Decimator', 'RARE', '/assets/items/cs2/cs2-tec9-decimator.png');
 
 INSERT INTO ITEM_TEMPLATE (template_id, game_id, item_name, rarity, image_url)
 VALUES ('ITPL_DST_HOLLY_WREATH', 'GAME_DST', 'Holly Wreath', 'COMMON', '/assets/items/dst/dst-holly-wreath.png');

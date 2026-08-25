@@ -14,6 +14,11 @@ public sealed class SchemaContractTests
         "MARKET_ORDER", "MARKET_TRADE", "ITEM_TRANSFER_LEDGER", "WALLET_TRANSACTION"
     ];
 
+    private static readonly string[] ExpectedOperationalTables =
+    [
+        "DEMO_RESET_RUN", "DEMO_RESET_TABLE", "DEMO_RESET_EVENT"
+    ];
+
     [Fact]
     public void Schema_defines_expected_27_core_tables()
     {
@@ -21,9 +26,21 @@ public sealed class SchemaContractTests
             .Select(match => match.Groups[1].Value.ToUpperInvariant())
             .ToArray();
 
-        Assert.Equal(27, tables.Length);
+        Assert.Equal(30, tables.Length);
         Assert.Empty(ExpectedTables.Except(tables));
-        Assert.Empty(tables.Except(ExpectedTables));
+        Assert.Empty(ExpectedOperationalTables.Except(tables));
+        Assert.Empty(tables.Except(ExpectedTables.Concat(ExpectedOperationalTables)));
+    }
+
+    [Fact]
+    public void Schema_defines_demo_reset_audit_tables_without_changing_wallet_truth()
+    {
+        foreach (var table in ExpectedOperationalTables)
+        {
+            Assert.Contains($"CREATE TABLE {table}", SqlFile.Schema, StringComparison.OrdinalIgnoreCase);
+        }
+
+        Assert.DoesNotContain("wallet_balance", TableBlock("DEMO_RESET_RUN"), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
