@@ -396,16 +396,23 @@ public sealed class SocialRepository(IDbConnectionFactory connectionFactory) : I
                    wi.creator_user_id as CreatorUserId, p.nickname as CreatorNickname,
                    wi.title as Title, wi.category as Category, wi.summary as Summary,
                    wi.details as Details, wi.image_url as ImageUrl,
-                   count(ws.user_id) as SubscriberCount,
-                   max(case when ws.user_id = :UserId then 1 else 0 end) as IsSubscribedNumber,
+                   nvl(subscription_totals.subscriber_count, 0) as SubscriberCount,
+                   case when exists (
+                     select 1
+                       from workshop_subscription mine
+                      where mine.workshop_item_id = wi.workshop_item_id
+                        and mine.user_id = :UserId
+                   ) then 1 else 0 end as IsSubscribedNumber,
                    wi.updated_at as UpdatedAt
               from workshop_item wi
               left join player p on p.user_id = wi.creator_user_id
-              left join workshop_subscription ws on ws.workshop_item_id = wi.workshop_item_id
+              left join (
+                select workshop_item_id, count(*) as subscriber_count
+                  from workshop_subscription
+                 group by workshop_item_id
+              ) subscription_totals on subscription_totals.workshop_item_id = wi.workshop_item_id
              where wi.game_id = :GameId and wi.status = 'PUBLISHED'{{filter}}
-             group by wi.workshop_item_id, wi.game_id, wi.creator_user_id, p.nickname,
-                      wi.title, wi.category, wi.summary, wi.details, wi.image_url, wi.updated_at
-             order by SubscriberCount desc, wi.updated_at desc
+             order by nvl(subscription_totals.subscriber_count, 0) desc, wi.updated_at desc
             """,
             new { GameId = gameId, UserId = userId, WorkshopItemId = workshopItemId }, cancellationToken: cancellationToken));
         return rows.Select(row => row.ToItem()).ToList();
