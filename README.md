@@ -2042,3 +2042,4 @@ Vue 页面与交互：
 4. 生成的双栈 Nginx 配置已在服务器使用临时自签证书执行 `nginx -t`，语法检查成功；配置覆盖 HTTP 308、TLS 1.2/1.3、Vue、API、Oracle 健康检查与 SignalR WebSocket。
 5. 本地完整后端解决方案 198 项测试通过：API 188 项、演示恢复 4 项、HTTPS 部署 6 项；构建 0 警告、0 错误。
 6. 本轮仅完成部署资产与服务器临时目录预演，未签发生产证书、未改写正式 Nginx、未 reload 服务、未改变当前公网 HTTP 入口。正式切换必须由总负责人确认后执行。
+7. 自包含工具已上传到 `/opt/steam-platform/tools/https-deploy/`，文件哈希与本地发布产物一致；版本标记 `/opt/steam-platform/HTTPS_TOOL_COMMIT` 为 `def94eb`，服务器只执行了只读 `plan`。
