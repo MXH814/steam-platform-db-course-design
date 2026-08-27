@@ -125,29 +125,12 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
         await processRunner.RunAsync("systemctl", ["is-active", "nginx"], cancellationToken);
         await processRunner.RunAsync("systemctl", ["is-active", "steam-platform-certbot-renew.timer"], cancellationToken);
 
-        using var redirectClient = LoopbackHttpClientFactory.Create(allowAutoRedirect: false, TimeSpan.FromSeconds(15));
-        using var redirectResponse = await redirectClient.GetAsync($"http://{publicIp}/api/health", cancellationToken);
-        if (redirectResponse.StatusCode != HttpStatusCode.PermanentRedirect ||
-            redirectResponse.Headers.Location?.Scheme != Uri.UriSchemeHttps)
-        {
-            throw new InvalidOperationException(
-                $"HTTP redirect probe failed: status={(int)redirectResponse.StatusCode}, location={redirectResponse.Headers.Location}.");
-        }
+        await VerifyRedirectAsync(publicIp, cancellationToken);
         Console.WriteLine($"PASS http://{publicIp}/api/health -> 308 HTTPS redirect");
 
-        using var httpsClient = LoopbackHttpClientFactory.Create(allowAutoRedirect: false, TimeSpan.FromSeconds(30));
         foreach (var path in new[] { "/", "/api/health", "/health/database" })
         {
-            try
-            {
-                using var response = await httpsClient.GetAsync($"https://{publicIp}{path}", cancellationToken);
-                response.EnsureSuccessStatusCode();
-                Console.WriteLine($"PASS https://{publicIp}{path} -> {(int)response.StatusCode}");
-            }
-            catch (Exception exception)
-            {
-                throw new InvalidOperationException($"Trusted loopback HTTPS probe failed for {path}: {exception.Message}", exception);
-            }
+            await VerifyHttpsPathAsync(publicIp, path, cancellationToken);
         }
     }
 
@@ -266,6 +249,55 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
         {
             File.Delete(probePath);
         }
+    }
+
+    private static async Task VerifyRedirectAsync(string publicIp, CancellationToken cancellationToken)
+    {
+        string? lastResult = null;
+        for (var attempt = 1; attempt <= 20; attempt++)
+        {
+            using var client = LoopbackHttpClientFactory.Create(allowAutoRedirect: false, TimeSpan.FromSeconds(5));
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"http://{publicIp}/api/health");
+            request.Headers.ConnectionClose = true;
+            using var response = await client.SendAsync(request, cancellationToken);
+            lastResult = $"status={(int)response.StatusCode}, location={response.Headers.Location}";
+            if (response.StatusCode == HttpStatusCode.PermanentRedirect &&
+                response.Headers.Location?.Scheme == Uri.UriSchemeHttps)
+            {
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+        }
+
+        throw new InvalidOperationException($"HTTP redirect probe failed after Nginx reload grace period: {lastResult}.");
+    }
+
+    private static async Task VerifyHttpsPathAsync(string publicIp, string path, CancellationToken cancellationToken)
+    {
+        Exception? lastException = null;
+        for (var attempt = 1; attempt <= 20; attempt++)
+        {
+            try
+            {
+                using var client = LoopbackHttpClientFactory.Create(allowAutoRedirect: false, TimeSpan.FromSeconds(5));
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"https://{publicIp}{path}");
+                request.Headers.ConnectionClose = true;
+                using var response = await client.SendAsync(request, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                Console.WriteLine($"PASS https://{publicIp}{path} -> {(int)response.StatusCode}");
+                return;
+            }
+            catch (Exception exception)
+            {
+                lastException = exception;
+                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Trusted loopback HTTPS probe failed for {path} after Nginx reload grace period: {lastException?.Message}",
+            lastException);
     }
 
     private async Task<SystemTimerState> CaptureSystemTimerStateAsync(CancellationToken cancellationToken) =>

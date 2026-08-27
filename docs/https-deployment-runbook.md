@@ -99,6 +99,7 @@ npm --prefix frontend run test:e2e:cloud
 - 浏览器和 `HttpClient` 在不跳过证书校验的情况下信任证书。
 - 首页、API、Oracle 健康检查均为 `2xx`。
 - 服务器内置验证保持公网 IP 作为 URL 与 TLS 标识，但 TCP 连接使用本机回环，避免云厂商不支持实例访问自身公网 IP；开发机随后执行真正公网验证。
+- Nginx reload 后的短暂旧 worker 存活期内，验证会关闭 keep-alive 并以新连接有限重试；超时仍会触发完整自动回滚。
 - 好友聊天与通知通过 `/hubs/social` 建立 WebSocket 或 SignalR 协商连接。
 - `steam-platform-certbot-renew.timer` 为 active，并能完成 `certbot renew --dry-run --cert-name steam-platform-ip`。
 - 完整云端 Playwright 回归通过，演示数据在测试前后恢复到固定基线。
