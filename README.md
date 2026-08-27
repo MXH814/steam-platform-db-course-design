@@ -185,7 +185,7 @@ _local_tools_archive/
 ```text
 浏览器
   -> Vue 3 前端页面
-  -> HTTPS / HTTP
+  -> HTTPS（启用后 HTTP 仅用于 ACME 验证和 308 跳转）
   -> 腾讯云 Nginx
   -> ASP.NET Core Web API 应用服务器
   -> EF Core / Dapper / ODP.NET
@@ -330,7 +330,7 @@ sqlplus -V
 ```text
 22    SSH，仅管理员维护使用；公网安全组保持最小授权，长期维护以密钥登录为准
 80    HTTP
-443   HTTPS，后续有域名后启用
+443   HTTPS；先使用可信公网 IP 证书，未来备案域名后替换主机名与证书
 ```
 
 不对公网开放：
@@ -1821,7 +1821,7 @@ README 写了什么，后续开发就尽量照着做。
 
 | 顺序 | 增强项 | 当前状态 | 完成标准 |
 |---|---|---|---|
-| 1 | 正式域名和 HTTPS | 已明确延后，数据库课程核心增强完成后再讨论 | 域名解析到腾讯云；80 自动跳转 443；证书自动续期；公网前端、API 和 SignalR 均通过 HTTPS 工作 |
+| 1 | 正式 HTTPS 与后续域名 | IP HTTPS 的 .NET 部署、续期、验证和回滚资产已完成并通过单元测试；等待总负责人确认后执行公网切换 | 80 自动跳转 443；可信证书自动续期；公网前端、API、Oracle 健康检查和 SignalR 均通过 HTTPS 工作；域名购买与备案另行决策 |
 | 2 | 一键恢复演示数据 | 已完成并通过云端重置、恢复、再次重置验收 | .NET 工具先备份、再重置、再校验；操作有确认口令和审计日志；失败可恢复；执行前后健康检查通过 |
 | 3 | 持久化增强交互与实时通知 | 已完成并通过腾讯云 Oracle、API 与 SignalR 验收 | 好友聊天、评测互动、工坊订阅写入 Oracle；C# 五层接口完整；SignalR 推送消息和状态变化；刷新或换浏览器后状态不丢失 |
 | 4 | 商店媒体体验 | 已完成并通过本地及腾讯云公网验收 | CS2、DST 详情页具备视频预告片、截图画廊、缩略图切换、全屏查看、键盘操作和加载失败兜底 |
@@ -1841,7 +1841,7 @@ README 写了什么，后续开发就尽量照着做。
 
 已确认的实施选择：
 
-1. 当前暂无自有域名；域名与 HTTPS 不属于数据库课程核心能力，已明确延后到其他答辩增强全部完成后再讨论。若最终购买，候选名称为 `steam-db-lab.com`，购买和备案仍须由总负责人再次确认。
+1. 当前暂无自有域名。HTTPS 采用两阶段方案：第一阶段使用 Let's Encrypt 可信公网 IP 短期证书，由 `SteamPlatform.HttpsDeploy` 自动签发、续期、验证与回滚；第二阶段是否购买并备案 `steam-db-lab.com` 仍由总负责人另行确认。域名不会改变既定 B/S、Vue、ASP.NET Core 五层结构、Oracle 或腾讯云路线。
 2. 允许把当前云端业务数据整理为固定答辩基线，并在生成可恢复备份后由工具重置业务数据。
 3. CS2、DST 预告片采用服务器本地压缩文件，目标为短版 720p，并保留静态海报兜底。
 
@@ -2025,3 +2025,20 @@ Vue 页面与交互：
 4. 订单查询实际走 `IDX_ORDER_USER_TIME` 降序范围扫描，市场查询走 `IDX_MARKET_TEMPLATE_STATUS` 范围扫描，讨论查询走 `IDX_DISCUSSION_GAME_TIME` 降序范围扫描。
 5. 双会话并发测试中，会话 A 持有 `P001` 钱包行锁，会话 B 在 2 秒后收到 Oracle 23c `SQLCODE=-54`；两个会话均回滚，业务数据未改变。
 6. 数据库 C# 契约测试由 36 项增加到 39 项并全部通过；详细复现步骤以数据库答辩证据手册为准。
+
+### 24.8 HTTPS 部署准备记录
+
+实现文件：
+
+- `backend/tools/SteamPlatform.HttpsDeploy/`：`.NET 10` 运维工具，提供 `plan`、`render`、`stage`、`enable`、`verify`、`rollback`。
+- `backend/tests/SteamPlatform.HttpsDeploy.Tests/`：公网 IP 校验、确认口令、Nginx 路由/TLS、systemd 续期单元和回滚状态 JSON 契约测试。
+- `docs/https-deployment-runbook.md`：测试签发、生产切换、可信验证、自动续期、Playwright 回归和手动回滚说明。
+
+2026-08-27 部署前验收：
+
+1. 工具按 `linux-x64` 自包含方式发布，运行项目锁定的 .NET 10；腾讯云服务器当前全局 .NET 9 不影响工具或现有自包含 API。
+2. 服务器临时目录实测 Certbot `5.7.0`，确认支持 `--ip-address`、`--preferred-profile shortlived`、`--no-autorenew` 和 `--deploy-hook`。
+3. Ubuntu 镜像没有 `python3-venv`；实现已改为 `pip --target` 项目目录隔离安装，不修改系统 Python 包，也不新增系统运行时依赖。
+4. 生成的双栈 Nginx 配置已在服务器使用临时自签证书执行 `nginx -t`，语法检查成功；配置覆盖 HTTP 308、TLS 1.2/1.3、Vue、API、Oracle 健康检查与 SignalR WebSocket。
+5. 本地完整后端解决方案 198 项测试通过：API 188 项、演示恢复 4 项、HTTPS 部署 6 项；构建 0 警告、0 错误。
+6. 本轮仅完成部署资产与服务器临时目录预演，未签发生产证书、未改写正式 Nginx、未 reload 服务、未改变当前公网 HTTP 入口。正式切换必须由总负责人确认后执行。

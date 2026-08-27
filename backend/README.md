@@ -19,6 +19,11 @@ backend/
     SteamPlatform.Shared/
   tests/
     SteamPlatform.Api.Tests/
+    SteamPlatform.DemoData.Tests/
+    SteamPlatform.HttpsDeploy.Tests/
+  tools/
+    SteamPlatform.DemoData/
+    SteamPlatform.HttpsDeploy/
 ```
 
 当前技术：
@@ -98,3 +103,5 @@ ADMIN   rootadmin / admin
 ```
 
 禁止把 Spring Boot、Java、MyBatis 作为本项目后端主线。
+
+服务器运维工具同样使用 `.NET 10`：`SteamPlatform.DemoData` 负责可审计的演示数据恢复，`SteamPlatform.HttpsDeploy` 负责可信 IP HTTPS、续期、验证和回滚。详细流程分别见 `docs/defense-demo-runbook.md` 与 `docs/https-deployment-runbook.md`。
