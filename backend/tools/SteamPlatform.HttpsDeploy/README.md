@@ -8,6 +8,7 @@
 
 - `stage`、`enable`、`rollback` 都需要独立确认口令。
 - 正式邮箱可通过 `--email-stdin true` 从标准输入读取，不进入命令参数或仓库文件。
+- 自动化部署优先使用权限为 `0600` 的绝对路径 `--email-file`；工具拒绝 Linux 上可被组或其他用户读取的文件。
 - Certbot 固定安装在 `/opt/steam-platform/tools/certbot/packages/`，不替换 Ubuntu 系统包，也不要求镜像额外安装 `python3-venv`。
 - `enable` 在改写 Nginx 前保存原配置；配置校验或公网验证失败时自动恢复。
 - 生产证书为 Let's Encrypt 短期 IP 证书，由独立 systemd timer 每小时检查续期。

@@ -48,7 +48,7 @@ dotnet publish backend/tools/SteamPlatform.HttpsDeploy/SteamPlatform.HttpsDeploy
 
 ## 5. 服务器执行顺序
 
-邮箱应由总负责人通过标准输入传给工具，不写入仓库文件、环境文件或命令参数。
+邮箱应由总负责人通过标准输入或权限为 `0600` 的临时文件传给工具，不写入仓库文件、环境文件或命令参数。自动化部署使用 `--email-file /tmp/<临时文件>`，执行完成后立即删除该单一文件。
 
 ```bash
 export STEAM_HTTPS_PUBLIC_IP=124.222.213.245

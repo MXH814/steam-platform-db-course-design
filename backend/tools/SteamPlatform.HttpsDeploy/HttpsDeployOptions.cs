@@ -7,6 +7,7 @@ public sealed record HttpsDeployOptions(
     string Command,
     string? PublicIp,
     string? AcmeEmail,
+    string? AcmeEmailFile,
     string? Confirmation,
     bool ReadEmailFromStandardInput)
 {
@@ -40,6 +41,7 @@ public sealed record HttpsDeployOptions(
 
         var publicIp = Value(values, "ip") ?? Environment.GetEnvironmentVariable("STEAM_HTTPS_PUBLIC_IP");
         var acmeEmail = Value(values, "email") ?? Environment.GetEnvironmentVariable("STEAM_HTTPS_ACME_EMAIL");
+        var acmeEmailFile = Value(values, "email-file");
         var confirmation = Value(values, "confirm");
         var readEmailFromStandardInput = ParseBoolean(values, "email-stdin");
 
@@ -48,9 +50,16 @@ public sealed record HttpsDeployOptions(
             ValidatePublicIp(publicIp);
         }
 
-        if ((command is "stage" or "enable") && string.IsNullOrWhiteSpace(acmeEmail) && !readEmailFromStandardInput)
+        var emailSourceCount = (string.IsNullOrWhiteSpace(acmeEmail) ? 0 : 1) +
+                               (string.IsNullOrWhiteSpace(acmeEmailFile) ? 0 : 1) +
+                               (readEmailFromStandardInput ? 1 : 0);
+        if ((command is "stage" or "enable") && emailSourceCount == 0)
         {
-            throw new ArgumentException("ACME email is required through --email, STEAM_HTTPS_ACME_EMAIL, or --email-stdin true.");
+            throw new ArgumentException("ACME email is required through --email, STEAM_HTTPS_ACME_EMAIL, --email-file, or --email-stdin true.");
+        }
+        if (emailSourceCount > 1)
+        {
+            throw new ArgumentException("Use exactly one ACME email source.");
         }
 
         var requiredConfirmation = command switch
@@ -65,7 +74,7 @@ public sealed record HttpsDeployOptions(
             throw new ArgumentException($"{command} requires --confirm {requiredConfirmation}.");
         }
 
-        return new HttpsDeployOptions(command, publicIp, acmeEmail, confirmation, readEmailFromStandardInput);
+        return new HttpsDeployOptions(command, publicIp, acmeEmail, acmeEmailFile, confirmation, readEmailFromStandardInput);
     }
 
     private static string? Value(IReadOnlyDictionary<string, string> values, string key) =>

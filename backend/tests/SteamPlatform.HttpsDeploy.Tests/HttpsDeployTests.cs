@@ -73,6 +73,48 @@ public sealed class HttpsDeployTests
     }
 
     [Fact]
+    public async Task EmailInput_ReadsAddressFromExplicitFile()
+    {
+        var emailFile = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(emailFile, "operator@example.com\n");
+            if (OperatingSystem.IsLinux())
+            {
+                File.SetUnixFileMode(emailFile, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+
+            var options = HttpsDeployOptions.Parse([
+                "enable",
+                "--ip", "124.222.213.245",
+                "--email-file", Path.GetFullPath(emailFile),
+                "--confirm", HttpsDeployOptions.EnableConfirmation
+            ]);
+
+            Assert.Equal("operator@example.com", await AcmeEmailInput.ResolveAsync(options));
+        }
+        finally
+        {
+            File.Delete(emailFile);
+        }
+    }
+
+    [Fact]
+    public void Parse_RejectsMultipleEmailSources()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            HttpsDeployOptions.Parse([
+                "stage",
+                "--ip", "124.222.213.245",
+                "--email", "operator@example.com",
+                "--email-stdin", "true",
+                "--confirm", HttpsDeployOptions.StageConfirmation
+            ]));
+
+        Assert.Contains("exactly one", exception.Message);
+    }
+
+    [Fact]
     public void NginxConfig_CoversTlsRedirectApiDatabaseAndSignalR()
     {
         var config = NginxConfigRenderer.Render("124.222.213.245");
