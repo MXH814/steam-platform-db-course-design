@@ -166,4 +166,15 @@ public sealed class HttpsDeployTests
 
         Assert.Equal(TimeSpan.FromSeconds(7), client.Timeout);
     }
+
+    [Fact]
+    public void BackupPaths_NeverEnterNginxIncludeDirectories()
+    {
+        var paths = DeploymentBackupPaths.Create("20260827180000");
+
+        Assert.StartsWith("/var/lib/steam-platform-https/backups/", paths.AvailableConfig);
+        Assert.StartsWith("/var/lib/steam-platform-https/backups/", paths.EnabledConfig);
+        Assert.DoesNotContain("/etc/nginx/sites-enabled", paths.AvailableConfig);
+        Assert.DoesNotContain("/etc/nginx/sites-enabled", paths.EnabledConfig);
+    }
 }

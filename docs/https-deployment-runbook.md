@@ -66,7 +66,7 @@ sudo --preserve-env=STEAM_HTTPS_PUBLIC_IP \
 
 `enable` 会执行以下受控变化：
 
-1. 生成带 UTC 时间戳的 Nginx 原配置备份。
+1. 在 `/var/lib/steam-platform-https/backups/` 生成带 UTC 时间戳的两份 Nginx 原配置备份；备份绝不写入会被 Nginx 通配加载的 `sites-enabled`。
 2. 写入只允许 TLS 1.2/1.3 的站点配置。
 3. 保留 `/.well-known/acme-challenge/` 的 HTTP 访问，其余 HTTP 请求返回 `308`。
 4. 反向代理 `/api/`、`/health`、`/health/database` 和支持 WebSocket Upgrade 的 `/hubs/`。

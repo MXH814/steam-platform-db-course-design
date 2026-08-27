@@ -65,15 +65,15 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
 
         Directory.CreateDirectory(StateDirectory);
         var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmss");
-        var availableBackupPath = $"{NginxAvailableConfig}.pre-https-{timestamp}.bak";
-        var enabledBackupPath = $"{NginxEnabledConfig}.pre-https-{timestamp}.bak";
-        File.Copy(NginxAvailableConfig, availableBackupPath, overwrite: false);
-        File.Copy(NginxEnabledConfig, enabledBackupPath, overwrite: false);
+        Directory.CreateDirectory(DeploymentBackupPaths.Directory);
+        var backupPaths = DeploymentBackupPaths.Create(timestamp);
+        File.Copy(NginxAvailableConfig, backupPaths.AvailableConfig, overwrite: false);
+        File.Copy(NginxEnabledConfig, backupPaths.EnabledConfig, overwrite: false);
         var timerState = await CaptureSystemTimerStateAsync(cancellationToken);
         var state = new DeploymentState(
             publicIp,
-            availableBackupPath,
-            enabledBackupPath,
+            backupPaths.AvailableConfig,
+            backupPaths.EnabledConfig,
             DateTimeOffset.UtcNow,
             timerState.Enabled,
             timerState.Active);
@@ -116,7 +116,7 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
         }
 
         Console.WriteLine($"Trusted HTTPS enabled at https://{publicIp}/.");
-        Console.WriteLine($"Rollback backups: {availableBackupPath}; {enabledBackupPath}");
+        Console.WriteLine($"Rollback backups: {backupPaths.AvailableConfig}; {backupPaths.EnabledConfig}");
     }
 
     public async Task VerifyAsync(string publicIp, CancellationToken cancellationToken = default)
