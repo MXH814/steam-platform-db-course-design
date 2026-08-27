@@ -48,21 +48,20 @@ dotnet publish backend/tools/SteamPlatform.HttpsDeploy/SteamPlatform.HttpsDeploy
 
 ## 5. 服务器执行顺序
 
-以下命令中的邮箱应替换为总负责人可接收证书通知的地址。不要把真实邮箱写入仓库文件。
+邮箱应由总负责人通过标准输入传给工具，不写入仓库文件、环境文件或命令参数。
 
 ```bash
 export STEAM_HTTPS_PUBLIC_IP=124.222.213.245
-export STEAM_HTTPS_ACME_EMAIL='<负责人邮箱>'
 
 /opt/steam-platform/tools/https-deploy/SteamPlatform.HttpsDeploy plan
 
-sudo --preserve-env=STEAM_HTTPS_PUBLIC_IP,STEAM_HTTPS_ACME_EMAIL \
+sudo --preserve-env=STEAM_HTTPS_PUBLIC_IP \
   /opt/steam-platform/tools/https-deploy/SteamPlatform.HttpsDeploy \
-  stage --confirm STAGE_IP_HTTPS
+  stage --email-stdin true --confirm STAGE_IP_HTTPS
 
-sudo --preserve-env=STEAM_HTTPS_PUBLIC_IP,STEAM_HTTPS_ACME_EMAIL \
+sudo --preserve-env=STEAM_HTTPS_PUBLIC_IP \
   /opt/steam-platform/tools/https-deploy/SteamPlatform.HttpsDeploy \
-  enable --confirm ENABLE_IP_HTTPS
+  enable --email-stdin true --confirm ENABLE_IP_HTTPS
 ```
 
 `enable` 会执行以下受控变化：

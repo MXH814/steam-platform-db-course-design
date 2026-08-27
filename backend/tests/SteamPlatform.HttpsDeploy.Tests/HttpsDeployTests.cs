@@ -43,6 +43,36 @@ public sealed class HttpsDeployTests
     }
 
     [Fact]
+    public async Task EmailInput_ReadsValidAddressFromStandardInputWithoutCommandArgument()
+    {
+        var options = HttpsDeployOptions.Parse([
+            "stage",
+            "--ip", "124.222.213.245",
+            "--email-stdin", "true",
+            "--confirm", HttpsDeployOptions.StageConfirmation
+        ]);
+
+        var email = await AcmeEmailInput.ResolveAsync(options, new StringReader("operator@example.com\n"));
+
+        Assert.True(options.ReadEmailFromStandardInput);
+        Assert.Equal("operator@example.com", email);
+    }
+
+    [Fact]
+    public async Task EmailInput_RejectsInvalidStandardInput()
+    {
+        var options = HttpsDeployOptions.Parse([
+            "enable",
+            "--ip", "124.222.213.245",
+            "--email-stdin", "true",
+            "--confirm", HttpsDeployOptions.EnableConfirmation
+        ]);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            AcmeEmailInput.ResolveAsync(options, new StringReader("not-an-email\n")));
+    }
+
+    [Fact]
     public void NginxConfig_CoversTlsRedirectApiDatabaseAndSignalR()
     {
         var config = NginxConfigRenderer.Render("124.222.213.245");

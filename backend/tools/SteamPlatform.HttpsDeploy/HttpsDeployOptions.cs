@@ -7,7 +7,8 @@ public sealed record HttpsDeployOptions(
     string Command,
     string? PublicIp,
     string? AcmeEmail,
-    string? Confirmation)
+    string? Confirmation,
+    bool ReadEmailFromStandardInput)
 {
     public const string StageConfirmation = "STAGE_IP_HTTPS";
     public const string EnableConfirmation = "ENABLE_IP_HTTPS";
@@ -40,15 +41,16 @@ public sealed record HttpsDeployOptions(
         var publicIp = Value(values, "ip") ?? Environment.GetEnvironmentVariable("STEAM_HTTPS_PUBLIC_IP");
         var acmeEmail = Value(values, "email") ?? Environment.GetEnvironmentVariable("STEAM_HTTPS_ACME_EMAIL");
         var confirmation = Value(values, "confirm");
+        var readEmailFromStandardInput = ParseBoolean(values, "email-stdin");
 
         if (command is "render" or "stage" or "enable" or "verify")
         {
             ValidatePublicIp(publicIp);
         }
 
-        if ((command is "stage" or "enable") && string.IsNullOrWhiteSpace(acmeEmail))
+        if ((command is "stage" or "enable") && string.IsNullOrWhiteSpace(acmeEmail) && !readEmailFromStandardInput)
         {
-            throw new ArgumentException("ACME email is required through --email or STEAM_HTTPS_ACME_EMAIL.");
+            throw new ArgumentException("ACME email is required through --email, STEAM_HTTPS_ACME_EMAIL, or --email-stdin true.");
         }
 
         var requiredConfirmation = command switch
@@ -63,11 +65,23 @@ public sealed record HttpsDeployOptions(
             throw new ArgumentException($"{command} requires --confirm {requiredConfirmation}.");
         }
 
-        return new HttpsDeployOptions(command, publicIp, acmeEmail, confirmation);
+        return new HttpsDeployOptions(command, publicIp, acmeEmail, confirmation, readEmailFromStandardInput);
     }
 
     private static string? Value(IReadOnlyDictionary<string, string> values, string key) =>
         values.TryGetValue(key, out var value) ? value.Trim() : null;
+
+    private static bool ParseBoolean(IReadOnlyDictionary<string, string> values, string key)
+    {
+        if (!values.TryGetValue(key, out var value))
+        {
+            return false;
+        }
+
+        return bool.TryParse(value, out var parsed)
+            ? parsed
+            : throw new ArgumentException($"--{key} must be true or false.");
+    }
 
     private static void ValidatePublicIp(string? value)
     {

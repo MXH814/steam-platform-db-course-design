@@ -14,10 +14,10 @@ try
             Console.Write(NginxConfigRenderer.Render(options.PublicIp!));
             break;
         case "stage":
-            await service.StageAsync(options.PublicIp!, options.AcmeEmail!);
+            await service.StageAsync(options.PublicIp!, await AcmeEmailInput.ResolveAsync(options));
             break;
         case "enable":
-            await service.EnableAsync(options.PublicIp!, options.AcmeEmail!);
+            await service.EnableAsync(options.PublicIp!, await AcmeEmailInput.ResolveAsync(options));
             break;
         case "verify":
             await service.VerifyAsync(options.PublicIp!);
