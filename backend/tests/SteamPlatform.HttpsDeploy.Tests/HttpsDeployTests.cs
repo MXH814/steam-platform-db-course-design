@@ -149,6 +149,7 @@ public sealed class HttpsDeployTests
         var original = new DeploymentState(
             "124.222.213.245",
             "/etc/nginx/sites-available/steam-platform.pre-https-20260827180000.bak",
+            "/etc/nginx/sites-enabled/steam-platform.pre-https-20260827180000.bak",
             DateTimeOffset.Parse("2026-08-27T10:00:00Z"),
             SystemCertbotTimerEnabled: true,
             SystemCertbotTimerActive: true);

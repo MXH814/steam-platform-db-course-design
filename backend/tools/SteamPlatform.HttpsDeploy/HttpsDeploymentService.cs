@@ -14,7 +14,8 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
     private const string CertbotPackages = ToolRoot + "/packages";
     private const string Python = "/usr/bin/python3";
     private const string CertbotBootstrap = "from certbot.main import main; raise SystemExit(main())";
-    private const string NginxConfig = "/etc/nginx/sites-available/steam-platform";
+    private const string NginxAvailableConfig = "/etc/nginx/sites-available/steam-platform";
+    private const string NginxEnabledConfig = "/etc/nginx/sites-enabled/steam-platform";
     private const string StateDirectory = "/var/lib/steam-platform-https";
     private const string StatePath = StateDirectory + "/state.json";
     private const string RenewalService = "/etc/systemd/system/steam-platform-certbot-renew.service";
@@ -36,10 +37,21 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
     public async Task StageAsync(string publicIp, string acmeEmail, CancellationToken cancellationToken = default)
     {
         EnsureLinuxRoot();
-        await EnsureCertbotAsync(cancellationToken);
-        Directory.CreateDirectory(Path.Combine(WebRoot, ".well-known", "acme-challenge"));
-        await VerifyAcmeWebRootAsync(publicIp, cancellationToken);
-        await RequestCertificateAsync(publicIp, acmeEmail, StagingCertificateName, staging: true, cancellationToken);
+        var timerState = await CaptureSystemTimerStateAsync(cancellationToken);
+        await processRunner.IsSuccessfulAsync("systemctl", ["stop", "certbot.service"], cancellationToken);
+        await processRunner.IsSuccessfulAsync("systemctl", ["disable", "--now", "certbot.timer"], cancellationToken);
+        try
+        {
+            await EnsureCertbotAsync(cancellationToken);
+            Directory.CreateDirectory(Path.Combine(WebRoot, ".well-known", "acme-challenge"));
+            await VerifyAcmeWebRootAsync(publicIp, cancellationToken);
+            await RequestCertificateAsync(publicIp, acmeEmail, StagingCertificateName, staging: true, cancellationToken);
+        }
+        finally
+        {
+            await RestoreSystemTimerAsync(timerState, cancellationToken);
+        }
+
         Console.WriteLine("Let's Encrypt staging IP certificate issued successfully. Public Nginx traffic was not changed.");
     }
 
@@ -51,26 +63,37 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
             throw new InvalidOperationException($"HTTPS deployment state already exists at {StatePath}. Verify or roll back before enabling again.");
         }
 
-        await EnsureCertbotAsync(cancellationToken);
-        Directory.CreateDirectory(Path.Combine(WebRoot, ".well-known", "acme-challenge"));
-        await VerifyAcmeWebRootAsync(publicIp, cancellationToken);
-        await RequestCertificateAsync(publicIp, acmeEmail, ProductionCertificateName, staging: false, cancellationToken);
-
         Directory.CreateDirectory(StateDirectory);
-        var backupPath = $"{NginxConfig}.pre-https-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}.bak";
-        File.Copy(NginxConfig, backupPath, overwrite: false);
-        var systemTimerEnabled = await processRunner.IsSuccessfulAsync("systemctl", ["is-enabled", "certbot.timer"], cancellationToken);
-        var systemTimerActive = await processRunner.IsSuccessfulAsync("systemctl", ["is-active", "certbot.timer"], cancellationToken);
-        var state = new DeploymentState(publicIp, backupPath, DateTimeOffset.UtcNow, systemTimerEnabled, systemTimerActive);
+        var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmss");
+        var availableBackupPath = $"{NginxAvailableConfig}.pre-https-{timestamp}.bak";
+        var enabledBackupPath = $"{NginxEnabledConfig}.pre-https-{timestamp}.bak";
+        File.Copy(NginxAvailableConfig, availableBackupPath, overwrite: false);
+        File.Copy(NginxEnabledConfig, enabledBackupPath, overwrite: false);
+        var timerState = await CaptureSystemTimerStateAsync(cancellationToken);
+        var state = new DeploymentState(
+            publicIp,
+            availableBackupPath,
+            enabledBackupPath,
+            DateTimeOffset.UtcNow,
+            timerState.Enabled,
+            timerState.Active);
         await File.WriteAllTextAsync(StatePath, JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
 
         try
         {
-            await File.WriteAllTextAsync(NginxConfig, NginxConfigRenderer.Render(publicIp), cancellationToken);
+            await processRunner.IsSuccessfulAsync("systemctl", ["stop", "certbot.service"], cancellationToken);
+            await processRunner.RunAsync("systemctl", ["disable", "--now", "certbot.timer"], cancellationToken);
+            await EnsureCertbotAsync(cancellationToken);
+            Directory.CreateDirectory(Path.Combine(WebRoot, ".well-known", "acme-challenge"));
+            await VerifyAcmeWebRootAsync(publicIp, cancellationToken);
+            await RequestCertificateAsync(publicIp, acmeEmail, ProductionCertificateName, staging: false, cancellationToken);
+
+            var nginxConfig = NginxConfigRenderer.Render(publicIp);
+            await File.WriteAllTextAsync(NginxAvailableConfig, nginxConfig, cancellationToken);
+            await File.WriteAllTextAsync(NginxEnabledConfig, nginxConfig, cancellationToken);
             await WriteRenewalUnitsAsync(cancellationToken);
             await processRunner.RunAsync("nginx", ["-t"], cancellationToken);
             await processRunner.RunAsync("systemctl", ["daemon-reload"], cancellationToken);
-            await processRunner.RunAsync("systemctl", ["disable", "--now", "certbot.timer"], cancellationToken);
             await processRunner.RunAsync("systemctl", ["enable", "--now", "steam-platform-certbot-renew.timer"], cancellationToken);
             await processRunner.RunAsync("systemctl", ["reload", "nginx"], cancellationToken);
             await VerifyAsync(publicIp, cancellationToken);
@@ -79,12 +102,7 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
         {
             try
             {
-                File.Copy(backupPath, NginxConfig, overwrite: true);
-                await processRunner.IsSuccessfulAsync("systemctl", ["disable", "--now", "steam-platform-certbot-renew.timer"], cancellationToken);
-                await RestoreSystemTimerAsync(state, cancellationToken);
-                await processRunner.RunAsync("nginx", ["-t"], cancellationToken);
-                await processRunner.RunAsync("systemctl", ["reload", "nginx"], cancellationToken);
-                File.Delete(StatePath);
+                await RestoreDeploymentAsync(state, cancellationToken);
             }
             catch (Exception rollbackException)
             {
@@ -98,7 +116,7 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
         }
 
         Console.WriteLine($"Trusted HTTPS enabled at https://{publicIp}/.");
-        Console.WriteLine($"Rollback backup: {backupPath}");
+        Console.WriteLine($"Rollback backups: {availableBackupPath}; {enabledBackupPath}");
     }
 
     public async Task VerifyAsync(string publicIp, CancellationToken cancellationToken = default)
@@ -143,18 +161,15 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
 
         var state = JsonSerializer.Deserialize<DeploymentState>(await File.ReadAllTextAsync(StatePath, cancellationToken))
             ?? throw new InvalidOperationException("HTTPS deployment state is invalid.");
-        if (!File.Exists(state.BackupPath))
+        if (!File.Exists(state.AvailableConfigBackupPath) || !File.Exists(state.EnabledConfigBackupPath))
         {
-            throw new FileNotFoundException("Recorded Nginx rollback backup is missing.", state.BackupPath);
+            throw new FileNotFoundException("One or more recorded Nginx rollback backups are missing.");
         }
 
-        File.Copy(state.BackupPath, NginxConfig, overwrite: true);
-        await processRunner.RunAsync("nginx", ["-t"], cancellationToken);
-        await processRunner.RunAsync("systemctl", ["reload", "nginx"], cancellationToken);
-        await processRunner.RunAsync("systemctl", ["disable", "--now", "steam-platform-certbot-renew.timer"], cancellationToken);
-        await RestoreSystemTimerAsync(state, cancellationToken);
-        File.Delete(StatePath);
-        Console.WriteLine($"Nginx restored from {state.BackupPath}. Certificate files were retained for audit and safe reuse.");
+        await RestoreDeploymentAsync(state, cancellationToken);
+        Console.WriteLine(
+            $"Nginx restored from {state.AvailableConfigBackupPath} and {state.EnabledConfigBackupPath}. " +
+            "Certificate files were retained for audit and safe reuse.");
     }
 
     private async Task EnsureCertbotAsync(CancellationToken cancellationToken)
@@ -253,16 +268,33 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
         }
     }
 
-    private async Task RestoreSystemTimerAsync(DeploymentState state, CancellationToken cancellationToken)
+    private async Task<SystemTimerState> CaptureSystemTimerStateAsync(CancellationToken cancellationToken) =>
+        new(
+            await processRunner.IsSuccessfulAsync("systemctl", ["is-enabled", "certbot.timer"], cancellationToken),
+            await processRunner.IsSuccessfulAsync("systemctl", ["is-active", "certbot.timer"], cancellationToken));
+
+    private async Task RestoreDeploymentAsync(DeploymentState state, CancellationToken cancellationToken)
     {
-        if (state.SystemCertbotTimerEnabled)
+        File.Copy(state.AvailableConfigBackupPath, NginxAvailableConfig, overwrite: true);
+        File.Copy(state.EnabledConfigBackupPath, NginxEnabledConfig, overwrite: true);
+        await processRunner.IsSuccessfulAsync("systemctl", ["disable", "--now", "steam-platform-certbot-renew.timer"], cancellationToken);
+        await RestoreSystemTimerAsync(new SystemTimerState(state.SystemCertbotTimerEnabled, state.SystemCertbotTimerActive), cancellationToken);
+        await processRunner.RunAsync("nginx", ["-t"], cancellationToken);
+        await processRunner.RunAsync("systemctl", ["reload", "nginx"], cancellationToken);
+        File.Delete(StatePath);
+    }
+
+    private async Task RestoreSystemTimerAsync(SystemTimerState state, CancellationToken cancellationToken)
+    {
+        if (state.Enabled)
         {
             await processRunner.RunAsync("systemctl", ["enable", "certbot.timer"], cancellationToken);
         }
-        if (state.SystemCertbotTimerActive)
+        if (state.Active)
         {
             await processRunner.RunAsync("systemctl", ["start", "certbot.timer"], cancellationToken);
         }
     }
 
+    private sealed record SystemTimerState(bool Enabled, bool Active);
 }

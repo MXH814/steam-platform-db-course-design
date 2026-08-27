@@ -27,7 +27,7 @@ https://124.222.213.245
 
 1. 腾讯云防火墙允许公网 TCP `80` 与 `443`。
 2. `http://124.222.213.245/api/health` 和 `/health/database` 正常。
-3. `/etc/nginx/sites-available/steam-platform` 存在且 `nginx -t` 成功。
+3. `/etc/nginx/sites-available/steam-platform` 与实际加载的 `/etc/nginx/sites-enabled/steam-platform` 均存在，且 `nginx -t` 成功；本服务器两者是独立文件，工具会同时备份和更新，防止配置漂移。
 4. `/opt/steam-platform/www` 是当前前端根目录。
 5. ACME 联系邮箱只放入当前终端环境变量，不写入 Git、README 或命令历史。
 6. 先完成 `stage`，确认测试签发成功后才允许执行 `enable`。
@@ -112,7 +112,7 @@ sudo /opt/steam-platform/tools/https-deploy/SteamPlatform.HttpsDeploy \
   rollback --confirm ROLLBACK_IP_HTTPS
 ```
 
-若工具本身无法运行，读取 `/var/lib/steam-platform-https/state.json` 中的 `BackupPath`，由管理员把该单一备份文件复制回 `/etc/nginx/sites-available/steam-platform`，然后依次执行 `nginx -t` 与 `systemctl reload nginx`。不得删除 `/etc/letsencrypt`、整个 Nginx 目录或服务器应用目录。
+若工具本身无法运行，读取 `/var/lib/steam-platform-https/state.json` 中的 `AvailableConfigBackupPath` 与 `EnabledConfigBackupPath`，由管理员分别恢复到 `/etc/nginx/sites-available/steam-platform` 和 `/etc/nginx/sites-enabled/steam-platform`，然后依次执行 `nginx -t` 与 `systemctl reload nginx`。不得删除 `/etc/letsencrypt`、整个 Nginx 目录或服务器应用目录。
 
 ## 8. 域名阶段
 
