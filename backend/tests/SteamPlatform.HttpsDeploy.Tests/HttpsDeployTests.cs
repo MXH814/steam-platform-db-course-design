@@ -157,4 +157,12 @@ public sealed class HttpsDeployTests
 
         Assert.Equal(original, restored);
     }
+
+    [Fact]
+    public void LoopbackProbeClient_PreservesExplicitRedirectPolicy()
+    {
+        using var client = LoopbackHttpClientFactory.Create(allowAutoRedirect: false, TimeSpan.FromSeconds(7));
+
+        Assert.Equal(TimeSpan.FromSeconds(7), client.Timeout);
+    }
 }

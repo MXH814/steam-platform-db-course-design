@@ -32,5 +32,9 @@ try
 catch (Exception exception)
 {
     Console.Error.WriteLine($"ERROR: {exception.Message}");
+    for (var cause = exception.InnerException; cause is not null; cause = cause.InnerException)
+    {
+        Console.Error.WriteLine($"CAUSE: {cause.Message}");
+    }
     return 1;
 }

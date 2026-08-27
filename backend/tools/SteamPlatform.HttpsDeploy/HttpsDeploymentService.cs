@@ -107,21 +107,29 @@ public sealed class HttpsDeploymentService(ProcessRunner processRunner)
         await processRunner.RunAsync("systemctl", ["is-active", "nginx"], cancellationToken);
         await processRunner.RunAsync("systemctl", ["is-active", "steam-platform-certbot-renew.timer"], cancellationToken);
 
-        using var redirectHandler = new HttpClientHandler { AllowAutoRedirect = false };
-        using var redirectClient = new HttpClient(redirectHandler) { Timeout = TimeSpan.FromSeconds(15) };
+        using var redirectClient = LoopbackHttpClientFactory.Create(allowAutoRedirect: false, TimeSpan.FromSeconds(15));
         using var redirectResponse = await redirectClient.GetAsync($"http://{publicIp}/api/health", cancellationToken);
         if (redirectResponse.StatusCode != HttpStatusCode.PermanentRedirect ||
             redirectResponse.Headers.Location?.Scheme != Uri.UriSchemeHttps)
         {
-            throw new InvalidOperationException("HTTP endpoint did not return a 308 HTTPS redirect.");
+            throw new InvalidOperationException(
+                $"HTTP redirect probe failed: status={(int)redirectResponse.StatusCode}, location={redirectResponse.Headers.Location}.");
         }
+        Console.WriteLine($"PASS http://{publicIp}/api/health -> 308 HTTPS redirect");
 
-        using var httpsClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        using var httpsClient = LoopbackHttpClientFactory.Create(allowAutoRedirect: false, TimeSpan.FromSeconds(30));
         foreach (var path in new[] { "/", "/api/health", "/health/database" })
         {
-            using var response = await httpsClient.GetAsync($"https://{publicIp}{path}", cancellationToken);
-            response.EnsureSuccessStatusCode();
-            Console.WriteLine($"PASS https://{publicIp}{path} -> {(int)response.StatusCode}");
+            try
+            {
+                using var response = await httpsClient.GetAsync($"https://{publicIp}{path}", cancellationToken);
+                response.EnsureSuccessStatusCode();
+                Console.WriteLine($"PASS https://{publicIp}{path} -> {(int)response.StatusCode}");
+            }
+            catch (Exception exception)
+            {
+                throw new InvalidOperationException($"Trusted loopback HTTPS probe failed for {path}: {exception.Message}", exception);
+            }
         }
     }
 
