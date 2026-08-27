@@ -23,7 +23,7 @@ http://localhost:5173/
 默认情况下，本地 `npm run dev` 会把 `/api` 和 `/health` 代理到云服务器：
 
 ```text
-http://124.222.213.245
+https://124.222.213.245
 ```
 
 因此组员只要拉取最新代码并运行 `npm install`、`npm run dev`，一般不需要额外配置即可访问云端数据。
@@ -37,10 +37,10 @@ VITE_API_PROXY_TARGET=http://localhost:5253
 如果要绕过 Vite 代理，直接让浏览器请求云端 API 主机，可以写：
 
 ```env
-VITE_API_BASE_URL=http://124.222.213.245
+VITE_API_BASE_URL=https://124.222.213.245
 ```
 
-不要写成 `http://124.222.213.245/api`，否则会拼成 `/api/api/...`。
+不要写成 `https://124.222.213.245/api`，否则会拼成 `/api/api/...`。
 
 ## 演示账号
 

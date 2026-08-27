@@ -26,10 +26,10 @@ https://124.222.213.245
 ## 3. 部署前检查
 
 1. 腾讯云防火墙允许公网 TCP `80` 与 `443`。
-2. `http://124.222.213.245/api/health` 和 `/health/database` 正常。
+2. 首次部署前确认 HTTP 健康检查正常；生产切换后以 `https://124.222.213.245/api/health` 和 `/health/database` 为正式健康检查入口。
 3. `/etc/nginx/sites-available/steam-platform` 与实际加载的 `/etc/nginx/sites-enabled/steam-platform` 均存在，且 `nginx -t` 成功；本服务器两者是独立文件，工具会同时备份和更新，防止配置漂移。
 4. `/opt/steam-platform/www` 是当前前端根目录。
-5. ACME 联系邮箱只放入当前终端环境变量，不写入 Git、README 或命令历史。
+5. ACME 联系邮箱只通过标准输入或权限为 `0600` 的临时文件传入，不写入 Git、README 或命令历史。
 6. 先完成 `stage`，确认测试签发成功后才允许执行 `enable`。
 
 ## 4. 发布工具
@@ -104,7 +104,18 @@ npm --prefix frontend run test:e2e:cloud
 - `steam-platform-certbot-renew.timer` 为 active，并能完成 `certbot renew --dry-run --cert-name steam-platform-ip`。
 - 完整云端 Playwright 回归通过，演示数据在测试前后恢复到固定基线。
 
-## 7. 回滚
+## 7. 生产验收记录
+
+2026-08-27 已完成生产切换并通过以下验证：
+
+1. Let's Encrypt 生产证书的 SAN 为公网 IP `124.222.213.245`，有效期至 2026-09-03；浏览器、`curl` 和 .NET 均在未跳过校验的情况下信任证书。
+2. HTTP `80` 返回 `308`，HTTPS `443` 正常提供 Vue 首页、`/api/health`、`/health/database` 和 `/hubs/social`。
+3. 旧 `certbot.timer` 已停用；`steam-platform-certbot-renew.timer` 已启用并处于 active 状态。
+4. `certbot renew --dry-run --run-deploy-hooks --no-random-sleep-on-renew --cert-name steam-platform-ip` 执行成功，证明续期和 Nginx reload 钩子可用。
+5. SignalR 公网实时消息冒烟通过；完整云端 Playwright 回归 12/12 通过，测试后固定演示基线恢复成功。
+6. Oracle 只读总验收 21 组断言全部通过，Oracle `1521` 继续不对公网开放。
+
+## 8. 回滚
 
 常规回滚：
 
@@ -115,6 +126,6 @@ sudo /opt/steam-platform/tools/https-deploy/SteamPlatform.HttpsDeploy \
 
 若工具本身无法运行，读取 `/var/lib/steam-platform-https/state.json` 中的 `AvailableConfigBackupPath` 与 `EnabledConfigBackupPath`，由管理员分别恢复到 `/etc/nginx/sites-available/steam-platform` 和 `/etc/nginx/sites-enabled/steam-platform`，然后依次执行 `nginx -t` 与 `systemctl reload nginx`。不得删除 `/etc/letsencrypt`、整个 Nginx 目录或服务器应用目录。
 
-## 8. 域名阶段
+## 9. 域名阶段
 
 `steam-db-lab.com` 是否购买、购买年限、实名主体和 ICP 备案资料仍由总负责人单独确认。域名阶段开始前不得把临时第三方通配域名写入正式配置，也不得为了域名直接暴露 Oracle。
