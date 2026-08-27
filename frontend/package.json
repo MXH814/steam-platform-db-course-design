@@ -11,6 +11,7 @@
     "test:e2e": "playwright test",
     "test:e2e:cloud": "node scripts/run-cloud-e2e.mjs",
     "test:e2e:defense:cloud": "node scripts/run-cloud-e2e.mjs --defense-only",
+    "test:e2e:social:cloud": "node scripts/run-cloud-e2e.mjs --social-only",
     "record:defense:cloud": "node scripts/run-cloud-e2e.mjs --record",
     "test:e2e:report": "playwright show-report ../output/playwright/html-report"
   },

@@ -52,6 +52,23 @@ VITE_API_BASE_URL=http://124.222.213.245
 开发商 klei@example.com / klei
 ```
 
+## 浏览器回归
+
+本地只读回归会自动启动 Vite，不允许写入云端 Oracle：
+
+```powershell
+npm run test:e2e
+```
+
+总负责人执行云端完整回归时，使用服务器 SSH 目标和私钥文件位置配置 `E2E_SSH_TARGET`、`E2E_SSH_KEY`。`npm run test:e2e:cloud` 会在 12 项测试前后自动恢复演示基线。单独排查交易链或社交社区链分别使用：
+
+```powershell
+npm run test:e2e:defense:cloud
+npm run test:e2e:social:cloud
+```
+
+任何写库回归都不得绕过 `frontend/scripts/run-cloud-e2e.mjs` 直接运行。详细规则见 `../docs/playwright-regression-runbook.md`。
+
 ## 安全要求
 
 - 前端只保存 JWT token，不保存密码。

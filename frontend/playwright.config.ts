@@ -41,17 +41,17 @@ export default defineConfig({
     : [
         {
           name: 'desktop-chromium',
-          testIgnore: /defense-flow\.spec\.ts/,
+          testIgnore: /(defense-flow|social-community-flow)\.spec\.ts/,
           use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }
         },
         {
           name: 'mobile-chromium',
-          testIgnore: /defense-flow\.spec\.ts/,
+          testIgnore: /(defense-flow|social-community-flow)\.spec\.ts/,
           use: { ...devices['Pixel 7'] }
         },
         {
           name: 'defense-chromium',
-          testMatch: /defense-flow\.spec\.ts/,
+          testMatch: /(defense-flow|social-community-flow)\.spec\.ts/,
           dependencies: ['desktop-chromium', 'mobile-chromium'],
           use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }
         }

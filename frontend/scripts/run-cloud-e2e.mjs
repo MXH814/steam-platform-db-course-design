@@ -11,6 +11,7 @@ const key = process.env.E2E_SSH_KEY;
 const baseURL = process.env.E2E_BASE_URL || 'http://124.222.213.245';
 const record = process.argv.includes('--record');
 const defenseOnly = process.argv.includes('--defense-only');
+const socialOnly = process.argv.includes('--social-only');
 
 if (!target || !key) {
   console.error('E2E_SSH_TARGET 与 E2E_SSH_KEY 必须指向有权执行云端演示数据恢复的 SSH 目标和私钥。');
@@ -60,6 +61,7 @@ try {
   const cli = join(frontendRoot, 'node_modules', '@playwright', 'test', 'cli.js');
   const playwrightArgs = [cli, 'test'];
   if (defenseOnly) playwrightArgs.push('e2e/defense-flow.spec.ts', '--project=defense-chromium', '--no-deps');
+  if (socialOnly) playwrightArgs.push('e2e/social-community-flow.spec.ts', '--project=defense-chromium', '--no-deps');
   status = run(process.execPath, playwrightArgs, {
     env: {
       ...process.env,
