@@ -2042,7 +2042,7 @@ Vue 页面与交互：
 4. Let's Encrypt 已签发 SAN 为公网 IP `124.222.213.245` 的生产证书，有效期至 2026-09-03；开发机 `curl`、浏览器和 .NET 均在未关闭证书校验的情况下信任该证书。
 5. 正式双栈 Nginx 配置通过 `nginx -t` 并已 reload；HTTP `80` 返回同路径 HTTPS `308`，HTTPS `443` 正常提供 Vue、API、Oracle 健康检查和 SignalR WebSocket。
 6. 系统旧 `certbot.timer` 已停用；项目专用 `steam-platform-certbot-renew.timer` 已启用且 active。指定证书的 `renew --dry-run --run-deploy-hooks` 成功，证明短期证书续期和 Nginx reload 钩子可用。
-7. 公网 HTTPS SignalR 冒烟成功收到 `DirectMessageReceived`；完整云端 Playwright 12/12 通过，结束后的演示基线恢复运行编号为 `2026082711133638CF`。
+7. 公网 HTTPS SignalR 冒烟成功收到 `DirectMessageReceived`；当前 `main` 前端部署后再次使用默认 HTTPS 地址运行完整云端 Playwright，12/12 通过，结束后的演示基线恢复运行编号为 `202608271139556A4F`。
 8. HTTPS 回归后再次运行 Oracle 只读总验收，21 组断言全部通过；固定基线保持 2 名玩家、2 款样板游戏、6 件库存资产和 1 笔市场成交。
 9. 本地完整后端解决方案 204 项测试通过：API 188 项、演示恢复 4 项、HTTPS 部署 12 项；构建 0 警告、0 错误。
 10. 自包含工具已上传到 `/opt/steam-platform/tools/https-deploy/`，文件哈希与本地发布产物一致；当前版本标记 `/opt/steam-platform/HTTPS_TOOL_COMMIT` 为 `5cd9d00`。
