@@ -28,6 +28,8 @@ public sealed class AuthService(
             throw new ArgumentException("Account, Password and Nickname are required.");
         }
 
+        ValidateRegistrationFields(request.Account.Trim(), request.Password, request.Nickname.Trim());
+
         var player = new
         {
             UserId = IdGenerator.NewId("P"),
@@ -159,6 +161,8 @@ public sealed class AuthService(
         };
 
         var token = new JwtSecurityToken(
+            issuer: AuthTokenValidation.Issuer,
+            audience: AuthTokenValidation.Audience,
             claims: jwtClaims,
             notBefore: DateTime.UtcNow,
             expires: normalized.ExpiresAt.UtcDateTime,
@@ -210,6 +214,24 @@ public sealed class AuthService(
         !string.IsNullOrWhiteSpace(claims.PrincipalId) &&
         !string.IsNullOrWhiteSpace(claims.Account) &&
         claims.ExpiresAt > DateTimeOffset.UtcNow;
+
+    private static void ValidateRegistrationFields(string account, string password, string nickname)
+    {
+        if (account.Length is < 3 or > 64)
+        {
+            throw new ArgumentException("Account must be between 3 and 64 characters.");
+        }
+
+        if (nickname.Length > 64)
+        {
+            throw new ArgumentException("Nickname must not exceed 64 characters.");
+        }
+
+        if (password.Length is < 8 or > 128)
+        {
+            throw new ArgumentException("Password must be between 8 and 128 characters.");
+        }
+    }
 
     private static byte[] CopySigningKey(IAuthSigningKeyProvider signingKeyProvider)
     {

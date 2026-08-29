@@ -33,7 +33,11 @@ public static class NginxConfigRenderer
             ssl_session_tickets off;
 
             add_header X-Content-Type-Options nosniff always;
+            add_header X-Frame-Options DENY always;
             add_header Referrer-Policy strict-origin-when-cross-origin always;
+            add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
+            add_header Strict-Transport-Security "max-age=31536000" always;
+            add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' wss:" always;
 
             root /opt/steam-platform/www;
             index index.html;

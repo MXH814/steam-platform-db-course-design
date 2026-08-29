@@ -17,6 +17,14 @@ test.describe('公开商店与媒体画廊', () => {
     await expect(announcement).toBeHidden();
   });
 
+  test('未知地址显示可恢复的 404 页面', async ({ page }) => {
+    await page.goto('/this-route-does-not-exist');
+
+    await expect(page.getByRole('heading', { name: '找不到这个页面' })).toBeVisible();
+    await page.getByRole('link', { name: '返回商店' }).click();
+    await expect(page).toHaveURL(/\/store$/);
+  });
+
   for (const game of [
     { id: 'GAME_CS2', title: 'Counter-Strike 2', screenshot: /CS2 游戏截图/ },
     { id: 'GAME_DST', title: '饥荒联机版', screenshot: /饥荒联机版游戏截图/ }

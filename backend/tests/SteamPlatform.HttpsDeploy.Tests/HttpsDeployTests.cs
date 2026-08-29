@@ -121,6 +121,10 @@ public sealed class HttpsDeployTests
 
         Assert.Contains("return 308 https://$host$request_uri", config);
         Assert.Contains("ssl_protocols TLSv1.2 TLSv1.3", config);
+        Assert.Contains("add_header Content-Security-Policy", config);
+        Assert.Contains("add_header Strict-Transport-Security", config);
+        Assert.Contains("add_header X-Frame-Options DENY", config);
+        Assert.Contains("add_header Permissions-Policy", config);
         Assert.Contains("location /api/", config);
         Assert.Contains("location = /health/database", config);
         Assert.Contains("location /hubs/", config);

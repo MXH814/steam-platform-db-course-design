@@ -15,6 +15,7 @@ import InventoryView from './views/InventoryView.vue';
 import LibraryView from './views/LibraryView.vue';
 import LoginView from './views/LoginView.vue';
 import MarketView from './views/MarketView.vue';
+import NotFoundView from './views/NotFoundView.vue';
 import OrderDetailView from './views/OrderDetailView.vue';
 import ProfileView from './views/ProfileView.vue';
 import RedeemView from './views/RedeemView.vue';
@@ -68,7 +69,8 @@ export const router = createRouter({
     { path: '/developer/cdkeys', name: 'developer-cdkeys', component: CdkeyBatchView, meta: { requiresAuth: true, requiresDeveloper: true } },
     { path: '/admin/games', name: 'admin-games', component: AdminGamesView, meta: { requiresAuth: true, requiresAdmin: true } },
     { path: '/admin/notices', name: 'admin-notices', component: AdminNoticesView, meta: { requiresAuth: true, requiresAdmin: true } },
-    { path: '/admin/refunds', name: 'admin-refunds', component: AdminRefundsView, meta: { requiresAuth: true, requiresAdmin: true } }
+    { path: '/admin/refunds', name: 'admin-refunds', component: AdminRefundsView, meta: { requiresAuth: true, requiresAdmin: true } },
+    { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView }
   ]
 });
 

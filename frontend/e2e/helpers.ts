@@ -18,7 +18,7 @@ export async function loginAs(page: Page, account: string, password: string, rol
   await page.getByLabel('密码').fill(password);
   await page.getByRole('button', { name: '登录', exact: true }).click();
   await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
-  await expect.poll(() => page.evaluate(() => Boolean(localStorage.getItem('steam-platform-token')))).toBeTruthy();
+  await expect.poll(() => page.evaluate(() => Boolean(sessionStorage.getItem('steam-platform-token')))).toBeTruthy();
 }
 
 export async function assertNoHorizontalOverflow(page: Page) {

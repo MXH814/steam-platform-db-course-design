@@ -27,6 +27,7 @@ GitHub 仓库已对 `main` 分支启用保护规则：
 - 普通组员合并前必须通过 Pull Request。
 - 普通组员 Pull Request 至少需要 1 个 review。
 - Pull Request 中未解决的讨论必须先处理完。
+- `.github/workflows/ci.yml` 会在 Pull Request 和 `main` 更新时自动执行 C# 格式检查、.NET Release 构建与测试、演示数据基线解析、前端依赖审计和 Vue 生产构建；普通组员的 PR 必须通过该检查后才能合并。
 - 总负责人马祥珲本人，或经马祥珲明确授权由 Codex 完成且已通过构建/测试/安全检查的提交，可以由管理员直接合并到 `main`，不需要等待 Pull Request 审批。
 - 其他组员提交的业务代码仍必须走 Pull Request 审查流程。
 
@@ -607,7 +608,7 @@ PLAYER_LIBRARY
 - 前端只做展示和交互，不做最终权限判断。
 - 桌面端采用与 Steam 客户端一致的三层导航、紧凑内容密度、深色信息层级、底部状态栏和侧边抽屉交互；项目使用 `Game Deck` 自有名称与标识。
 - 所有用户可见按钮、链接、图标按钮、选项卡和筛选器必须产生有效结果：完成路由跳转、状态切换、数据筛选、弹窗开关或真实业务提交，不允许保留没有响应的装饰按钮。
-- 暂时只影响浏览体验的设置可以保存在 `localStorage`，但购买、钱包、退款、兑换、评价、成就、库存和市场等业务状态必须通过真实 API 与 Oracle 持久化。
+- 暂时只影响浏览体验的设置可以保存在 `localStorage`，JWT 只保存在当前标签页的 `sessionStorage`；购买、钱包、退款、兑换、评价、成就、库存和市场等业务状态必须通过真实 API 与 Oracle 持久化。
 - 可提交操作必须提供禁用态或防重复提交状态；成功、失败和空数据都要有可见反馈。
 - 新增或修改前端页面后必须在浏览器中完成桌面端和窄屏检查，并确认中文、图片、菜单浮层和长文本没有重叠或溢出。
 
@@ -693,12 +694,15 @@ AUDITOR     审计员，预留角色
 安全原则：
 
 - 密码必须使用 BCrypt、ASP.NET Core PasswordHasher 或当前后端统一实现的 PBKDF2-SHA256 哈希，不存明文。
-- 登录成功后使用 JWT。
-- 前端只保存 token，不保存密码。
+- 登录成功后使用 JWT；服务端同时验证固定 issuer、audience、HMAC-SHA256 签名与有效期。
+- 前端只在当前标签页的 `sessionStorage` 保存 token，不保存密码；关闭标签页后登录态失效。
+- 玩家注册密码长度为 8 至 128 位，账号长度为 3 至 64 位；前后端同时校验。
+- 登录和注册接口按 Nginx 转发后的真实客户端 IP 限流，防止短时间暴力尝试。
 - 敏感接口必须后端鉴权。
 - 钱包、订单、市场、退款接口必须从 token 中获取当前用户，不信任前端传入的用户 ID。
 - Oracle 连接字符串、JWT 密钥、云服务器密码不得提交 Git。
 - 云端 Oracle 1521 不对公网开放。
+- Nginx 必须发送 CSP、HSTS、`X-Frame-Options`、`X-Content-Type-Options`、Referrer Policy 与 Permissions Policy 安全响应头。
 
 演示种子账号仅用于课程演示和本地/云端样例库联调，不代表真实生产密码：
 
@@ -1975,7 +1979,7 @@ Vue 页面与交互：
 实现文件：
 
 - `frontend/playwright.config.ts`：桌面、移动、写库答辩链和 1080p 录制项目；失败时保留截图、视频和 Trace。
-- `frontend/e2e/public-store.spec.ts`：商店先渲染、启动公告浮窗、CS2/DST 各 1 段视频与 5 张截图、全屏查看及响应式布局。
+- `frontend/e2e/public-store.spec.ts`：商店先渲染、Oracle 启动公告浮窗、可恢复 404 页面、CS2/DST 各 1 段视频与 5 张截图、全屏查看及响应式布局。
 - `frontend/e2e/baseline.spec.ts`：Alice/Bob 登录基线、游戏库、库存、钱包、个人资料、社区、交易报价和市场。
 - `frontend/e2e/defense-flow.spec.ts`：注册、免费入库、充值、购买、评测、成就、退款、挂单、撮合、资金和物品账本完整链路。
 - `frontend/e2e/social-community-flow.spec.ts`：资料装扮、好友申请与接受、SignalR 实时聊天、动态、讨论回复、徽章、评测互动、工坊订阅和交易报价完整链路。
@@ -2046,3 +2050,18 @@ Vue 页面与交互：
 8. HTTPS 回归后再次运行 Oracle 只读总验收，21 组断言全部通过；固定基线保持 2 名玩家、2 款样板游戏、6 件库存资产和 1 笔市场成交。
 9. 本地完整后端解决方案 204 项测试通过：API 188 项、演示恢复 4 项、HTTPS 部署 12 项；构建 0 警告、0 错误。
 10. 自包含工具已上传到 `/opt/steam-platform/tools/https-deploy/`，文件哈希与本地发布产物一致；当前版本标记 `/opt/steam-platform/HTTPS_TOOL_COMMIT` 为 `5cd9d00`。
+
+### 24.9 答辩前最终质量与安全收口
+
+2026-08-30 最终验收：
+
+1. `SYS_NOTICE` 固定基线包含 3 条不过期公告；启动浮窗和管理员公告列表均从 Oracle/API 读取，不再因样例过期而依赖前端备用数据。
+2. Vue 路由增加统一 404 页面，提供返回商店与返回上一页操作；桌面和 390 x 844 手机项目均已纳入 Playwright。
+3. JWT 同时校验固定 issuer、audience、HMAC-SHA256 签名与生命周期；浏览器 token 从持久化 `localStorage` 改为标签页级 `sessionStorage`。
+4. 注册接口执行账号 3 至 64 位、密码 8 至 128 位的前后端双重校验；登录和注册按真实客户端 IP 每分钟最多处理 30 次请求。云端实测前 30 次无效认证返回 `401`，第 31 次返回 `429`。
+5. Nginx 公网响应已包含 CSP、HSTS、`X-Frame-Options: DENY`、`X-Content-Type-Options`、Referrer Policy 和 Permissions Policy；Oracle `1521` 与 API `5253` 继续只监听回环地址。
+6. 前端完整 npm 依赖审计为 0 漏洞；C# 全解决方案格式检查通过；Release 构建 0 警告、0 错误，后端与运维工具测试 `208/208` 通过，Vue 类型检查和生产构建通过。
+7. GitHub Actions 已加入 PR 与 `main` 自动质量门禁，覆盖 C# 格式、.NET 构建/测试、演示基线解析、npm 审计和 Vue 生产构建。
+8. 腾讯云完整 Playwright 回归 `14/14` 通过；结束后的固定基线恢复运行编号为 `202608291704113E3B`。
+9. 回归后 Oracle 只读总验收 21 组断言全部通过：45 张表、45 个主键、至少 49 个业务索引，无失效对象、账实错误、资产错配或失败恢复记录。
+10. `steam-platform-api`、Nginx、项目专用证书续期 timer 均为 active，系统 failed unit 数量为 0；HTTP 跳转、HTTPS、API 与数据库健康检查全部通过。

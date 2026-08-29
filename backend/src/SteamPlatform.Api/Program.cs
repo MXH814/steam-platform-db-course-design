@@ -1,4 +1,8 @@
+using System.Net;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using SteamPlatform.Api.Features.Auth;
 using SteamPlatform.Api.Features.Community;
 using SteamPlatform.Api.Features.CoreTransactions;
@@ -22,6 +26,26 @@ builder.Services.AddSwaggerGen();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new UtcDateTimeJsonConverter()));
 builder.Services.AddSignalR();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownProxies.Add(IPAddress.Loopback);
+    options.KnownProxies.Add(IPAddress.IPv6Loopback);
+});
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 30,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+});
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
     .Configure<IAuthSigningKeyProvider>((options, signingKeyProvider) =>
@@ -55,6 +79,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseApiExceptionHandling();
+app.UseForwardedHeaders();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

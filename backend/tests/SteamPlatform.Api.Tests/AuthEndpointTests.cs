@@ -78,6 +78,21 @@ public sealed class AuthEndpointTests(SteamPlatformApiFactory factory) : IClassF
         Assert.Contains("Account, Password and Nickname are required.", await response.Content.ReadAsStringAsync());
     }
 
+    [Theory]
+    [InlineData("ab", "strong-pass", "nickname", "Account must be between 3 and 64 characters.")]
+    [InlineData("player", "short", "nickname", "Password must be between 8 and 128 characters.")]
+    public async Task Register_enforces_length_rules_before_opening_database(
+        string account,
+        string password,
+        string nickname,
+        string expectedMessage)
+    {
+        using var response = await _client.PostAsJsonAsync("/api/auth/register", new { account, password, nickname });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains(expectedMessage, await response.Content.ReadAsStringAsync());
+    }
+
     private string CreateToken(string role, string principalId, string account)
     {
         using var scope = _factory.Services.CreateScope();

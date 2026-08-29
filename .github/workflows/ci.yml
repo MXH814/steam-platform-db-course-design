@@ -1,0 +1,63 @@
+name: Build and test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Restore backend
+        run: dotnet restore backend/SteamPlatform.sln
+
+      - name: Verify C# formatting
+        run: dotnet format backend/SteamPlatform.sln --verify-no-changes --no-restore
+
+      - name: Build backend
+        run: dotnet build backend/SteamPlatform.sln --configuration Release --no-restore
+
+      - name: Test backend and tools
+        run: dotnet test backend/SteamPlatform.sln --configuration Release --no-build --logger "console;verbosity=normal"
+
+      - name: Validate demo-data baseline
+        run: dotnet run --project backend/tools/SteamPlatform.DemoData/SteamPlatform.DemoData.csproj --configuration Release --no-build -- plan --root .
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Audit frontend dependency tree
+        working-directory: frontend
+        run: npm audit --registry=https://registry.npmjs.org
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build

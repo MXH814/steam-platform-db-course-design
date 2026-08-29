@@ -34,12 +34,12 @@ try
     switch (options.Command)
     {
         case "reset":
-        {
-            var runId = await service.ResetAsync(options.Actor, options.Confirmation);
-            Console.WriteLine($"Demo baseline reset completed. Run id: {runId}");
-            Console.WriteLine($"Rollback command uses --run-id {runId} --confirm {DemoDataResetService.RequiredRestoreConfirmation}");
-            break;
-        }
+            {
+                var runId = await service.ResetAsync(options.Actor, options.Confirmation);
+                Console.WriteLine($"Demo baseline reset completed. Run id: {runId}");
+                Console.WriteLine($"Rollback command uses --run-id {runId} --confirm {DemoDataResetService.RequiredRestoreConfirmation}");
+                break;
+            }
         case "restore":
             if (string.IsNullOrWhiteSpace(options.RunId))
             {

@@ -24,7 +24,13 @@ INSERT INTO WALLET_ACCOUNT (wallet_id, user_id, available_balance, frozen_balanc
 VALUES ('W002', 'P002', 242.75, 50.00, 3);
 
 INSERT INTO SYS_NOTICE (notice_id, publisher_type, publisher_id, title, content, priority, status, publish_time, expire_time)
-VALUES ('N001', 'SYSTEM', NULL, 'CS2 and DST demo catalog ready', 'Counter-Strike 2 and Don''t Starve Together are the fixed sample games for the course demo.', 1, 'PUBLISHED', TIMESTAMP '2026-07-05 10:00:00', TIMESTAMP '2026-08-05 10:00:00');
+VALUES ('N001', 'SYSTEM', NULL, '荒野生存特别活动现已开放', '进入饥荒联机版商店页面，查看买断制购买、内容包、社区评测和自定义成就完整流程。', 8, 'PUBLISHED', TIMESTAMP '2026-08-25 10:00:00', NULL);
+
+INSERT INTO SYS_NOTICE (notice_id, publisher_type, publisher_id, title, content, priority, status, publish_time, expire_time)
+VALUES ('N002', 'SYSTEM', NULL, 'CS2 库存与社区市场全面联动', '免费加入游戏库，浏览饰品库存、市场挂单、价格历史、成交记录和资产转移账本。', 7, 'PUBLISHED', TIMESTAMP '2026-08-25 10:05:00', NULL);
+
+INSERT INTO SYS_NOTICE (notice_id, publisher_type, publisher_id, title, content, priority, status, publish_time, expire_time)
+VALUES ('N003', 'SYSTEM', NULL, '社区创意工坊浏览功能上线', '现在可以搜索、排序、查看详情并订阅 CS2 与饥荒联机版的课程演示工坊作品。', 6, 'PUBLISHED', TIMESTAMP '2026-08-25 10:10:00', NULL);
 
 INSERT INTO GAME (game_id, dev_id, game_name, base_price, discount_rate, release_date, reputation, status)
 VALUES ('GAME_CS2', 'DEV_VALVE', 'Counter-Strike 2', 0.00, 1.00, DATE '2023-09-27', 'VERY_POSITIVE', 'ONLINE');

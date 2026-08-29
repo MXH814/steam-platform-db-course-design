@@ -4,6 +4,8 @@ namespace SteamPlatform.Application.Auth;
 
 public static class AuthTokenValidation
 {
+    public const string Issuer = "SteamPlatform.Api";
+    public const string Audience = "SteamPlatform.Web";
     public const string RoleClaim = "role";
     public const string PrincipalIdClaim = "principal_id";
     public const string AccountClaim = "account";
@@ -12,8 +14,10 @@ public static class AuthTokenValidation
     public static TokenValidationParameters CreateParameters(byte[] signingKey) =>
         new()
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidIssuer = Issuer,
+            ValidateAudience = true,
+            ValidAudience = Audience,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(CopySigningKey(signingKey)),
             ValidAlgorithms = [SecurityAlgorithms.HmacSha256],

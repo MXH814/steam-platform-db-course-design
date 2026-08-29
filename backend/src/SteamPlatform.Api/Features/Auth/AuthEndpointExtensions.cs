@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using SteamPlatform.Application.Auth;
 using SteamPlatform.Application.Common;
 
@@ -9,8 +10,8 @@ public static class AuthEndpointExtensions
     {
         var auth = app.MapGroup("/api/auth").WithTags("Auth");
 
-        auth.MapPost("/register", RegisterPlayerAsync);
-        auth.MapPost("/register/player", RegisterPlayerAsync);
+        auth.MapPost("/register", RegisterPlayerAsync).RequireRateLimiting("auth");
+        auth.MapPost("/register/player", RegisterPlayerAsync).RequireRateLimiting("auth");
 
         auth.MapPost("/login", async (LoginRequest request, IAuthService authService, CancellationToken cancellationToken) =>
         {
@@ -20,7 +21,7 @@ public static class AuthEndpointExtensions
             }
 
             return Results.Ok(await authService.LoginAsync(request, cancellationToken));
-        });
+        }).RequireRateLimiting("auth");
 
         auth.MapGet("/me", (HttpContext httpContext) =>
         {

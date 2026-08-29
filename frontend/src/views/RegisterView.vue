@@ -8,17 +8,18 @@
 
       <label>
         <span>账号</span>
-        <input v-model.trim="form.account" autocomplete="username" required />
+        <input v-model.trim="form.account" autocomplete="username" minlength="3" maxlength="64" required />
       </label>
 
       <label>
         <span>昵称</span>
-        <input v-model.trim="form.nickname" autocomplete="nickname" required />
+        <input v-model.trim="form.nickname" autocomplete="nickname" maxlength="64" required />
       </label>
 
       <label>
         <span>密码</span>
-        <input v-model="form.password" type="password" autocomplete="new-password" required />
+        <input v-model="form.password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required />
+        <small>至少 8 位，建议同时包含字母、数字和符号。</small>
       </label>
 
       <p v-if="error" class="message error">{{ error }}</p>

@@ -107,6 +107,17 @@ public sealed class AuthServiceTokenTests
         Assert.Null(validatingService.ValidateToken(token));
     }
 
+    [Theory]
+    [InlineData("Unexpected.Issuer", AuthTokenValidation.Audience)]
+    [InlineData(AuthTokenValidation.Issuer, "Unexpected.Audience")]
+    public void ValidateToken_rejects_wrong_issuer_or_audience(string issuer, string audience)
+    {
+        var service = CreateService();
+        var token = CreateSignedToken(DateTimeOffset.UtcNow.AddMinutes(5), SteamPlatformApiFactory.SigningKey, issuer, audience);
+
+        Assert.Null(service.ValidateToken(token));
+    }
+
     [Fact]
     public void Service_keeps_its_own_copy_of_signing_key()
     {
@@ -122,7 +133,11 @@ public sealed class AuthServiceTokenTests
     private static AuthService CreateService(string signingKey = SteamPlatformApiFactory.SigningKey) =>
         new(new ThrowingConnectionFactory(), new FixedSigningKeyProvider(signingKey), new PasswordHasher());
 
-    private static string CreateSignedToken(DateTimeOffset expiresAt, string signingKey)
+    private static string CreateSignedToken(
+        DateTimeOffset expiresAt,
+        string signingKey,
+        string issuer = AuthTokenValidation.Issuer,
+        string audience = AuthTokenValidation.Audience)
     {
         var claims = new[]
         {
@@ -132,6 +147,8 @@ public sealed class AuthServiceTokenTests
             new Claim(AuthTokenValidation.ExpiresAtClaim, expiresAt.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
         var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
             claims: claims,
             notBefore: DateTime.UtcNow.AddMinutes(-10),
             expires: expiresAt.UtcDateTime,

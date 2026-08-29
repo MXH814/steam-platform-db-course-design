@@ -12,7 +12,7 @@ interface AuthState {
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
-    token: localStorage.getItem(tokenStorageKey),
+    token: sessionStorage.getItem(tokenStorageKey),
     currentUser: null,
     initialized: false
   }),

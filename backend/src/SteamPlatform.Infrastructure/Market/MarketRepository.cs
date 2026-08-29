@@ -199,11 +199,11 @@ public sealed class MarketRepository : IMarketRepository
                     version = version + 1
                 WHERE wallet_id = :WalletId
                 """, new
-                {
-                    AvailableBalance = availableAfter,
-                    FrozenBalance = frozenAfter,
-                    wallet.WalletId
-                }, transaction, cancellationToken: cancellationToken));
+            {
+                AvailableBalance = availableAfter,
+                FrozenBalance = frozenAfter,
+                wallet.WalletId
+            }, transaction, cancellationToken: cancellationToken));
 
             await connection.ExecuteAsync(new CommandDefinition("""
                 INSERT INTO MARKET_ORDER
@@ -211,13 +211,13 @@ public sealed class MarketRepository : IMarketRepository
                 VALUES
                   (:MarketOrderId, :UserId, :TemplateId, NULL, 'BUY', :TargetPrice, :FrozenAmount, 'MATCHING', SYSTIMESTAMP)
                 """, new
-                {
-                    MarketOrderId = orderId,
-                    UserId = userId,
-                    request.TemplateId,
-                    request.TargetPrice,
-                    FrozenAmount = request.TargetPrice
-                }, transaction, cancellationToken: cancellationToken));
+            {
+                MarketOrderId = orderId,
+                UserId = userId,
+                request.TemplateId,
+                request.TargetPrice,
+                FrozenAmount = request.TargetPrice
+            }, transaction, cancellationToken: cancellationToken));
 
             await InsertWalletTransactionAsync(
                 connection,
@@ -301,13 +301,13 @@ public sealed class MarketRepository : IMarketRepository
                 VALUES
                   (:MarketOrderId, :UserId, :TemplateId, :ItemId, 'SELL', :TargetPrice, 0, 'MATCHING', SYSTIMESTAMP)
                 """, new
-                {
-                    MarketOrderId = orderId,
-                    UserId = userId,
-                    request.TemplateId,
-                    item.ItemId,
-                    request.TargetPrice
-                }, transaction, cancellationToken: cancellationToken));
+            {
+                MarketOrderId = orderId,
+                UserId = userId,
+                request.TemplateId,
+                item.ItemId,
+                request.TargetPrice
+            }, transaction, cancellationToken: cancellationToken));
 
             await transaction.CommitAsync(cancellationToken);
             return await GetOrderByIdAsync(orderId, cancellationToken);
@@ -366,11 +366,11 @@ public sealed class MarketRepository : IMarketRepository
                         version = version + 1
                     WHERE wallet_id = :WalletId
                     """, new
-                    {
-                        AvailableBalance = availableAfter,
-                        FrozenBalance = frozenAfter,
-                        wallet.WalletId
-                    }, transaction, cancellationToken: cancellationToken));
+                {
+                    AvailableBalance = availableAfter,
+                    FrozenBalance = frozenAfter,
+                    wallet.WalletId
+                }, transaction, cancellationToken: cancellationToken));
 
                 await InsertWalletTransactionAsync(
                     connection,
@@ -504,11 +504,11 @@ public sealed class MarketRepository : IMarketRepository
                     version = version + 1
                 WHERE wallet_id = :WalletId
                 """, new
-                {
-                    AvailableBalance = buyerAvailableAfter,
-                    FrozenBalance = buyerFrozenAfter,
-                    buyerWallet.WalletId
-                }, transaction, cancellationToken: cancellationToken));
+            {
+                AvailableBalance = buyerAvailableAfter,
+                FrozenBalance = buyerFrozenAfter,
+                buyerWallet.WalletId
+            }, transaction, cancellationToken: cancellationToken));
 
             await connection.ExecuteAsync(new CommandDefinition("""
                 UPDATE WALLET_ACCOUNT
@@ -516,10 +516,10 @@ public sealed class MarketRepository : IMarketRepository
                     version = version + 1
                 WHERE wallet_id = :WalletId
                 """, new
-                {
-                    AvailableBalance = sellerAvailableAfter,
-                    sellerWallet.WalletId
-                }, transaction, cancellationToken: cancellationToken));
+            {
+                AvailableBalance = sellerAvailableAfter,
+                sellerWallet.WalletId
+            }, transaction, cancellationToken: cancellationToken));
 
             await connection.ExecuteAsync(new CommandDefinition("""
                 UPDATE INVENTORY_ITEM
@@ -528,10 +528,10 @@ public sealed class MarketRepository : IMarketRepository
                     version = version + 1
                 WHERE item_id = :ItemId
                 """, new
-                {
-                    BuyerId = buyOrder.UserId,
-                    sellOrder.ItemId
-                }, transaction, cancellationToken: cancellationToken));
+            {
+                BuyerId = buyOrder.UserId,
+                sellOrder.ItemId
+            }, transaction, cancellationToken: cancellationToken));
 
             await connection.ExecuteAsync(new CommandDefinition("""
                 UPDATE MARKET_ORDER
@@ -539,10 +539,10 @@ public sealed class MarketRepository : IMarketRepository
                     frozen_amount = CASE WHEN order_type = 'BUY' THEN 0 ELSE frozen_amount END
                 WHERE market_order_id IN (:BuyOrderId, :SellOrderId)
                 """, new
-                {
-                    buyOrder.BuyOrderId,
-                    sellOrder.SellOrderId
-                }, transaction, cancellationToken: cancellationToken));
+            {
+                buyOrder.BuyOrderId,
+                sellOrder.SellOrderId
+            }, transaction, cancellationToken: cancellationToken));
 
             await connection.ExecuteAsync(new CommandDefinition("""
                 INSERT INTO MARKET_TRADE
@@ -550,17 +550,17 @@ public sealed class MarketRepository : IMarketRepository
                 VALUES
                   (:TradeId, :BuyOrderId, :SellOrderId, :TemplateId, :ItemId, :BuyerId, :SellerId, :TradePrice, :PlatformFee, 'CNY', SYSTIMESTAMP)
                 """, new
-                {
-                    TradeId = tradeId,
-                    BuyOrderId = buyOrder.BuyOrderId,
-                    SellOrderId = sellOrder.SellOrderId,
-                    buyOrder.TemplateId,
-                    sellOrder.ItemId,
-                    BuyerId = buyOrder.UserId,
-                    SellerId = sellOrder.UserId,
-                    TradePrice = tradePrice,
-                    PlatformFee = platformFee
-                }, transaction, cancellationToken: cancellationToken));
+            {
+                TradeId = tradeId,
+                BuyOrderId = buyOrder.BuyOrderId,
+                SellOrderId = sellOrder.SellOrderId,
+                buyOrder.TemplateId,
+                sellOrder.ItemId,
+                BuyerId = buyOrder.UserId,
+                SellerId = sellOrder.UserId,
+                TradePrice = tradePrice,
+                PlatformFee = platformFee
+            }, transaction, cancellationToken: cancellationToken));
 
             await connection.ExecuteAsync(new CommandDefinition("""
                 INSERT INTO ITEM_TRANSFER_LEDGER
@@ -568,12 +568,12 @@ public sealed class MarketRepository : IMarketRepository
                 VALUES
                   (:TransferId, :ItemId, :FromUserId, :ToUserId, 'TRADE', SYSTIMESTAMP)
                 """, new
-                {
-                    TransferId = transferId,
-                    sellOrder.ItemId,
-                    FromUserId = sellOrder.UserId,
-                    ToUserId = buyOrder.UserId
-                }, transaction, cancellationToken: cancellationToken));
+            {
+                TransferId = transferId,
+                sellOrder.ItemId,
+                FromUserId = sellOrder.UserId,
+                ToUserId = buyOrder.UserId
+            }, transaction, cancellationToken: cancellationToken));
 
             await InsertWalletTransactionAsync(
                 connection,
@@ -742,17 +742,17 @@ public sealed class MarketRepository : IMarketRepository
             VALUES
               (:TxnId, :WalletId, :BizType, :BizRefId, :FundsDirection, :Amount, :AvailableBefore, :AvailableAfter, :IdempotencyKey, SYSTIMESTAMP)
             """, new
-            {
-                TxnId = NewId(),
-                WalletId = walletId,
-                BizType = bizType,
-                BizRefId = bizRefId,
-                FundsDirection = fundsDirection,
-                Amount = amount,
-                AvailableBefore = availableBefore,
-                AvailableAfter = availableAfter,
-                IdempotencyKey = idempotencyKey
-            }, transaction, cancellationToken: cancellationToken));
+        {
+            TxnId = NewId(),
+            WalletId = walletId,
+            BizType = bizType,
+            BizRefId = bizRefId,
+            FundsDirection = fundsDirection,
+            Amount = amount,
+            AvailableBefore = availableBefore,
+            AvailableAfter = availableAfter,
+            IdempotencyKey = idempotencyKey
+        }, transaction, cancellationToken: cancellationToken));
     }
 
     private static string NewId()

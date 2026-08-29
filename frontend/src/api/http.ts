@@ -3,15 +3,15 @@ import axios from 'axios';
 export const tokenStorageKey = 'steam-platform-token';
 
 export function getStoredToken(): string | null {
-  return localStorage.getItem(tokenStorageKey);
+  return sessionStorage.getItem(tokenStorageKey);
 }
 
 export function storeToken(token: string): void {
-  localStorage.setItem(tokenStorageKey, token);
+  sessionStorage.setItem(tokenStorageKey, token);
 }
 
 export function clearStoredToken(): void {
-  localStorage.removeItem(tokenStorageKey);
+  sessionStorage.removeItem(tokenStorageKey);
 }
 
 export const http = axios.create({
