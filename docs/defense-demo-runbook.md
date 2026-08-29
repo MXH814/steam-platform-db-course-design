@@ -25,7 +25,9 @@
 - 钱包唯一真相是 `WALLET_ACCOUNT.available_balance` 与 `frozen_balance`，不得引用或恢复 `PLAYER.wallet_balance`。
 - 开发商和管理员不能公开注册。只有玩家可以现场注册；开发商和管理员账号由平台预先审核和维护。
 
-## 3. 七人分工与电脑准备
+## 3. 七人现场操作与十人知识责任
+
+### 3.1 七人现场操作与电脑准备
 
 正式演示使用 7 人 A-G，每人一台电脑。其余组员不安排重复操作，只在老师追问各自负责模块时补充回答。
 
@@ -42,6 +44,343 @@
 A 负责唯一口头主线，B-G 只在被切到自己电脑时用一至两句话说明操作结果，避免多人重复解释。A 使用固定口令切屏，例如“下面请看 Klei 开发商电脑”“回到玩家甲”“切到数据库证据”。
 
 推荐使用会议软件的屏幕共享交接或现场 HDMI 切换器。正式彩排必须采用与答辩当天相同的切屏方式。A 的电脑同时保留所有角色的备用浏览器配置和备用录屏，任一成员电脑异常时由 A 接管。
+
+### 3.2 十人知识责任总表
+
+现场操作仍由 A-G 七人完成，不增加角色切换。H-J 不接管玩家、开发商或管理员账号，负责专项技术问答、代码定位和故障补位。十个人都必须掌握自己模块从“前端页面 → API 端点 → Application 契约/服务 → Infrastructure/Oracle → 数据表 → 测试”的完整链路。
+
+| 人员 | 现场身份 | 第一知识责任 | 老师提问时负责回答 |
+|---|---|---|---|
+| A | 总主讲，不固定业务账号 | 总体架构、五层结构、认证授权、公共约定 | B/S 选择、.NET 10、五层依赖、JWT、异常处理、全链路集成 |
+| B | Klei 开发商 | 游戏管理、开发商隔离、CDKey 生成 | 开发商为什么不能越权、游戏为什么默认下架、CDKey 为什么只显示一次 |
+| C | Valve 开发商 | 商店前端、游戏详情、媒体与 Steam 风格交互 | Vue 页面结构、商店数据来源、响应式布局、图片视频兜底和界面一致性 |
+| D | 管理员 | 游戏审核、公告、退款审核 | 管理员权限、审核状态变化、退款审计、为什么不能由开发商自行上架 |
+| E | 玩家甲 | 钱包、充值、购买、订单、退款申请 | 钱包唯一真相、购买事务、幂等、资金流水、退款资格与金额一致性 |
+| F | 玩家乙 | CDKey 兑换、游戏库、好友聊天、实时通知 | 三种入库方式、重复兑换、好友关系、Oracle 持久化与 SignalR 的边界 |
+| G | 数据库与运维电脑 | Oracle 总体设计、约束、索引、执行计划、锁 | 表关系、范式、主外键、索引理由、事务隔离、并发与恢复验证 |
+| H | 专项问答 | 评价、版本、成就、个人资料、社区与讨论区 | 社区数据模型、评价留痕、成就口径、内容互动和数据持久化 |
+| I | 专项问答 | 饰品库存、市场订单、撮合、交易报价与资产账本 | 模板和实例区别、挂单撮合、冻结资金、手续费、所有权转移和防重复出售 |
+| J | 专项问答与故障补位 | 自动化测试、CI、演示恢复、HTTPS 和腾讯云部署 | 如何证明可运行、如何恢复基线、CI 检查、云端拓扑、端口和故障预案 |
+
+“第一知识责任”表示该成员必须能独立回答，不表示其他成员不需要理解。涉及跨模块问题时，第一责任人先回答业务规则，G 补充数据库约束和 SQL 证据，J 补充测试与云端验证，A 最后统一结论。
+
+### 3.3 A-J 具体文件与掌握要求
+
+#### A：总体架构、五层结构与认证授权
+
+第一责任文件：
+
+- `README.md`
+- `PRODUCT.md`
+- `2026《数据库课程设计》课程提纲.doc`
+- `backend/README.md`
+- `frontend/README.md`
+- `backend/SteamPlatform.sln`
+- `backend/src/SteamPlatform.Api/Program.cs`
+- `backend/src/SteamPlatform.Api/SteamPlatform.Api.csproj`
+- `backend/src/SteamPlatform.Application/SteamPlatform.Application.csproj`
+- `backend/src/SteamPlatform.Domain/SteamPlatform.Domain.csproj`
+- `backend/src/SteamPlatform.Infrastructure/SteamPlatform.Infrastructure.csproj`
+- `backend/src/SteamPlatform.Shared/SteamPlatform.Shared.csproj`
+- `backend/src/SteamPlatform.Infrastructure/DependencyInjection.cs`
+- `backend/src/SteamPlatform.Api/Features/Auth/AuthEndpointExtensions.cs`
+- `backend/src/SteamPlatform.Api/Features/Auth/EndpointGuards.cs`
+- `backend/src/SteamPlatform.Application/Auth/`
+- `backend/src/SteamPlatform.Infrastructure/Auth/`
+- `backend/src/SteamPlatform.Shared/`
+- `frontend/src/main.ts`
+- `frontend/src/router.ts`
+- `frontend/src/stores/auth.ts`
+- `frontend/src/api/http.ts`
+- `frontend/src/api/types.ts`
+- `frontend/src/env.d.ts`
+- `frontend/src/utils/format.ts`
+- `frontend/src/views/LoginView.vue`
+- `frontend/src/views/RegisterView.vue`
+
+A 必须完全讲明白：
+
+1. 浏览器、Vue、Nginx、ASP.NET Core、Oracle 之间一次请求如何流动。
+2. Api、Application、Domain、Infrastructure、Shared 五层分别负责什么，项目引用为什么不能反向。
+3. 玩家允许注册而开发商、管理员只能使用预置身份的原因。
+4. JWT 的签发、角色声明、有效期验证、路由守卫和后端最终鉴权之间的关系。
+5. 统一响应、业务异常、禁止访问和资源不存在如何映射为 HTTP 结果。
+6. 为什么选择 B/S、.NET 10、Vue 和 Oracle，而不是 C/S、纯前端或把 SQL 直接写在页面中。
+
+#### B：开发商游戏管理与 CDKey 生成
+
+第一责任文件：
+
+- `backend/src/SteamPlatform.Api/Features/Games/GameEndpointExtensions.cs`
+- `backend/src/SteamPlatform.Application/Games/GameContracts.cs`
+- `backend/src/SteamPlatform.Application/Games/GameService.cs`
+- `backend/src/SteamPlatform.Infrastructure/Games/GameRepository.cs`
+- `frontend/src/views/DeveloperGamesView.vue`
+- `frontend/src/views/CdkeyBatchView.vue`
+- `frontend/src/api/games.ts`
+- `backend/tests/SteamPlatform.Api.Tests/GameServiceTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/GameRepositoryGuardTests.cs`
+
+共享文件中的责任范围：
+
+- `backend/src/SteamPlatform.Api/Features/CoreTransactions/CoreTransactionEndpointExtensions.cs` 中开发商创建 CDKey 批次的端点。
+- `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` 中 `CreateCdkeyBatchAsync`。
+- `backend/src/SteamPlatform.Application/CoreTransactions/CoreTransactionContracts.cs` 中 CDKey 批次请求与响应契约。
+- `database/schema.sql` 中 `DEVELOPER`、`GAME`、`CDKEY_BATCH`、`CDKEY`。
+
+B 必须完全讲明白：开发商身份如何映射 `dev_id`、查询和修改为什么都带所有权条件、创建游戏为何固定为 `OFFLINE`、管理员如何使其上线、CDKey 明文为什么只返回一次、Oracle 为什么只保存可校验值而不长期暴露明文。
+
+#### C：公开商店、游戏详情与 Steam 风格前端
+
+第一责任文件：
+
+- `frontend/src/App.vue`
+- `frontend/src/styles.css`
+- `frontend/src/views/StoreView.vue`
+- `frontend/src/views/HomeView.vue`
+- `frontend/src/views/StoreCollectionView.vue`
+- `frontend/src/views/GameDetailView.vue`
+- `frontend/src/views/GameStoreView.vue`
+- `frontend/src/views/NotFoundView.vue`
+- `frontend/src/components/GameCard.vue`
+- `frontend/src/components/GameFilterBar.vue`
+- `frontend/src/components/GameHeroPanel.vue`
+- `frontend/src/components/GamePriceBlock.vue`
+- `frontend/src/components/GameSummarySection.vue`
+- `frontend/src/components/SteamGameDetailTemplate.vue`
+- `frontend/src/components/SteamMediaGallery.vue`
+- `frontend/src/components/Cs2DetailSections.vue`
+- `frontend/src/components/GenericGameDetailSections.vue`
+- `frontend/src/data/gameCatalog.ts`
+- `frontend/public/assets/games/`
+- `frontend/public/assets/media/`
+- `frontend/e2e/public-store.spec.ts`
+
+C 必须完全讲明白：公开商店如何只展示在线游戏、列表与详情如何调用真实 API、CS2/DST 固定展示口径、Vue 组件为何拆分、视频海报与截图画廊如何降级、桌面和移动端如何避免溢出，以及界面仿 Steam 但不把官方 Logo 当作项目自身标识的处理方式。
+
+#### D：管理员审核、公告与退款审批
+
+第一责任文件：
+
+- `frontend/src/views/AdminGamesView.vue`
+- `frontend/src/views/AdminNoticesView.vue`
+- `frontend/src/views/AdminRefundsView.vue`
+- `backend/src/SteamPlatform.Api/Features/Notices/NoticeEndpointExtensions.cs`
+- `backend/src/SteamPlatform.Application/Notices/NoticeContracts.cs`
+- `backend/src/SteamPlatform.Infrastructure/Notices/NoticeRepository.cs`
+- `backend/src/SteamPlatform.Domain/Notices/SysNotice.cs`
+- `backend/tests/SteamPlatform.Api.Tests/NoticeEndpointTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/NoticeRepositoryGuardTests.cs`
+
+共享文件中的责任范围：
+
+- `backend/src/SteamPlatform.Api/Features/Games/GameEndpointExtensions.cs`、`backend/src/SteamPlatform.Application/Games/GameService.cs` 和 `backend/src/SteamPlatform.Infrastructure/Games/GameRepository.cs` 中管理员上线/下线游戏的端点与 `SetStatusAsync`。
+- `backend/src/SteamPlatform.Api/Features/CoreTransactions/CoreTransactionEndpointExtensions.cs` 中管理员退款列表、批准和拒绝端点。
+- `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` 中 `ListAllRefundsAsync`、`ApproveRefundAsync`、`RejectRefundAsync`。
+- `database/schema.sql` 中 `ADMIN_USER`、`SYS_NOTICE`、`REFUND_TICKET`、`REFUND_DETAIL`、`REFUND_AUDIT_LOG`。
+
+D 必须完全讲明白：角色守卫为何必须在后端再次检查、审核状态如何影响公开商店、公告的发布时间与失效时间、退款批准如何回补钱包和撤销授权、审核人和审核意见如何留痕，以及重复审批为什么不会重复退款。
+
+#### E：钱包、充值、购买、订单与退款申请
+
+第一责任文件：
+
+- `docs/group-c-core-transaction-contract.md`
+- `docs/c2-wallet-module-readme.md`
+- `frontend/src/views/WalletView.vue`
+- `frontend/src/views/WalletRechargeCheckoutView.vue`
+- `frontend/src/views/WalletHistoryView.vue`
+- `frontend/src/views/WalletHistoryDetailView.vue`
+- `frontend/src/views/GameCheckoutView.vue`
+- `frontend/src/views/OrderDetailView.vue`
+- `frontend/src/views/OrdersView.vue`
+- `frontend/src/views/RefundsView.vue`
+- `frontend/src/views/WalletRefundPlaceholderView.vue`
+- `frontend/src/api/coreApi.ts` 中钱包、充值、购买、订单和退款申请函数。
+- `backend/tests/SteamPlatform.Api.Tests/CoreTransactionEndpointTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/CoreTransactionServiceGuardTests.cs`
+
+共享文件中的责任范围：
+
+- `backend/src/SteamPlatform.Api/Features/CoreTransactions/CoreTransactionEndpointExtensions.cs` 中钱包、充值、订单和玩家退款端点。
+- `backend/src/SteamPlatform.Application/CoreTransactions/CoreTransactionContracts.cs` 中钱包、订单和退款契约。
+- `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` 中 `GetWalletAsync`、`RechargeWalletAsync`、`ListWalletTransactionsAsync`、`ListWalletHistoryAsync`、`GetWalletHistoryEntryAsync`、`BuyGameAsync`、`ListOrdersAsync`、`GetOrderAsync`、`CreateRefundAsync`。
+- `database/schema.sql` 中 `WALLET_ACCOUNT`、`GAME_ORDER`、`ORDER_DETAIL`、`ORDER_STATUS_LOG`、`PAYMENT_TRANSACTION`、`WALLET_TRANSACTION` 和退款相关表。
+
+E 必须完全讲明白：钱包唯一真相为什么只有 available/frozen 两个余额、金额为什么使用定点小数、购买过程中如何锁定账户并在同一事务写订单/明细/支付/流水/游戏库、幂等键解决什么问题、任一步失败为什么必须整体回滚、退款金额和游玩资格如何校验。
+
+#### F：CDKey 兑换、游戏库、好友聊天与实时通知
+
+第一责任文件：
+
+- `frontend/src/views/RedeemView.vue`
+- `frontend/src/views/LibraryView.vue`
+- `frontend/src/views/GameLibraryView.vue`
+- `frontend/src/views/AccountView.vue`
+- `frontend/src/components/LibraryRail.vue`
+- `frontend/src/api/socialApi.ts`
+- `frontend/src/api/socialRealtime.ts`
+- `backend/src/SteamPlatform.Api/Features/Social/SocialEndpointExtensions.cs`
+- `backend/src/SteamPlatform.Api/Realtime/SocialHub.cs`
+- `backend/src/SteamPlatform.Api/Realtime/SignalRSocialNotifier.cs`
+- `backend/src/SteamPlatform.Application/Social/SocialContracts.cs`
+- `backend/src/SteamPlatform.Application/Social/SocialService.cs`
+- `backend/src/SteamPlatform.Domain/Social/`
+- `backend/src/SteamPlatform.Infrastructure/Social/SocialRepository.cs`
+- `backend/tests/SteamPlatform.Api.Tests/SocialEndpointTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/SocialServiceTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/SocialRepositoryGuardTests.cs`
+
+共享文件中的责任范围：
+
+- `backend/src/SteamPlatform.Api/Features/CoreTransactions/CoreTransactionEndpointExtensions.cs` 中免费入库、游戏库、游玩时长和 CDKey 兑换端点。
+- `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` 中 `ClaimFreeGameAsync`、`ListLibraryAsync`、`AddPlaytimeAsync`、`RedeemCdkeyAsync`。
+- `database/schema.sql` 中 `PLAYER_LIBRARY`、`CDKEY_REDEEM_LOG`、`FRIEND_RELATION`、`DIRECT_MESSAGE`、`WORKSHOP_ITEM`、`WORKSHOP_SUBSCRIPTION`、`USER_NOTIFICATION`。
+
+F 必须完全讲明白：购买、免费领取和 CDKey 兑换三种 `acquire_way` 的差异、同一 CDKey 为什么只能成功一次、失败尝试如何留痕、好友关系为什么规范化保存一对用户、陌生人为什么不能发私信、消息为什么先写 Oracle 再由 SignalR 推送、断线重连后为什么仍能查询历史消息，以及工坊订阅和用户通知如何持久化。
+
+#### G：Oracle 总体设计、约束、索引、执行计划与并发
+
+第一责任文件：
+
+- `database/schema.sql`
+- `database/data.sql`
+- `E-R图（改）.drawio`
+- `“Steam-”数字游戏平台系统（改）.pdma`
+- `项目文档/“Steam-”数字游戏平台系统数据库设计文档.docx`
+- `database/migrations/`
+- `database/verify_phase1.sql`
+- `database/verify_defense.sql`
+- `database/defense/explain_plans.sql`
+- `database/defense/lock_session_a.sql`
+- `database/defense/lock_session_b.sql`
+- `docs/database-defense-runbook.md`
+- `tests/SteamPlatform.Database.Tests/SchemaContractTests.cs`
+- `tests/SteamPlatform.Database.Tests/SeedDataTests.cs`
+- `tests/SteamPlatform.Database.Tests/VerifyScriptTests.cs`
+- `tests/SteamPlatform.Database.Tests/OracleSmokeTests.cs`
+- `tests/SteamPlatform.Database.Tests/DefenseScriptContractTests.cs`
+
+G 必须完全讲明白：核心实体及联系、主键/外键/唯一/检查约束、为什么不存在 `PLAYER.wallet_balance`、45 张表如何按业务域组织、哪些查询需要组合索引、执行计划怎么看、行锁如何防止余额超扣和物品重复出售、账本为什么只追加、迁移如何保持幂等，以及验证脚本如何证明跨表一致性。
+
+每位业务成员仍必须掌握自己模块涉及的表；G 负责全局 DDL、规范化、索引和跨模块一致性，不代替模块成员回答业务规则。
+
+#### H：评价、成就、资料与社区内容
+
+第一责任文件：
+
+- `docs/group-d-community-achievement-contract.md`
+- `frontend/src/views/GameCommunityView.vue`
+- `frontend/src/views/CommunityHubView.vue`
+- `frontend/src/views/ProfileView.vue`
+- `frontend/src/api/communityApi.ts`
+- `frontend/src/api/engagementApi.ts` 中资料、动态、讨论区相关函数。
+- `frontend/src/data/achievementCatalog.ts`
+- `backend/src/SteamPlatform.Api/Features/Community/CommunityEndpointExtensions.cs`
+- `backend/src/SteamPlatform.Api/Features/Engagement/EngagementEndpointExtensions.cs` 中资料、动态和讨论区端点。
+- `backend/src/SteamPlatform.Application/Community/`
+- `backend/src/SteamPlatform.Domain/Community/`
+- `backend/src/SteamPlatform.Domain/Engagement/EngagementModels.cs`
+- `backend/src/SteamPlatform.Application/Engagement/EngagementContracts.cs` 中资料、动态和讨论区契约。
+- `backend/src/SteamPlatform.Application/Engagement/EngagementService.cs`
+- `backend/src/SteamPlatform.Infrastructure/Community/`
+- `backend/src/SteamPlatform.Infrastructure/Engagement/EngagementRepository.cs` 中资料、动态和讨论区方法。
+- `backend/tests/SteamPlatform.Api.Tests/CommunityEndpointTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/CommunityRepositoryGuardTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/EngagementServiceTests.cs`
+
+H 必须完全讲明白：评价为什么要求拥有游戏、修改评价为什么保留 `REVIEW_VERSION`、管理员隐藏和物理删除的区别、DST 成就为什么明确是课程演示口径、解锁如何防重复，以及个人资料、社区动态、回应和讨论回复之间的关系。
+
+#### I：饰品库存、市场撮合、交易报价与资产账本
+
+第一责任文件：
+
+- `frontend/src/views/InventoryView.vue`
+- `frontend/src/views/MarketView.vue`
+- `frontend/src/views/TradeOffersView.vue`
+- `frontend/src/api/inventoryApi.ts`
+- `frontend/src/api/marketApi.ts`
+- `frontend/src/api/engagementApi.ts` 中交易报价相关函数。
+- `backend/src/SteamPlatform.Api/Features/Inventory/InventoryEndpointExtensions.cs`
+- `backend/src/SteamPlatform.Api/Features/Market/MarketEndpointExtensions.cs`
+- `backend/src/SteamPlatform.Api/Features/Engagement/EngagementEndpointExtensions.cs` 中交易报价端点。
+- `backend/src/SteamPlatform.Application/Inventory/InventoryContracts.cs`
+- `backend/src/SteamPlatform.Application/Market/MarketContracts.cs`
+- `backend/src/SteamPlatform.Infrastructure/Inventory/InventoryRepository.cs`
+- `backend/src/SteamPlatform.Infrastructure/Market/MarketRepository.cs`
+- `backend/src/SteamPlatform.Infrastructure/Engagement/EngagementRepository.cs` 中交易报价方法。
+- `backend/tests/SteamPlatform.Api.Tests/InventoryEndpointTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/InventoryRepositoryGuardTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/MarketEndpointTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/MarketRepositoryGuardTests.cs`
+- `tests/market-api.http`
+
+I 必须完全讲明白：`ITEM_TEMPLATE` 与 `INVENTORY_ITEM` 的区别、掉落为什么产生唯一实例、上架时如何校验归属和状态、为什么同一物品只能有一个有效卖单、买单为什么冻结资金、价格优先/时间优先如何匹配、5% 手续费如何记账、成交后如何同时转移物品与资金，以及 `ITEM_TRANSFER_LEDGER` 为什么能追溯历任所有者。
+
+#### J：测试、CI、演示恢复、HTTPS 与云端部署
+
+第一责任文件：
+
+- `.github/workflows/ci.yml`
+- `frontend/package.json`
+- `frontend/playwright.config.ts`
+- `frontend/e2e/baseline.spec.ts`
+- `frontend/e2e/defense-flow.spec.ts`
+- `frontend/e2e/social-community-flow.spec.ts`
+- `frontend/e2e/helpers.ts`
+- `frontend/scripts/run-cloud-e2e.mjs`
+- `frontend/scripts/realtime-smoke.mjs`
+- `backend/tests/`
+- `backend/tools/SteamPlatform.DemoData/`
+- `backend/tools/SteamPlatform.HttpsDeploy/`
+- `database/demo/manifest.json`
+- `docs/playwright-regression-runbook.md`
+- `docs/https-deployment-runbook.md`
+- `backend/tools/SteamPlatform.DemoData/README.md`
+- `backend/tools/SteamPlatform.HttpsDeploy/README.md`
+
+J 必须完全讲明白：单元测试、契约测试、Oracle 冒烟测试和 Playwright 端到端测试分别验证什么；CI 为什么同时执行格式、构建、测试、依赖审计和前端构建；写库 E2E 为什么要先备份并在结束后恢复；演示恢复工具如何按 manifest 清理、重建并记录审计；Nginx、ASP.NET Core 和 Oracle 在腾讯云上的部署关系；为什么公网只开放 80/443 和受限 22、不开放 1521；IP HTTPS 的用途、证书更新和失败时如何切换备用录屏。
+
+### 3.4 共享大文件的方法级责任
+
+以下文件承载多个业务域，不能用“整个文件都归某一个人”代替方法级学习：
+
+| 共享文件 | 方法或区域 | 第一责任人 |
+|---|---|---|
+| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | 钱包、充值、购买、订单、玩家退款申请 | E |
+| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | 免费入库、游戏库、游玩时长、CDKey 兑换 | F |
+| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | CDKey 批次生成 | B |
+| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | 管理员退款批准/拒绝 | D |
+| `backend/src/SteamPlatform.Api/Features/CoreTransactions/CoreTransactionEndpointExtensions.cs`、`backend/src/SteamPlatform.Application/CoreTransactions/CoreTransactionContracts.cs` | 与上面相同的端点和 DTO 分区 | B、D、E、F 各自对应 |
+| `backend/src/SteamPlatform.Infrastructure/Games/GameRepository.cs` | 开发商 CRUD、所有权隔离、管理员状态修改 | B；D 负责状态修改 |
+| `backend/src/SteamPlatform.Infrastructure/Games/GameRepository.cs` | 商店列表、详情、评价/成就/饰品概览查询 | C |
+| `backend/src/SteamPlatform.Infrastructure/Engagement/EngagementRepository.cs` | 资料、动态、讨论区 | H |
+| `backend/src/SteamPlatform.Infrastructure/Engagement/EngagementRepository.cs` | 交易报价 | I |
+| `backend/tests/`、`frontend/e2e/` | 测试框架、运行配置和总体验收 | J；具体业务断言由对应模块责任人共同掌握 |
+| `database/schema.sql` | 全局结构、约束、索引 | G |
+| `database/schema.sql` | 各业务表含义与字段规则 | 对应业务责任人 |
+
+### 3.5 每个人的学习验收标准
+
+每个人在正式答辩前必须通过以下验收，不能只记住按钮顺序：
+
+1. 不看稿，在 90 秒内说明本模块的业务目标、核心表和关键约束。
+2. 在 60 秒内从前端页面定位到 API、Application、Infrastructure 和 Oracle 表。
+3. 解释一个正常流程、一个越权/重复操作失败流程和一个事务回滚场景。
+4. 指出至少一个本模块的自动化测试，并说明它防止什么回归。
+5. 能在云端演示本模块，且知道接口或网络失败时如何判断是前端、API 还是数据库问题。
+6. 能回答“为什么这样设计”，而不只回答“代码就是这样写的”。
+
+彩排时由其他成员随机从下列角度追问：权限、事务、并发、约束、索引、异常、测试、安全和可扩展性。任何一项答不上来，责任人必须回到上述文件补学，并在下一次彩排重新接受提问。
+
+### 3.6 现场提问转交规则
+
+1. A 听完老师问题后，只在问题归属不清时简短复述并点名责任人。
+2. 被点名者先用一句话给结论，再解释代码路径和数据库依据，控制在 30 至 60 秒。
+3. 跨业务与数据库的问题由业务责任人先答，G 再补充表、约束、索引或事务证据。
+4. 涉及“如何证明测试过、如何部署、如何恢复”的问题由 J 补充。
+5. 其他成员不得抢答或给出不同口径；发现表述遗漏时先由 A 邀请补充。
+6. A 负责最终收束，确保回答与 README、课程要求和既定技术路线一致。
 
 ## 4. 固定账号与现场数据
 
