@@ -41,6 +41,11 @@ public static class CommunityEndpointExtensions
                 return Results.BadRequest("GameId and Content are required.");
             }
 
+            if (request.Content.Trim().Length > ReviewRules.MaxContentLength)
+            {
+                return Results.BadRequest($"Content cannot exceed {ReviewRules.MaxContentLength} characters.");
+            }
+
             var review = await repository.CreateAsync(gameId, claims!.PrincipalId, request, cancellationToken);
             return Results.Created($"/api/reviews/{review.ReviewId}", review);
         });
@@ -60,6 +65,11 @@ public static class CommunityEndpointExtensions
             if (InputGuards.IsBlank(reviewId, request.Content))
             {
                 return Results.BadRequest("ReviewId and Content are required.");
+            }
+
+            if (request.Content.Trim().Length > ReviewRules.MaxContentLength)
+            {
+                return Results.BadRequest($"Content cannot exceed {ReviewRules.MaxContentLength} characters.");
             }
 
             return Results.Ok(await repository.UpdateAsync(reviewId, claims!.PrincipalId, request, cancellationToken));

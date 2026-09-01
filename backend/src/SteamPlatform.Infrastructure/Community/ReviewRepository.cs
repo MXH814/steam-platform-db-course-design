@@ -29,7 +29,7 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
         ArgumentNullException.ThrowIfNull(request);
         var normalizedGameId = NormalizeRequired(gameId, nameof(gameId));
         var normalizedUserId = NormalizeRequired(userId, nameof(userId));
-        var content = NormalizeRequired(request.Content, nameof(request.Content));
+        var content = ReviewRules.NormalizeContent(request.Content);
 
         await using var connection = _connectionFactory.CreateConnection();
         await connection.OpenAsync(cancellationToken);
@@ -46,19 +46,20 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
             throw new ResourceNotFoundException("Game does not exist.");
         }
 
-        var ownsGame = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+        var ownedGameId = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
             """
-            select count(1)
+            select game_id
               from player_library
              where user_id = :UserId
                and game_id = :GameId
                and status = 'NORMAL'
+               for update
             """,
             new { UserId = normalizedUserId, GameId = normalizedGameId },
             transaction,
             cancellationToken: cancellationToken));
 
-        if (ownsGame == 0)
+        if (ownedGameId is null)
         {
             throw new BusinessRuleException("GAME_NOT_OWNED", "The player does not own this game.");
         }
@@ -110,7 +111,7 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
         ArgumentNullException.ThrowIfNull(request);
         var normalizedReviewId = NormalizeRequired(reviewId, nameof(reviewId));
         var normalizedUserId = NormalizeRequired(userId, nameof(userId));
-        var content = NormalizeRequired(request.Content, nameof(request.Content));
+        var content = ReviewRules.NormalizeContent(request.Content);
 
         await using var connection = _connectionFactory.CreateConnection();
         await connection.OpenAsync(cancellationToken);
@@ -192,7 +193,7 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
 
         await using var connection = _connectionFactory.CreateConnection();
         var exists = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
-            "select count(1) from game_review where review_id = :ReviewId",
+            "select count(1) from game_review where review_id = :ReviewId and status = 'VISIBLE'",
             new { ReviewId = normalizedReviewId },
             cancellationToken: cancellationToken));
 

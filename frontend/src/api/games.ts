@@ -148,23 +148,6 @@ const demoItemSummary: Record<string, GameItemSummary> = {
   }
 };
 
-const demoReviewSummary: Record<string, GameReviewSummary> = {
-  GAME_CS2: {
-    reviewCount: 120000,
-    recommendCount: 104400,
-    recommendRate: 87,
-    latestReviewContent: '适合展示库存、饰品市场入口和玩家评价概览。',
-    ratingText: '特别好评'
-  },
-  GAME_DST: {
-    reviewCount: 98000,
-    recommendCount: 93100,
-    recommendRate: 95,
-    latestReviewContent: '适合展示买断制购买、内容包、评价和成就。',
-    ratingText: '好评如潮'
-  }
-};
-
 const demoAchievementSummary: Record<string, GameAchievementSummary> = {};
 
 function unwrap<T>(response: ApiEnvelope<T>): T {
@@ -172,6 +155,15 @@ function unwrap<T>(response: ApiEnvelope<T>): T {
     throw new Error(response.message || '请求失败');
   }
   return response.data;
+}
+
+function reviewRatingText(reviewCount: number, recommendRate: number): string {
+  if (reviewCount === 0) return '暂无评价';
+  if (recommendRate >= 90) return '好评如潮';
+  if (recommendRate >= 80) return '特别好评';
+  if (recommendRate >= 70) return '多半好评';
+  if (recommendRate >= 40) return '褒贬不一';
+  return '多半差评';
 }
 
 function isRecoverableNetworkError(error: unknown): boolean {
@@ -414,17 +406,12 @@ export async function getGameItemSummary(gameId: string): Promise<GameItemSummar
 }
 
 export async function getGameReviewSummary(gameId: string): Promise<GameReviewSummary> {
-  try {
-    const response = await http.get<ApiEnvelope<Omit<GameReviewSummary, 'ratingText'>>>(`/api/games/${encodeURIComponent(gameId)}/reviews/summary`);
-    const summary = unwrap(response.data);
-    return {
-      ...summary,
-      ratingText: summary.recommendRate >= 90 ? '好评如潮' : summary.recommendRate >= 80 ? '特别好评' : '多半好评'
-    };
-  } catch (error) {
-    if (!isRecoverableNetworkError(error)) throw new Error(getApiError(error));
-    return demoReviewSummary[gameId] || { reviewCount: 0, recommendCount: 0, recommendRate: 0, latestReviewContent: null, ratingText: '暂无评价' };
-  }
+  const response = await http.get<ApiEnvelope<Omit<GameReviewSummary, 'ratingText'>>>(`/api/games/${encodeURIComponent(gameId)}/reviews/summary`);
+  const summary = unwrap(response.data);
+  return {
+    ...summary,
+    ratingText: reviewRatingText(summary.reviewCount, summary.recommendRate)
+  };
 }
 
 export async function getGameAchievementSummary(gameId: string): Promise<GameAchievementSummary> {

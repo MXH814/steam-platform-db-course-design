@@ -92,7 +92,9 @@ Authorization: Bearer <PLAYER_TOKEN>
 | 玩家鉴权 | 只能使用 `PLAYER` 角色 token |
 | 游戏存在 | `GAME.game_id = gameId` 必须存在 |
 | 资产确权 | 当前 `user_id + game_id` 必须在 `PLAYER_LIBRARY` 存在且 `status = 'NORMAL'` |
+| 内容长度 | 去除首尾空白后必须为 1-1200 个字符，前后端执行同一规则 |
 | 防重复评价 | 同一玩家同一游戏只能有一条评价主记录 |
+| 并发保护 | 创建时锁定对应 `PLAYER_LIBRARY` 资产行，防止并发请求绕过重复检查 |
 | 版本初始化 | 创建评价时同步写入 `REVIEW_VERSION.version_no = 1` |
 
 成功状态：`201 Created`
@@ -120,6 +122,7 @@ Authorization: Bearer <PLAYER_TOKEN>
 | 玩家鉴权 | 只能使用 `PLAYER` 角色 token |
 | 评价存在 | `GAME_REVIEW.review_id = reviewId` 必须存在 |
 | 只能改自己的评价 | 当前玩家 `user_id` 必须等于评价所属玩家 |
+| 内容长度 | 去除首尾空白后必须为 1-1200 个字符 |
 | 保留历史 | 修改不覆盖旧内容，而是新增一条 `REVIEW_VERSION` |
 
 成功状态：`200 OK`
@@ -130,7 +133,7 @@ Authorization: Bearer <PLAYER_TOKEN>
 GET /api/reviews/{reviewId}/versions
 ```
 
-说明：返回指定评价的所有历史版本，按版本号倒序。
+说明：仅当评价状态为 `VISIBLE` 时返回全部历史版本，并按版本号倒序。管理员隐藏评价后，公开版本接口按不存在处理，避免通过已知 `reviewId` 绕过隐藏状态读取内容。
 
 成功状态：`200 OK`
 
@@ -186,7 +189,7 @@ Authorization: Bearer <PLAYER_TOKEN>
 | `REVIEW_ALREADY_EXISTS` | 409 | 同一玩家重复评价同一游戏 |
 | `Forbidden` | 403 | 非玩家角色访问玩家接口，或玩家修改他人评价 |
 | `Not found` | 404 | 游戏、评价或成就不存在 |
-| `Invalid request` | 400 | 必填字段为空，例如 `gameId`、`content`、`reviewId`、`achId` |
+| `Invalid request` | 400 | 必填字段为空，或评价内容超过 1200 个字符 |
 
 错误响应使用 ASP.NET Core `ProblemDetails`：
 
@@ -211,6 +214,10 @@ Authorization: Bearer <PLAYER_TOKEN>
 | `Unlock_achievement_forbids_admin_tokens_before_opening_database` | 管理员 token 不能解锁玩家成就 |
 | `Create_review_rejects_unowned_game_before_writing_review` | 未拥有游戏不能发表评价，且不会写 `GAME_REVIEW` / `REVIEW_VERSION` |
 | `Unlock_achievement_rejects_unowned_game_before_writing_unlock` | 未拥有成就所属游戏不能解锁成就，且不会写 `PLAYER_ACHIEVEMENT` |
+| `Create_review_rejects_content_over_the_public_limit_before_opening_database` | 创建评价超过 1200 字时在打开数据库前返回 400 |
+| `Update_review_rejects_content_over_the_public_limit_before_opening_database` | 修改评价超过 1200 字时在打开数据库前返回 400 |
+| `Review_version_history_requires_a_visible_review` | 隐藏评价不能通过公开版本接口读取历史内容 |
+| `Admin_can_change_review_visibility` | 管理员可以隐藏并恢复评价 |
 | `Business_rules_map_to_409_with_error_code_title` | 业务异常会返回 409 和清晰错误码 |
 
 验证命令：
