@@ -108,7 +108,7 @@ npm --prefix frontend run test:e2e:cloud
 
 2026-08-27 已完成生产切换并通过以下验证：
 
-1. Let's Encrypt 生产证书的 SAN 为公网 IP `124.222.213.245`，有效期至 2026-09-03；浏览器、`curl` 和 .NET 均在未跳过校验的情况下信任证书。
+1. Let's Encrypt 生产证书的 SAN 为公网 IP `124.222.213.245`，由项目专用 timer 每小时检查并自动续期；浏览器、`curl` 和 .NET 均在未跳过校验的情况下信任证书。
 2. HTTP `80` 返回 `308`，HTTPS `443` 正常提供 Vue 首页、`/api/health`、`/health/database` 和 `/hubs/social`。
 3. 旧 `certbot.timer` 已停用；`steam-platform-certbot-renew.timer` 已启用并处于 active 状态。
 4. `certbot renew --dry-run --run-deploy-hooks --no-random-sleep-on-renew --cert-name steam-platform-ip` 执行成功，证明续期和 Nginx reload 钩子可用。

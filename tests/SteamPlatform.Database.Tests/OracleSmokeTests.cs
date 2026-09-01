@@ -32,10 +32,15 @@ public sealed class OracleSmokeTests(ITestOutputHelper output)
                'REFUND_TICKET', 'REFUND_DETAIL', 'REFUND_AUDIT_LOG', 'PLAYER_LIBRARY',
                'CDKEY_BATCH', 'CDKEY', 'CDKEY_REDEEM_LOG', 'GAME_REVIEW', 'REVIEW_VERSION',
                'ACHIEVEMENT', 'PLAYER_ACHIEVEMENT', 'ITEM_TEMPLATE', 'INVENTORY_ITEM',
-               'MARKET_ORDER', 'MARKET_TRADE', 'ITEM_TRANSFER_LEDGER', 'WALLET_TRANSACTION'
+               'MARKET_ORDER', 'MARKET_TRADE', 'ITEM_TRANSFER_LEDGER', 'WALLET_TRANSACTION',
+               'FRIEND_RELATION', 'DIRECT_MESSAGE', 'REVIEW_REACTION', 'WORKSHOP_ITEM',
+               'WORKSHOP_SUBSCRIPTION', 'USER_NOTIFICATION', 'PLAYER_PROFILE', 'BADGE_CATALOG',
+               'PLAYER_BADGE', 'TRADE_OFFER', 'TRADE_OFFER_ITEM', 'COMMUNITY_POST',
+               'COMMUNITY_POST_REACTION', 'DISCUSSION_TOPIC', 'DISCUSSION_REPLY',
+               'DEMO_RESET_RUN', 'DEMO_RESET_TABLE', 'DEMO_RESET_EVENT'
              )
             """));
-        Assert.Equal(27, tableCount);
+        Assert.Equal(45, tableCount);
 
         var noticePriority = Convert.ToInt32(await ScalarAsync(
             connection,

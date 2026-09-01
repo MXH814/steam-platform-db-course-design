@@ -2,6 +2,7 @@ namespace SteamPlatform.Database.Tests;
 
 internal static class SqlFile
 {
+    public static string RepositoryRoot => FindRepositoryRoot();
     public static string Schema => Read("database", "schema.sql");
     public static string Data => Read("database", "data.sql");
     public static string VerifyPhase1 => Read("database", "verify_phase1.sql");
@@ -17,8 +18,7 @@ internal static class SqlFile
 
     private static string Read(params string[] path)
     {
-        var root = FindRepositoryRoot();
-        return File.ReadAllText(Path.Combine([root, .. path]));
+        return File.ReadAllText(Path.Combine([RepositoryRoot, .. path]));
     }
 
     private static string FindRepositoryRoot()

@@ -2043,7 +2043,7 @@ Vue 页面与交互：
 1. 工具按 `linux-x64` 自包含方式发布，运行项目锁定的 .NET 10；腾讯云服务器当前全局 .NET 9 不影响工具或现有自包含 API。
 2. 服务器临时目录实测 Certbot `5.7.0`，确认支持 `--ip-address`、`--preferred-profile shortlived`、`--no-autorenew` 和 `--deploy-hook`。
 3. Ubuntu 镜像没有 `python3-venv`；实现已改为 `pip --target` 项目目录隔离安装，不修改系统 Python 包，也不新增系统运行时依赖。
-4. Let's Encrypt 已签发 SAN 为公网 IP `124.222.213.245` 的生产证书，有效期至 2026-09-03；开发机 `curl`、浏览器和 .NET 均在未关闭证书校验的情况下信任该证书。
+4. Let's Encrypt 已签发 SAN 为公网 IP `124.222.213.245` 的生产证书，由项目专用 timer 每小时检查并自动续期；开发机 `curl`、浏览器和 .NET 均在未关闭证书校验的情况下信任该证书。
 5. 正式双栈 Nginx 配置通过 `nginx -t` 并已 reload；HTTP `80` 返回同路径 HTTPS `308`，HTTPS `443` 正常提供 Vue、API、Oracle 健康检查和 SignalR WebSocket。
 6. 系统旧 `certbot.timer` 已停用；项目专用 `steam-platform-certbot-renew.timer` 已启用且 active。指定证书的 `renew --dry-run --run-deploy-hooks` 成功，证明短期证书续期和 Nginx reload 钩子可用。
 7. 公网 HTTPS SignalR 冒烟成功收到 `DirectMessageReceived`；当前 `main` 前端部署后再次使用默认 HTTPS 地址运行完整云端 Playwright，12/12 通过，结束后的演示基线恢复运行编号为 `202608271139556A4F`。
