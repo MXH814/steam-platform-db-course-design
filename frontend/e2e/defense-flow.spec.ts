@@ -70,7 +70,7 @@ test('固定答辩链：注册、购买退款、库存挂单、撮合与账本',
     await player.page.goto('/wallet/recharge/checkout?amount=60');
     await expect(player.page.locator('.payment-select select')).toHaveValue('WECHAT_PAY');
     await expect(player.page.locator('.selected-method, .payment-notice').getByText('微信支付', { exact: true })).toBeVisible();
-    await player.page.getByRole('button', { name: '继续' }).click();
+    await player.page.getByRole('button', { name: '确认充值' }).click();
     await expect(player.page.getByText(/充值成功，当前钱包余额 ¥ 60\.00/)).toBeVisible();
     await player.page.waitForURL(/\/wallet\/history$/);
     await expect(player.page.getByText('充值', { exact: true }).first()).toBeVisible();
