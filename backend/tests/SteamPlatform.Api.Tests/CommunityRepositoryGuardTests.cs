@@ -24,7 +24,7 @@ public sealed class CommunityRepositoryGuardTests
     [Fact]
     public async Task Create_review_rejects_unowned_game_before_writing_review()
     {
-        var factory = new ScriptedScalarConnectionFactory(1, 0);
+        var factory = new ScriptedScalarConnectionFactory(1, null);
         var repository = new ReviewRepository(factory);
 
         var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
@@ -37,8 +37,42 @@ public sealed class CommunityRepositoryGuardTests
         Assert.Equal("GAME_NOT_OWNED", exception.Code);
         Assert.Contains(factory.CommandTexts, command => ContainsSql(command, "from player_library"));
         Assert.Contains(factory.CommandTexts, command => ContainsSql(command, "status = 'NORMAL'"));
+        Assert.Contains(factory.CommandTexts, command => ContainsSql(command, "for update"));
         Assert.DoesNotContain(factory.CommandTexts, command => ContainsSql(command, "insert into game_review"));
         Assert.DoesNotContain(factory.CommandTexts, command => ContainsSql(command, "insert into review_version"));
+    }
+
+    [Fact]
+    public async Task Create_review_rejects_oversized_content_before_opening_database()
+    {
+        var factory = new ScriptedScalarConnectionFactory();
+        var repository = new ReviewRepository(factory);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            repository.CreateAsync(
+                "GAME_DST",
+                "P001",
+                new CreateReviewRequest(true, new string('x', ReviewRules.MaxContentLength + 1)),
+                CancellationToken.None));
+
+        Assert.Contains(ReviewRules.MaxContentLength.ToString(), exception.Message, StringComparison.Ordinal);
+        Assert.Empty(factory.CommandTexts);
+    }
+
+    [Fact]
+    public async Task Review_version_query_atomically_requires_a_visible_review()
+    {
+        var factory = new ScriptedScalarConnectionFactory();
+        var repository = new ReviewRepository(factory);
+
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+            repository.ListVersionsAsync("REV001", CancellationToken.None));
+
+        var command = Assert.Single(factory.CommandTexts);
+        Assert.True(ContainsSql(command, "from review_version"));
+        Assert.True(ContainsSql(command, "join game_review"));
+        Assert.True(ContainsSql(command, "gr.review_id = rv.review_id"));
+        Assert.True(ContainsSql(command, "gr.status = 'VISIBLE'"));
     }
 
     [Fact]
@@ -206,8 +240,16 @@ public sealed class CommunityRepositoryGuardTests
 
         protected override DbParameter CreateDbParameter() => new FakeParameter();
 
-        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior) =>
+        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
+        {
+            _commandTexts.Add(CommandText);
+            if (CommandText.Contains("from review_version", StringComparison.OrdinalIgnoreCase))
+            {
+                return new DataTable().CreateDataReader();
+            }
+
             throw new InvalidOperationException("The unowned-game guard should run before any read past ownership validation.");
+        }
     }
 
     private sealed class FakeParameterCollection : DbParameterCollection
