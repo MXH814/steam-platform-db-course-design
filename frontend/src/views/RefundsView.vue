@@ -11,7 +11,7 @@
         <select v-model="selectedOrderId" required>
           <option value="" disabled>请选择可退款订单</option>
           <option v-for="order in orders" :key="order.orderId" :value="order.orderId">
-            {{ order.orderId }} · {{ order.details.map((detail) => detail.gameName).join('、') }} · {{ money(order.totalAmount) }}
+            {{ order.orderId }} · {{ order.details.map((detail) => detail.gameName).join('、') }} · 可退 {{ money(refundableAmount(order)) }}
           </option>
         </select>
       </label>
@@ -78,11 +78,26 @@ async function load() {
   error.value = '';
   try {
     const [orderList, refundList] = await Promise.all([getOrders(), getRefunds()]);
-    orders.value = orderList.filter((order) => order.paymentStatus === 'PAID' || order.paymentStatus === 'PARTIAL_REFUNDED');
     refunds.value = refundList;
+    const pendingOrderIds = new Set(
+      refundList.filter((refund) => refund.status === 'PENDING').map((refund) => refund.orderId)
+    );
+    orders.value = orderList.filter((order) =>
+      order.orderStatus === 'COMPLETED' &&
+      (order.paymentStatus === 'PAID' || order.paymentStatus === 'PARTIAL_REFUNDED') &&
+      refundableAmount(order) > 0 &&
+      !pendingOrderIds.has(order.orderId)
+    );
   } catch (requestError) {
     error.value = getApiError(requestError);
   }
+}
+
+function refundableAmount(order: OrderSummary) {
+  return order.details.reduce(
+    (total, detail) => total + Math.max(0, detail.payableAmount - detail.refundAmount),
+    0
+  );
 }
 
 async function submitRefund() {

@@ -30,6 +30,40 @@ public sealed class CoreTransactionServiceGuardTests
     }
 
     [Fact]
+    public async Task BuyGame_rejects_reused_idempotency_key_for_a_different_game()
+    {
+        var now = DateTime.UtcNow;
+        var connection = ExistingOrderConnection("GAME_DST", PaymentMethods.SteamWallet, now);
+        var service = new CoreTransactionService(new SingleConnectionFactory(connection));
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.BuyGameAsync(
+                PlayerClaims,
+                new CreateOrderRequest("GAME_OTHER", "order-idem", PaymentMethods.SteamWallet),
+                CancellationToken.None));
+
+        Assert.Equal("IDEMPOTENCY_CONFLICT", exception.Code);
+        Assert.Equal(0, connection.NonQueryCount);
+    }
+
+    [Fact]
+    public async Task BuyGame_rejects_reused_idempotency_key_for_a_different_payment_method()
+    {
+        var now = DateTime.UtcNow;
+        var connection = ExistingOrderConnection("GAME_DST", PaymentMethods.SteamWallet, now);
+        var service = new CoreTransactionService(new SingleConnectionFactory(connection));
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.BuyGameAsync(
+                PlayerClaims,
+                new CreateOrderRequest("GAME_DST", "order-idem", PaymentMethods.Alipay),
+                CancellationToken.None));
+
+        Assert.Equal("IDEMPOTENCY_CONFLICT", exception.Code);
+        Assert.Equal(0, connection.NonQueryCount);
+    }
+
+    [Fact]
     public async Task ClaimFreeGame_rejects_non_cs2_before_opening_database()
     {
         var service = new CoreTransactionService(new ThrowingConnectionFactory());
@@ -133,6 +167,30 @@ public sealed class CoreTransactionServiceGuardTests
                 CancellationToken.None));
 
         Assert.Equal("CDKEY_GAME_UNSUPPORTED", exception.Code);
+    }
+
+    [Fact]
+    public async Task CreateCdkeyBatch_rejects_a_developer_who_does_not_own_the_game()
+    {
+        var connection = new ScriptedReaderConnection(new Dictionary<string, object?>
+        {
+            ["GameId"] = "GAME_DST",
+            ["GameName"] = "Don't Starve Together",
+            ["DeveloperId"] = "DEV_KLEI",
+            ["BasePrice"] = 24m,
+            ["DiscountRate"] = 0.5m,
+            ["Status"] = "ONLINE"
+        });
+        var service = new CoreTransactionService(new SingleConnectionFactory(connection));
+
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            service.CreateCdkeyBatchAsync(
+                DeveloperClaims,
+                new CreateCdkeyBatchRequest("GAME_DST", "DST-DEMO", DateTime.UtcNow, DateTime.UtcNow.AddDays(30), 1),
+                CancellationToken.None));
+
+        Assert.Equal(0, connection.NonQueryCount);
+        Assert.True(connection.Transaction?.RolledBack);
     }
 
     [Theory]
@@ -321,6 +379,32 @@ public sealed class CoreTransactionServiceGuardTests
     {
         public DbConnection CreateConnection() => connection;
     }
+
+    private static ScriptedReaderConnection ExistingOrderConnection(string gameId, string paymentMethod, DateTime createTime) =>
+        new(
+            new Dictionary<string, object?> { ["OrderId"] = "O_EXISTING" },
+            new Dictionary<string, object?>
+            {
+                ["OrderId"] = "O_EXISTING",
+                ["UserId"] = "P001",
+                ["TotalAmount"] = 50m,
+                ["OrderType"] = "BUY_GAME",
+                ["OrderStatus"] = "COMPLETED",
+                ["PaymentStatus"] = "PAID",
+                ["IdempotencyKey"] = "order-idem",
+                ["CreateTime"] = createTime,
+                ["PaymentMethod"] = paymentMethod
+            },
+            new Dictionary<string, object?>
+            {
+                ["DetailId"] = "OD_EXISTING",
+                ["GameId"] = gameId,
+                ["GameName"] = "Existing game",
+                ["OriginalPrice"] = 100m,
+                ["DiscountAmount"] = 50m,
+                ["PayableAmount"] = 50m,
+                ["RefundAmount"] = 0m
+            });
 
     private static string FindCoreTransactionServiceSource()
     {

@@ -1,6 +1,7 @@
 import { http } from './http';
 import type {
   DirectMessageItem,
+  FriendGameActivityItem,
   FriendListItem,
   ReviewInteractionItem,
   UserNotificationItem,
@@ -9,6 +10,13 @@ import type {
 
 export async function listFriends(): Promise<FriendListItem[]> {
   const { data } = await http.get<FriendListItem[]>('/api/friends');
+  return data;
+}
+
+export async function listFriendsWhoPlay(gameId: string): Promise<FriendGameActivityItem[]> {
+  const { data } = await http.get<FriendGameActivityItem[]>(
+    `/api/games/${encodeURIComponent(gameId)}/friends-who-play`
+  );
   return data;
 }
 

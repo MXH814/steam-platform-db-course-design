@@ -7,6 +7,9 @@ public sealed class SocialService(ISocialRepository repository, ISocialRealtimeN
     public Task<IReadOnlyList<FriendListItem>> ListFriendsAsync(string userId, CancellationToken cancellationToken) =>
         repository.ListFriendsAsync(Required(userId, nameof(userId)), cancellationToken);
 
+    public Task<IReadOnlyList<FriendGameActivityItem>> ListFriendsWhoPlayAsync(string userId, string gameId, CancellationToken cancellationToken) =>
+        repository.ListFriendsWhoPlayAsync(Required(userId, nameof(userId)), Required(gameId, nameof(gameId)), cancellationToken);
+
     public async Task<FriendListItem> RequestFriendAsync(string userId, string targetUserId, CancellationToken cancellationToken)
     {
         var result = await repository.RequestFriendAsync(Required(userId, nameof(userId)), Required(targetUserId, nameof(targetUserId)), cancellationToken);

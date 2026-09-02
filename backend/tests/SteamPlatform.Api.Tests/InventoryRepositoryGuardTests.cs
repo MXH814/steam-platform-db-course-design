@@ -20,6 +20,18 @@ public sealed class InventoryRepositoryGuardTests
         Assert.True(
             playerLibraryIndex < itemTemplateIndex,
             "DropAsync should verify ownership before randomly selecting an ITEM_TEMPLATE.");
+        Assert.Contains("for update", dropAsyncSource[playerLibraryIndex..itemTemplateIndex], StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void DropAsync_only_assigns_wear_rating_to_cs2_items()
+    {
+        var source = ReadRepositorySource();
+        var dropAsyncIndex = source.IndexOf("public async Task<InventoryItemResponse> DropAsync", StringComparison.Ordinal);
+        var dropAsyncSource = source[dropAsyncIndex..];
+
+        Assert.Contains("string.Equals(normalizedGameId, \"GAME_CS2\"", dropAsyncSource, StringComparison.Ordinal);
+        Assert.Contains(": null;", dropAsyncSource, StringComparison.Ordinal);
     }
 
     private static string ReadRepositorySource()

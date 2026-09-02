@@ -30,13 +30,13 @@
           </div>
         </dl>
 
-        <p>下订单之前，您有机会检查您的订单。</p>
+        <p>请检查充值金额与支付方式；确认后将模拟支付并立即计入钱包。</p>
         <p v-if="amountError" class="message error">{{ amountError }}</p>
         <p v-if="message" class="message success">{{ message }}</p>
         <p v-if="error" class="message error">{{ error }}</p>
 
         <button class="continue-button" type="button" :disabled="busy || Boolean(amountError)" @click="submit">
-          {{ busy ? '处理中...' : '继续' }}
+          {{ busy ? '处理中...' : '确认充值' }}
         </button>
       </main>
 

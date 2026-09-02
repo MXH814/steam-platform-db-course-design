@@ -18,6 +18,7 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.token && state.currentUser),
+    isPlayer: (state) => state.currentUser?.role.toUpperCase() === 'PLAYER',
     isAdmin: (state) => Boolean(state.currentUser && adminRoles.has(state.currentUser.role.toUpperCase())),
     isDeveloper: (state) => state.currentUser?.role.toUpperCase() === 'DEVELOPER'
   },

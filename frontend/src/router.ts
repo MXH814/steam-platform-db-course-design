@@ -27,7 +27,7 @@ import TradeOffersView from './views/TradeOffersView.vue';
 import WalletView from './views/WalletView.vue';
 import WalletHistoryView from './views/WalletHistoryView.vue';
 import WalletHistoryDetailView from './views/WalletHistoryDetailView.vue';
-import WalletRefundPlaceholderView from './views/WalletRefundPlaceholderView.vue';
+import WalletRefundRequestView from './views/WalletRefundRequestView.vue';
 import WalletRechargeCheckoutView from './views/WalletRechargeCheckoutView.vue';
 
 export const router = createRouter({
@@ -42,10 +42,10 @@ export const router = createRouter({
     { path: '/games/:gameId/community', name: 'game-community', component: GameCommunityView },
     { path: '/community', name: 'community', component: CommunityHubView },
     { path: '/community/discussions/:topicId', name: 'discussion-topic', component: CommunityHubView },
-    { path: '/checkout/game/:gameId', name: 'game-checkout', component: GameCheckoutView, meta: { requiresAuth: true } },
-    { path: '/inventory', name: 'inventory', component: InventoryView, meta: { requiresAuth: true } },
-    { path: '/library', name: 'library', component: LibraryView, meta: { requiresAuth: true } },
-    { path: '/library/:gameId', name: 'game-library', component: GameLibraryView, meta: { requiresAuth: true } },
+    { path: '/checkout/game/:gameId', name: 'game-checkout', component: GameCheckoutView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/inventory', name: 'inventory', component: InventoryView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/library', name: 'library', component: LibraryView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/library/:gameId', name: 'game-library', component: GameLibraryView, meta: { requiresAuth: true, requiresPlayer: true } },
     { path: '/market', name: 'market', component: MarketView, meta: { tab: 'market' } },
     { path: '/market/orders', name: 'market-orders', component: MarketView, meta: { tab: 'orders' } },
     { path: '/market/trades', name: 'market-trades', component: MarketView, meta: { tab: 'trades' } },
@@ -53,20 +53,20 @@ export const router = createRouter({
     { path: '/login', name: 'login', component: LoginView },
     { path: '/register', name: 'register', component: RegisterView },
     { path: '/account', name: 'account', component: AccountView, meta: { requiresAuth: true } },
-    { path: '/profile', name: 'own-profile', component: ProfileView, meta: { requiresAuth: true } },
+    { path: '/profile', name: 'own-profile', component: ProfileView, meta: { requiresAuth: true, requiresPlayer: true } },
     { path: '/profiles/:userId', name: 'player-profile', component: ProfileView },
-    { path: '/trade-offers', name: 'trade-offers', component: TradeOffersView, meta: { requiresAuth: true } },
-    { path: '/wallet', name: 'wallet', component: WalletView, meta: { requiresAuth: true } },
-    { path: '/wallet/recharge/checkout', name: 'wallet-recharge-checkout', component: WalletRechargeCheckoutView, meta: { requiresAuth: true } },
-    { path: '/wallet/history', name: 'wallet-history', component: WalletHistoryView, meta: { requiresAuth: true } },
-    { path: '/wallet/history/:historyId', name: 'wallet-history-detail', component: WalletHistoryDetailView, meta: { requiresAuth: true } },
-    { path: '/wallet/history/:historyId/refund', name: 'wallet-history-refund', component: WalletRefundPlaceholderView, meta: { requiresAuth: true } },
-    { path: '/orders', name: 'orders', redirect: { name: 'wallet-history' }, meta: { requiresAuth: true } },
-    { path: '/orders/:orderId', name: 'order-detail', component: OrderDetailView, meta: { requiresAuth: true } },
-    { path: '/refunds', name: 'refunds', component: RefundsView, meta: { requiresAuth: true } },
-    { path: '/redeem', name: 'redeem', component: RedeemView, meta: { requiresAuth: true } },
+    { path: '/trade-offers', name: 'trade-offers', component: TradeOffersView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/wallet', name: 'wallet', component: WalletView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/wallet/recharge/checkout', name: 'wallet-recharge-checkout', component: WalletRechargeCheckoutView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/wallet/history', name: 'wallet-history', component: WalletHistoryView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/wallet/history/:historyId', name: 'wallet-history-detail', component: WalletHistoryDetailView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/wallet/history/:historyId/refund', name: 'wallet-history-refund', component: WalletRefundRequestView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/orders', name: 'orders', redirect: { name: 'wallet-history' }, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/orders/:orderId', name: 'order-detail', component: OrderDetailView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/refunds', name: 'refunds', component: RefundsView, meta: { requiresAuth: true, requiresPlayer: true } },
+    { path: '/redeem', name: 'redeem', component: RedeemView, meta: { requiresAuth: true, requiresPlayer: true } },
     { path: '/developer/games', name: 'developer-games', component: DeveloperGamesView, meta: { requiresAuth: true, requiresDeveloper: true } },
-    { path: '/developer/cdkeys', name: 'developer-cdkeys', component: CdkeyBatchView, meta: { requiresAuth: true, requiresDeveloper: true } },
+    { path: '/developer/cdkeys', name: 'developer-cdkeys', component: CdkeyBatchView, meta: { requiresAuth: true, requiresDeveloperOrAdmin: true } },
     { path: '/admin/games', name: 'admin-games', component: AdminGamesView, meta: { requiresAuth: true, requiresAdmin: true } },
     { path: '/admin/notices', name: 'admin-notices', component: AdminNoticesView, meta: { requiresAuth: true, requiresAdmin: true } },
     { path: '/admin/refunds', name: 'admin-refunds', component: AdminRefundsView, meta: { requiresAuth: true, requiresAdmin: true } },
@@ -88,7 +88,15 @@ router.beforeEach(async (to) => {
     return { name: 'account' };
   }
 
-  if (to.meta.requiresDeveloper && !auth.isDeveloper && !auth.isAdmin) {
+  if (to.meta.requiresPlayer && !auth.isPlayer) {
+    return { name: 'account' };
+  }
+
+  if (to.meta.requiresDeveloper && !auth.isDeveloper) {
+    return { name: 'account' };
+  }
+
+  if (to.meta.requiresDeveloperOrAdmin && !auth.isDeveloper && !auth.isAdmin) {
     return { name: 'account' };
   }
 

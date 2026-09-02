@@ -375,7 +375,10 @@ export async function getGameDetail(gameId: string): Promise<GameDetail> {
 export async function getGameContentPackages(gameId: string): Promise<GameContentPackage[]> {
   try {
     const response = await http.get<ApiEnvelope<GameContentPackage[]>>(`/api/games/${encodeURIComponent(gameId)}/content-packages`);
-    return unwrap(response.data);
+    const databasePackages = unwrap(response.data);
+    return gameId === 'GAME_DST'
+      ? [...databasePackages.filter((item) => item.sourceKind === 'GAME'), ...(demoPackages[gameId] || [])]
+      : databasePackages;
   } catch (error) {
     if (!isRecoverableNetworkError(error)) throw new Error(getApiError(error));
     return demoPackages[gameId] || [];

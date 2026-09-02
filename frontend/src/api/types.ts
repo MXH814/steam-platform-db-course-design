@@ -105,6 +105,13 @@ export interface FriendListItem {
   latestMessageAt: string | null;
 }
 
+export interface FriendGameActivityItem {
+  userId: string;
+  nickname: string;
+  playMinutes: number;
+  lastPlayTime: string | null;
+}
+
 export interface DirectMessageItem {
   messageId: string;
   relationId: string;

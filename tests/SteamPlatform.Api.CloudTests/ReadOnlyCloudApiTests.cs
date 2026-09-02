@@ -105,6 +105,7 @@ public sealed class ReadOnlyCloudApiTests(ITestOutputHelper output)
             "api/library",
             "api/refunds",
             "api/inventory?gameId=GAME_CS2",
+            "api/games/GAME_DST/friends-who-play",
             "api/market/orders",
             "api/games/GAME_DST/achievements"
         ];

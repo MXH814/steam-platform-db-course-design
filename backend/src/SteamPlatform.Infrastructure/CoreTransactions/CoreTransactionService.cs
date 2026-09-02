@@ -27,6 +27,9 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                  else wt.biz_type
                end item_name,
                coalesce(wt.payment_method, 'STEAM_WALLET') payment_method,
+               cast(null as varchar2(20)) order_status,
+               cast(null as varchar2(20)) payment_status,
+               cast(null as varchar2(20)) refund_status,
                wt.amount original_price,
                0 discount_amount,
                0 discount_rate,
@@ -46,6 +49,13 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                go.create_time create_time,
                g.game_name item_name,
                case when od.payable_amount = 0 then 'FREE_CLAIM' else coalesce(pt.payment_method, 'STEAM_WALLET') end payment_method,
+               go.order_status order_status,
+               go.payment_status payment_status,
+               (select max(rt.status) keep (dense_rank last order by rt.apply_time, rt.refund_id)
+                  from refund_ticket rt
+                  join refund_detail rd on rd.refund_id = rt.refund_id
+                 where rt.order_id = go.order_id
+                   and rd.order_detail_id = od.detail_id) refund_status,
                od.original_price original_price,
                od.discount_amount discount_amount,
                case when od.original_price > 0 then round(od.discount_amount / od.original_price, 4) else 0 end discount_rate,
@@ -68,6 +78,9 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                rt.apply_time create_time,
                g.game_name item_name,
                coalesce(pt.payment_method, 'STEAM_WALLET') payment_method,
+               go.order_status order_status,
+               go.payment_status payment_status,
+               rt.status refund_status,
                od.original_price original_price,
                od.discount_amount discount_amount,
                case when od.original_price > 0 then round(od.discount_amount / od.original_price, 4) else 0 end discount_rate,
@@ -92,6 +105,9 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                crl.create_time create_time,
                g.game_name item_name,
                'CDKEY_REDEEM' payment_method,
+               cast(null as varchar2(20)) order_status,
+               cast(null as varchar2(20)) payment_status,
+               cast(null as varchar2(20)) refund_status,
                0 original_price,
                0 discount_amount,
                0 discount_rate,
@@ -124,6 +140,9 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
                  when 'GIFT' then 'GIFT'
                  else 'LIBRARY_IMPORT'
                end payment_method,
+               cast(null as varchar2(20)) order_status,
+               cast(null as varchar2(20)) payment_status,
+               cast(null as varchar2(20)) refund_status,
                0 original_price,
                0 discount_amount,
                0 discount_rate,
@@ -384,7 +403,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         var existing = await FindOrderByIdempotencyAsync(connection, userId, idempotencyKey, cancellationToken);
         if (existing is not null)
         {
-            return existing;
+            return EnsureSamePurchaseRequest(existing, gameId, paymentMethod);
         }
 
         await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
@@ -490,7 +509,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         catch (Exception ex) when (IsOracleUniqueConstraintViolation(ex))
         {
             await transaction.RollbackAsync(CancellationToken.None);
-            return await HandleBuyGameRaceConditionAsync(connection, userId, gameId, idempotencyKey, cancellationToken);
+            return await HandleBuyGameRaceConditionAsync(connection, userId, gameId, idempotencyKey, paymentMethod, cancellationToken);
         }
         catch
         {
@@ -504,12 +523,13 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         string userId,
         string gameId,
         string idempotencyKey,
+        string paymentMethod,
         CancellationToken cancellationToken)
     {
         var existing = await FindOrderByIdempotencyAsync(connection, userId, idempotencyKey, cancellationToken);
         if (existing is not null)
         {
-            return existing;
+            return EnsureSamePurchaseRequest(existing, gameId, paymentMethod);
         }
 
         var isGameOwned = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
@@ -1132,7 +1152,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
 
     public async Task<CdkeyBatchSummary> CreateCdkeyBatchAsync(AuthClaims claims, CreateCdkeyBatchRequest request, CancellationToken cancellationToken)
     {
-        NormalizeDeveloperOrAdmin(claims);
+        var operatorId = NormalizeDeveloperOrAdmin(claims);
         ArgumentNullException.ThrowIfNull(request);
         var gameId = NormalizeRequired(request.GameId, nameof(request.GameId));
         var batchNo = NormalizeRequired(request.BatchNo, nameof(request.BatchNo));
@@ -1156,7 +1176,12 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
         try
         {
-            _ = await LoadOnlineGameAsync(connection, transaction, gameId, cancellationToken);
+            var game = await LoadOnlineGameAsync(connection, transaction, gameId, cancellationToken);
+            if (!AuthRoles.IsAdminRole(claims.Role) &&
+                !string.Equals(game.DeveloperId, operatorId, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ForbiddenException("Developers can only create CDKey batches for their own games.");
+            }
             var batchId = IdGenerator.NewId("B");
             await connection.ExecuteAsync(new CommandDefinition(
                 """
@@ -1546,7 +1571,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
     {
         var game = await connection.QueryFirstOrDefaultAsync<GameRow>(new CommandDefinition(
             """
-            select game_id, game_name, base_price, discount_rate, status
+            select game_id, game_name, dev_id as DeveloperId, base_price, discount_rate, status
               from game
              where game_id = :GameId
             """,
@@ -1807,6 +1832,25 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
     private static decimal CalculatePayable(GameRow game) =>
         Math.Round(game.BasePrice * game.DiscountRate, 2, MidpointRounding.AwayFromZero);
 
+    private static OrderSummary EnsureSamePurchaseRequest(OrderSummary existing, string gameId, string paymentMethod)
+    {
+        var sameGame = existing.Details.Count == 1 &&
+            string.Equals(existing.Details[0].GameId, gameId, StringComparison.OrdinalIgnoreCase);
+        var samePaymentMethod = string.Equals(
+            existing.PaymentMethod ?? PaymentMethods.SteamWallet,
+            paymentMethod,
+            StringComparison.OrdinalIgnoreCase);
+
+        if (!sameGame || !samePaymentMethod)
+        {
+            throw new BusinessRuleException(
+                "IDEMPOTENCY_CONFLICT",
+                "The idempotency key has already been used for a different purchase request.");
+        }
+
+        return existing;
+    }
+
     private static string NormalizePrincipal(AuthClaims claims)
     {
         ArgumentNullException.ThrowIfNull(claims);
@@ -2027,6 +2071,9 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
         public DateTime CreateTime { get; set; }
         public string ItemName { get; set; } = "";
         public string PaymentMethod { get; set; } = "";
+        public string? OrderStatus { get; set; }
+        public string? PaymentStatus { get; set; }
+        public string? RefundStatus { get; set; }
         public decimal OriginalPrice { get; set; }
         public decimal DiscountAmount { get; set; }
         public decimal DiscountRate { get; set; }
@@ -2044,6 +2091,9 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
             CreateTime,
             ItemName,
             PaymentMethod,
+            OrderStatus,
+            PaymentStatus,
+            RefundStatus,
             OriginalPrice,
             DiscountAmount,
             DiscountRate,
@@ -2060,6 +2110,7 @@ public sealed class CoreTransactionService(IDbConnectionFactory connectionFactor
     {
         public string GameId { get; set; } = "";
         public string GameName { get; set; } = "";
+        public string DeveloperId { get; set; } = "";
         public decimal BasePrice { get; set; }
         public decimal DiscountRate { get; set; }
         public string Status { get; set; } = "";

@@ -20,6 +20,25 @@ public static class SocialEndpointExtensions
             return Results.Ok(await service.ListFriendsAsync(claims!.PrincipalId, cancellationToken));
         });
 
+        social.MapGet("/games/{gameId}/friends-who-play", async (
+            string gameId,
+            ISocialService service,
+            HttpContext context,
+            CancellationToken cancellationToken) =>
+        {
+            if (EndpointGuards.DenyUnless(context, out var claims, "PLAYER") is { } denied)
+            {
+                return denied;
+            }
+
+            if (InputGuards.IsBlank(gameId))
+            {
+                return Results.BadRequest("GameId is required.");
+            }
+
+            return Results.Ok(await service.ListFriendsWhoPlayAsync(claims!.PrincipalId, gameId, cancellationToken));
+        });
+
         social.MapPost("/friends/{targetUserId}", async (
             string targetUserId,
             ISocialService service,

@@ -203,32 +203,7 @@ public sealed class GameRepository(IDbConnectionFactory connectionFactory) : IGa
             new { GameId = gameId },
             cancellationToken: cancellationToken));
 
-        var itemPackages = await connection.QueryAsync<GameContentPackageRow>(new CommandDefinition(
-            """
-            select t.template_id as PackageId,
-                   t.game_id as GameId,
-                   t.item_name as PackageName,
-                   case
-                     when upper(t.item_name) like '%PACK%' or upper(t.item_name) like '%CHEST%' or upper(t.item_name) like '%CASE%' then 'ITEM_BUNDLE'
-                     else 'COSMETIC_ITEM'
-                   end as PackageType,
-                   coalesce(min(case when o.order_type = 'SELL' and o.status = 'MATCHING' then o.target_price end), 0) as BasePrice,
-                   1 as DiscountRate,
-                   coalesce(min(case when o.order_type = 'SELL' and o.status = 'MATCHING' then o.target_price end), 0) as FinalPrice,
-                   t.image_url as ImageUrl,
-                   'ITEM_TEMPLATE' as SourceKind
-              from item_template t
-              left join market_order o on o.template_id = t.template_id
-             where t.game_id = :GameId
-             group by t.template_id, t.game_id, t.item_name, t.image_url
-             order by PackageType desc, PackageName
-            """,
-            new { GameId = gameId },
-            cancellationToken: cancellationToken));
-
-        return new[] { basePackage.ToResponse() }
-            .Concat(itemPackages.Select(row => row.ToResponse()))
-            .ToList();
+        return new[] { basePackage.ToResponse() };
     }
 
     public async Task<GameItemSummaryResponse> GetItemSummaryAsync(string gameId, CancellationToken cancellationToken)

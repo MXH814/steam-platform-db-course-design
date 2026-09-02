@@ -85,6 +85,7 @@ public sealed class SocialServiceTests
         }
 
         public Task<IReadOnlyList<FriendListItem>> ListFriendsAsync(string userId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<IReadOnlyList<FriendGameActivityItem>> ListFriendsWhoPlayAsync(string userId, string gameId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<FriendMutationResult> RequestFriendAsync(string userId, string targetUserId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<FriendMutationResult> AcceptFriendAsync(string userId, string relationId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<IReadOnlyList<DirectMessageItem>> ListMessagesAsync(string userId, string friendUserId, int limit, CancellationToken cancellationToken) => throw new NotSupportedException();

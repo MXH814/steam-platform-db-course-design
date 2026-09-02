@@ -9,6 +9,12 @@ public sealed record FriendListItem(
     string? LatestMessage,
     DateTime? LatestMessageAt);
 
+public sealed record FriendGameActivityItem(
+    string UserId,
+    string Nickname,
+    int PlayMinutes,
+    DateTime? LastPlayTime);
+
 public sealed record DirectMessageItem(
     string MessageId,
     string RelationId,
@@ -72,6 +78,7 @@ public sealed record ReviewInteractionResult(ReviewInteractionItem Interaction, 
 public interface ISocialRepository
 {
     Task<IReadOnlyList<FriendListItem>> ListFriendsAsync(string userId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<FriendGameActivityItem>> ListFriendsWhoPlayAsync(string userId, string gameId, CancellationToken cancellationToken);
     Task<FriendMutationResult> RequestFriendAsync(string userId, string targetUserId, CancellationToken cancellationToken);
     Task<FriendMutationResult> AcceptFriendAsync(string userId, string relationId, CancellationToken cancellationToken);
     Task<IReadOnlyList<DirectMessageItem>> ListMessagesAsync(string userId, string friendUserId, int limit, CancellationToken cancellationToken);
@@ -92,6 +99,7 @@ public interface ISocialRealtimeNotifier
 public interface ISocialService
 {
     Task<IReadOnlyList<FriendListItem>> ListFriendsAsync(string userId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<FriendGameActivityItem>> ListFriendsWhoPlayAsync(string userId, string gameId, CancellationToken cancellationToken);
     Task<FriendListItem> RequestFriendAsync(string userId, string targetUserId, CancellationToken cancellationToken);
     Task<FriendListItem> AcceptFriendAsync(string userId, string relationId, CancellationToken cancellationToken);
     Task<IReadOnlyList<DirectMessageItem>> ListMessagesAsync(string userId, string friendUserId, int limit, CancellationToken cancellationToken);

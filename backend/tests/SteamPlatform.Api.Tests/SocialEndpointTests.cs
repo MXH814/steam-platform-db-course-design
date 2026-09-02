@@ -13,6 +13,7 @@ public sealed class SocialEndpointTests(SteamPlatformApiFactory factory) : IClas
 
     [Theory]
     [InlineData("/api/friends")]
+    [InlineData("/api/games/GAME_DST/friends-who-play")]
     [InlineData("/api/notifications")]
     public async Task Player_social_reads_require_authentication(string path)
     {

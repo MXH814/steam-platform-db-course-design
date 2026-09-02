@@ -26,7 +26,7 @@
               <RouterLink to="/store/specials">特别优惠</RouterLink>
             </div>
           </div>
-          <div v-if="auth.isAuthenticated" class="supernav-entry" @mouseenter="openMenu('library')" @mouseleave="scheduleMenuClose">
+          <div v-if="auth.isPlayer" class="supernav-entry" @mouseenter="openMenu('library')" @mouseleave="scheduleMenuClose">
             <RouterLink to="/library" @focus="openMenu('library')">库</RouterLink>
             <div v-if="activeMenu === 'library'" class="supernav-menu" @mouseenter="cancelMenuClose">
               <RouterLink to="/library">主页</RouterLink>
@@ -41,11 +41,11 @@
               <RouterLink to="/community">社区主页</RouterLink>
               <RouterLink to="/community?tab=discussions">讨论区</RouterLink>
               <RouterLink to="/games/GAME_CS2/community">游戏中心</RouterLink>
-              <RouterLink to="/inventory">库存</RouterLink>
+              <RouterLink v-if="auth.isPlayer" to="/inventory">库存</RouterLink>
               <RouterLink to="/market">市场</RouterLink>
             </div>
           </div>
-          <div v-if="auth.isAuthenticated" class="supernav-entry" @mouseenter="openMenu('profile')" @mouseleave="scheduleMenuClose">
+          <div v-if="auth.isPlayer" class="supernav-entry" @mouseenter="openMenu('profile')" @mouseleave="scheduleMenuClose">
             <RouterLink to="/profile" @focus="openMenu('profile')">{{ auth.currentUser?.account }}</RouterLink>
             <div v-if="activeMenu === 'profile'" class="supernav-menu" @mouseenter="cancelMenuClose">
               <RouterLink to="/profile">个人资料</RouterLink>
@@ -77,7 +77,7 @@
             <span class="account-avatar">{{ accountInitial }}</span><span>{{ auth.currentUser?.account }}</span><ChevronDown :size="14" />
           </button>
           <div v-if="activeMenu === 'account'" class="account-popover">
-            <RouterLink to="/profile">查看我的资料</RouterLink><RouterLink to="/account">账户明细</RouterLink><RouterLink to="/wallet">钱包余额</RouterLink><RouterLink to="/wallet/history">购买历史</RouterLink>
+            <RouterLink v-if="auth.isPlayer" to="/profile">查看我的资料</RouterLink><RouterLink to="/account">账户明细</RouterLink><RouterLink v-if="auth.isPlayer" to="/wallet">钱包余额</RouterLink><RouterLink v-if="auth.isPlayer" to="/wallet/history">购买历史</RouterLink>
             <button type="button" @click="logout">退出账户</button>
           </div>
           <RouterLink v-if="!auth.isAuthenticated" class="install-login" to="/login">登录</RouterLink>
@@ -90,10 +90,10 @@
       <div class="store-nav" :class="{ open: mobileMenuOpen }">
         <nav aria-label="功能导航">
           <RouterLink to="/store">您的商店</RouterLink><RouterLink to="/store/recommend">新品与推荐</RouterLink><RouterLink to="/store/categories">类别</RouterLink>
-          <RouterLink to="/inventory">库存</RouterLink><RouterLink to="/market">社区市场</RouterLink>
-          <RouterLink v-if="auth.isAuthenticated" to="/wallet"><WalletCards :size="15" /> 钱包</RouterLink>
-          <RouterLink v-if="auth.isAuthenticated" to="/refunds">客服</RouterLink>
-          <RouterLink v-if="auth.isAuthenticated && !auth.isDeveloper" to="/redeem">激活产品</RouterLink>
+          <RouterLink v-if="auth.isPlayer" to="/inventory">库存</RouterLink><RouterLink to="/market">社区市场</RouterLink>
+          <RouterLink v-if="auth.isPlayer" to="/wallet"><WalletCards :size="15" /> 钱包</RouterLink>
+          <RouterLink v-if="auth.isPlayer" to="/refunds">客服</RouterLink>
+          <RouterLink v-if="auth.isPlayer" to="/redeem">激活产品</RouterLink>
         </nav>
         <details v-if="auth.isDeveloper || auth.isAdmin" class="manage-menu">
           <summary>管理 <ChevronDown :size="14" /></summary>
@@ -177,8 +177,8 @@
     <div v-if="activeDrawer" class="drawer-scrim" @click="activeDrawer = ''" />
     <div v-if="toast" class="client-toast" role="status">{{ toast }}</div>
     <footer class="client-status">
-      <RouterLink v-if="auth.isAuthenticated && !auth.isDeveloper" to="/redeem"><Plus :size="15" /> 添加游戏</RouterLink><span class="status-spacer" />
-      <button v-if="auth.isAuthenticated" type="button" @click="openDownloads"><Download :size="15" /> 下载</button><button type="button" @click="openFriends"><Users :size="15" /> 好友与聊天</button>
+      <RouterLink v-if="auth.isPlayer" to="/redeem"><Plus :size="15" /> 添加游戏</RouterLink><span class="status-spacer" />
+      <button v-if="auth.isPlayer" type="button" @click="openDownloads"><Download :size="15" /> 下载</button><button v-if="auth.isPlayer" type="button" @click="openFriends"><Users :size="15" /> 好友与聊天</button>
     </footer>
   </div>
 </template>
@@ -395,7 +395,7 @@ function receiveRealtimeNotification(notice: UserNotificationItem) {
 function receiveTradeOffer(offer: TradeOfferView, received: boolean) { showToast(received ? `${offer.senderNickname} 发来新的交易报价` : `交易报价状态已更新为${offer.status}`); }
 function receiveDiscussionReply(topic: DiscussionTopicView) { showToast(`讨论“${topic.title}”收到新回复`); }
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); showToast('已返回页面顶部'); }
-function goToGames() { router.push(auth.isAuthenticated ? '/library' : '/store'); }
+function goToGames() { router.push(auth.isPlayer ? '/library' : '/store'); }
 function showToast(text: string) { toast.value = text; if (toastTimer) window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => { toast.value = ''; }, 2400); }
 function closeOverlays() { activeMenu.value = ''; activeDrawer.value = ''; notificationOpen.value = false; if (startupAnnouncementOpen.value) dismissStartupAnnouncement(); }
 function logout() { void realtime.disconnect(); auth.logout(); closeOverlays(); router.push({ name: 'login' }); }

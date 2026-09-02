@@ -137,11 +137,16 @@
         <aside class="library-sidebar">
           <section class="sidebar-section friends-panel">
             <h2>玩过的好友</h2>
-            <p><strong>5</strong> 位好友之前玩过</p>
+            <p><strong>{{ friendsWhoPlay.length }}</strong> 位好友拥有这款游戏</p>
             <div class="friend-row">
-              <span v-for="friend in friends" :key="friend" :title="friend">{{ friend.slice(0, 1) }}</span>
+              <span
+                v-for="friend in friendsWhoPlay"
+                :key="friend.userId"
+                :title="`${friend.nickname} · ${minutesText(friend.playMinutes)}`"
+              >{{ friend.nickname.slice(0, 1) }}</span>
             </div>
-            <RouterLink :to="{ name: 'game-community', params: { gameId } }">查看玩过此游戏的所有好友</RouterLink>
+            <p v-if="!friendsWhoPlay.length" class="friend-empty">暂无已拥有此游戏的好友</p>
+            <RouterLink :to="{ name: 'game-community', params: { gameId } }">前往游戏社区中心</RouterLink>
           </section>
 
           <section class="sidebar-section notes-panel">
@@ -222,6 +227,8 @@ import { RouterLink, useRoute } from 'vue-router';
 import { addPlaytime, getLibrary, type LibraryEntry } from '../api/coreApi';
 import { listGameAchievements } from '../api/communityApi';
 import { getApiError } from '../api/http';
+import { listFriendsWhoPlay } from '../api/socialApi';
+import type { FriendGameActivityItem } from '../api/types';
 import LibraryRail from '../components/LibraryRail.vue';
 import { withAchievementIcons, type AchievementDisplayItem } from '../data/achievementCatalog';
 import { getGameMeta } from '../data/gameCatalog';
@@ -245,7 +252,7 @@ const showLaunchMenu = ref(false);
 const showSettings = ref(false);
 const cloudSyncEnabled = ref(localStorage.getItem('game-deck-cloud-sync') !== 'false');
 const overlayEnabled = ref(localStorage.getItem('game-deck-overlay') !== 'false');
-const friends = ['Stephen', 'Alice', 'Bob', 'Klei', 'Valve'];
+const friendsWhoPlay = ref<FriendGameActivityItem[]>([]);
 
 const ownedEntry = computed(() => library.value.find((entry) => entry.gameId === gameId.value) || null);
 const unlockedCount = computed(() => achievements.value.filter((achievement) => achievement.isUnlocked).length);
@@ -259,6 +266,7 @@ async function loadLibraryDetail() {
   notice.value = '';
   noteSaved.value = false;
   noteDraft.value = localStorage.getItem(noteStorageKey()) || '';
+  friendsWhoPlay.value = [];
 
   try {
     const libraryRows = await getLibrary();
@@ -276,6 +284,12 @@ async function loadLibraryDetail() {
   } catch (error) {
     achievements.value = [];
     notice.value ||= getApiError(error);
+  }
+
+  try {
+    friendsWhoPlay.value = await listFriendsWhoPlay(gameId.value);
+  } catch {
+    friendsWhoPlay.value = [];
   } finally {
     loading.value = false;
   }

@@ -79,19 +79,20 @@ public sealed class InventoryRepository(IDbConnectionFactory connectionFactory) 
         await connection.OpenAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
-        var ownedGameCount = await connection.QuerySingleAsync<int>(new CommandDefinition(
+        var ownedLibraryId = await connection.QueryFirstOrDefaultAsync<string>(new CommandDefinition(
             """
-            select count(1)
+            select lib_id
               from player_library
              where user_id = :UserId
                and game_id = :GameId
                and status = 'NORMAL'
+             for update
             """,
             new { UserId = normalizedUserId, GameId = normalizedGameId },
             transaction,
             cancellationToken: cancellationToken));
 
-        if (ownedGameCount == 0)
+        if (ownedLibraryId is null)
         {
             throw new BusinessRuleException("GAME_NOT_OWNED", "Current player does not own this game.");
         }
@@ -122,7 +123,9 @@ public sealed class InventoryRepository(IDbConnectionFactory connectionFactory) 
 
         var itemId = IdGenerator.NewId("ITEM");
         var transferId = IdGenerator.NewId("ITL");
-        var wearRating = Math.Round((decimal)Random.Shared.NextDouble(), 4);
+        decimal? wearRating = string.Equals(normalizedGameId, "GAME_CS2", StringComparison.OrdinalIgnoreCase)
+            ? Math.Round((decimal)Random.Shared.NextDouble(), 4)
+            : null;
         var acquireTime = DateTime.UtcNow;
 
         await connection.ExecuteAsync(new CommandDefinition(

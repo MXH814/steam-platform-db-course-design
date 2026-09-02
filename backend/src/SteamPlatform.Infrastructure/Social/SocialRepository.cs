@@ -20,6 +20,38 @@ public sealed class SocialRepository(IDbConnectionFactory connectionFactory) : I
         return rows.Select(row => row.ToItem(userId)).ToList();
     }
 
+    public async Task<IReadOnlyList<FriendGameActivityItem>> ListFriendsWhoPlayAsync(
+        string userId,
+        string gameId,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = _connectionFactory.CreateConnection();
+        var rows = await connection.QueryAsync<FriendGameActivityItem>(new CommandDefinition(
+            """
+            select p.user_id as UserId,
+                   p.nickname as Nickname,
+                   pl.play_minutes as PlayMinutes,
+                   pl.last_play_time as LastPlayTime
+              from friend_relation fr
+              join player p
+                on p.user_id = case
+                     when fr.user_low_id = :UserId then fr.user_high_id
+                     else fr.user_low_id
+                   end
+              join player_library pl
+                on pl.user_id = p.user_id
+               and pl.game_id = :GameId
+               and pl.status = 'NORMAL'
+             where fr.status = 'ACCEPTED'
+               and (fr.user_low_id = :UserId or fr.user_high_id = :UserId)
+             order by pl.play_minutes desc, p.nickname, p.user_id
+            """,
+            new { UserId = userId, GameId = gameId },
+            cancellationToken: cancellationToken));
+
+        return rows.ToList();
+    }
+
     public async Task<FriendMutationResult> RequestFriendAsync(string userId, string targetUserId, CancellationToken cancellationToken)
     {
         if (string.Equals(userId, targetUserId, StringComparison.OrdinalIgnoreCase))
