@@ -25,8 +25,8 @@
         <input v-model="form.password" type="password" autocomplete="current-password" required />
       </label>
 
-      <p v-if="sessionNotice" class="message error">{{ sessionNotice }}</p>
-      <p v-else-if="error" class="message error">{{ error }}</p>
+      <p v-if="sessionNotice" class="message notice">{{ sessionNotice }}</p>
+      <p v-if="error" class="message error">{{ error }}</p>
       <button class="primary-button" type="submit" :disabled="submitting">
         {{ submitting ? '登录中...' : '登录' }}
       </button>

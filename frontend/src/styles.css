@@ -1161,6 +1161,10 @@ button:disabled {
   color: #ffb9b9;
 }
 
+.notice {
+  color: #a3c7e0;
+}
+
 .success {
   color: #b8f3ce;
 }
