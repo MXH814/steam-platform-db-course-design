@@ -26,7 +26,7 @@ public sealed class SocialRepository(IDbConnectionFactory connectionFactory) : I
         CancellationToken cancellationToken)
     {
         await using var connection = _connectionFactory.CreateConnection();
-        var rows = await connection.QueryAsync<FriendGameActivityItem>(new CommandDefinition(
+        var rows = await connection.QueryAsync<FriendGameActivityRow>(new CommandDefinition(
             """
             select p.user_id as UserId,
                    p.nickname as Nickname,
@@ -49,7 +49,7 @@ public sealed class SocialRepository(IDbConnectionFactory connectionFactory) : I
             new { UserId = userId, GameId = gameId },
             cancellationToken: cancellationToken));
 
-        return rows.ToList();
+        return rows.Select(row => row.ToItem()).ToList();
     }
 
     public async Task<FriendMutationResult> RequestFriendAsync(string userId, string targetUserId, CancellationToken cancellationToken)
@@ -554,6 +554,17 @@ public sealed class SocialRepository(IDbConnectionFactory connectionFactory) : I
             new(RelationId, FriendUserId, Nickname, RelationStatus,
                 RelationStatus == "PENDING" && !string.Equals(RequestedBy, currentUserId, StringComparison.OrdinalIgnoreCase),
                 LatestMessage, LatestMessageAt);
+    }
+
+    private sealed class FriendGameActivityRow
+    {
+        public string UserId { get; init; } = string.Empty;
+        public string Nickname { get; init; } = string.Empty;
+        public long PlayMinutes { get; init; }
+        public DateTime? LastPlayTime { get; init; }
+
+        public FriendGameActivityItem ToItem() =>
+            new(UserId, Nickname, checked((int)PlayMinutes), LastPlayTime);
     }
 
     private sealed class ReviewOwnerRow

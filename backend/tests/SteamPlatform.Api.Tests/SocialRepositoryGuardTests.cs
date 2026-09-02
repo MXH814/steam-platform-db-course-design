@@ -11,6 +11,17 @@ public sealed class SocialRepositoryGuardTests
         Assert.DoesNotContain("group by wi.workshop_item_id", source, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Friend_game_activity_uses_an_oracle_number_compatible_row_model()
+    {
+        var source = File.ReadAllText(FindRepositorySource());
+
+        Assert.Contains("QueryAsync<FriendGameActivityRow>", source, StringComparison.Ordinal);
+        Assert.Contains("public long PlayMinutes", source, StringComparison.Ordinal);
+        Assert.Contains("checked((int)PlayMinutes)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("QueryAsync<FriendGameActivityItem>", source, StringComparison.Ordinal);
+    }
+
     private static string FindRepositorySource()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
