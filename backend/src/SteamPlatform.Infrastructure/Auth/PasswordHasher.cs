@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Globalization;
 using SteamPlatform.Application.Auth;
 
 namespace SteamPlatform.Infrastructure.Auth;
@@ -8,6 +9,10 @@ public sealed class PasswordHasher : IPasswordHasher
     private const int SaltSize = 16;
     private const int KeySize = 32;
     private const int Iterations = 100_000;
+    private const int MaxAcceptedIterations = 1_000_000;
+    private const int MinAcceptedSaltSize = 8;
+    private const int MinAcceptedKeySize = 16;
+    private const int MaxAcceptedKeySize = 64;
 
     public string Hash(string password)
     {
@@ -33,7 +38,9 @@ public sealed class PasswordHasher : IPasswordHasher
         if (parts.Length != 5 ||
             !parts[0].Equals("PBKDF2", StringComparison.OrdinalIgnoreCase) ||
             !parts[1].Equals("SHA256", StringComparison.OrdinalIgnoreCase) ||
-            !int.TryParse(parts[2], out var iterations))
+            !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out var iterations) ||
+            iterations <= 0 ||
+            iterations > MaxAcceptedIterations)
         {
             return false;
         }
@@ -50,8 +57,16 @@ public sealed class PasswordHasher : IPasswordHasher
             return false;
         }
 
+        if (salt.Length < MinAcceptedSaltSize ||
+            expected.Length < MinAcceptedKeySize ||
+            expected.Length > MaxAcceptedKeySize)
+        {
+            return false;
+        }
+
         var actual = Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, HashAlgorithmName.SHA256, expected.Length);
-        needsRehash = iterations < Iterations;
-        return CryptographicOperations.FixedTimeEquals(actual, expected);
+        var verified = CryptographicOperations.FixedTimeEquals(actual, expected);
+        needsRehash = verified && iterations < Iterations;
+        return verified;
     }
 }

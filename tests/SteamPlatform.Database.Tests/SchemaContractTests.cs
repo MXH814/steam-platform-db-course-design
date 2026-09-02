@@ -7,7 +7,7 @@ public sealed class SchemaContractTests
     private static readonly string[] ExpectedTables =
     [
         "PLAYER", "DEVELOPER", "ADMIN_USER", "WALLET_ACCOUNT", "SYS_NOTICE",
-        "GAME", "GAME_ORDER", "ORDER_DETAIL", "PAYMENT_TRANSACTION", "ORDER_STATUS_LOG",
+        "GAME", "GAME_ORDER", "ORDER_DETAIL", "ORDER_STATUS_LOG", "PAYMENT_TRANSACTION",
         "REFUND_TICKET", "REFUND_DETAIL", "REFUND_AUDIT_LOG", "PLAYER_LIBRARY",
         "CDKEY_BATCH", "CDKEY", "CDKEY_REDEEM_LOG", "GAME_REVIEW", "REVIEW_VERSION",
         "ACHIEVEMENT", "PLAYER_ACHIEVEMENT", "ITEM_TEMPLATE", "INVENTORY_ITEM",
@@ -29,11 +29,9 @@ public sealed class SchemaContractTests
     ];
 
     [Fact]
-    public void Schema_defines_expected_27_core_tables()
+    public void Schema_defines_expected_tables()
     {
-        var tables = Regex.Matches(SqlFile.Schema, @"CREATE\s+TABLE\s+([A-Z_]+)\s*\(", RegexOptions.IgnoreCase)
-            .Select(match => match.Groups[1].Value.ToUpperInvariant())
-            .ToArray();
+        var tables = ExtractTableNames(SqlFile.Schema);
 
         Assert.Equal(45, tables.Length);
         Assert.Empty(ExpectedTables.Except(tables));
@@ -68,6 +66,39 @@ public sealed class SchemaContractTests
         }
 
         Assert.DoesNotContain("wallet_balance", TableBlock("DEMO_RESET_RUN"), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Expected_table_contract_is_unique_and_uses_oracle_identifiers()
+    {
+        var expectedTables = ExpectedTables
+            .Concat(ExpectedEnhancementTables)
+            .Concat(ExpectedOperationalTables)
+            .ToArray();
+
+        Assert.Equal(expectedTables.Length, expectedTables.Distinct(StringComparer.Ordinal).Count());
+        Assert.All(expectedTables, table => Assert.Matches("^[A-Z][A-Z0-9_]*$", table));
+    }
+
+    [Fact]
+    public void Schema_keeps_documented_table_order()
+    {
+        var tables = ExtractTableNames(SqlFile.Schema);
+        var expectedTables = ExpectedTables
+            .Concat(ExpectedEnhancementTables)
+            .Concat(ExpectedOperationalTables)
+            .ToArray();
+
+        Assert.Equal(expectedTables, tables);
+    }
+
+    [Fact]
+    public void Table_name_extraction_supports_oracle_identifiers_with_digits()
+    {
+        var tables = ExtractTableNames(
+            "CREATE TABLE GAME2 (id NUMBER); CREATE TABLE PLAYER_2026 (id NUMBER);");
+
+        Assert.Equal(["GAME2", "PLAYER_2026"], tables);
     }
 
     [Fact]
@@ -144,4 +175,9 @@ public sealed class SchemaContractTests
 
     private static string Normalize(string value) =>
         Regex.Replace(value, @"\s+", " ").Trim();
+
+    private static string[] ExtractTableNames(string sql) =>
+        Regex.Matches(sql, @"CREATE\s+TABLE\s+([A-Z][A-Z0-9_]*)\s*\(", RegexOptions.IgnoreCase)
+            .Select(match => match.Groups[1].Value.ToUpperInvariant())
+            .ToArray();
 }

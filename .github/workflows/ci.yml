@@ -47,6 +47,9 @@ jobs:
       - name: Test backend and tools
         run: dotnet test backend/SteamPlatform.sln --configuration Release --no-build --logger "console;verbosity=normal"
 
+      - name: Test database contracts
+        run: dotnet test tests/SteamPlatform.Database.Tests/SteamPlatform.Database.Tests.csproj --configuration Release --logger "console;verbosity=normal"
+
       - name: Validate demo-data baseline
         run: dotnet run --project backend/tools/SteamPlatform.DemoData/SteamPlatform.DemoData.csproj --configuration Release --no-build -- plan --root .
 
