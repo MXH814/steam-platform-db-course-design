@@ -134,8 +134,29 @@ async function loadNotices() {
 async function createNotice() {
   message.value = '';
   error.value = '';
-  submitting.value = true;
 
+  if (!createForm.title.trim()) {
+    error.value = '标题不能为空。';
+    return;
+  }
+  if (!createForm.content.trim()) {
+    error.value = '内容不能为空。';
+    return;
+  }
+  if (createForm.title.length > 200) {
+    error.value = '标题长度不能超过 200 个字符。';
+    return;
+  }
+  if (createForm.priority < 0 || createForm.priority > 9) {
+    error.value = '优先级必须在 0 到 9 之间。';
+    return;
+  }
+  if (createExpireTime.value && new Date(createExpireTime.value).getTime() <= Date.now()) {
+    error.value = '过期时间必须晚于当前时间。';
+    return;
+  }
+
+  submitting.value = true;
   try {
     const payload = { ...createForm, expireTime: toIsoOrNull(createExpireTime.value) };
     const { data } = await http.post<SysNotice>('/api/admin/notices', payload);
@@ -153,8 +174,29 @@ async function createNotice() {
 async function updateNotice() {
   message.value = '';
   error.value = '';
-  submitting.value = true;
 
+  if (!updateNoticeId.value.trim()) {
+    error.value = '公告 ID 不能为空。';
+    return;
+  }
+  if (!updateForm.title.trim()) {
+    error.value = '标题不能为空。';
+    return;
+  }
+  if (!updateForm.content.trim()) {
+    error.value = '内容不能为空。';
+    return;
+  }
+  if (updateForm.title.length > 200) {
+    error.value = '标题长度不能超过 200 个字符。';
+    return;
+  }
+  if (updateForm.priority < 0 || updateForm.priority > 9) {
+    error.value = '优先级必须在 0 到 9 之间。';
+    return;
+  }
+
+  submitting.value = true;
   try {
     const payload = { ...updateForm, expireTime: toIsoOrNull(updateExpireTime.value) };
     const { data } = await http.put<SysNotice>(`/api/admin/notices/${encodeURIComponent(updateNoticeId.value)}`, payload);

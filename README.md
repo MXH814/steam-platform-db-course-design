@@ -1,4 +1,4 @@
-﻿# "Steam-" 数字游戏平台系统课程设计 README
+# "Steam-" 数字游戏平台系统课程设计 README
 
 > 本 README 是项目后续设计、开发、部署、验收和答辩的统一参考文件。  
 > 任何技术选型、部署方案、数据库结构、开发计划、实际实现与本文档不一致时，必须先更新 README，再继续开发。
@@ -1003,7 +1003,6 @@ PUT    /api/admin/notices/{noticeId}
 /register
 /account
 /admin/notices
-/developer/profile
 ```
 
 组内分工细则：
