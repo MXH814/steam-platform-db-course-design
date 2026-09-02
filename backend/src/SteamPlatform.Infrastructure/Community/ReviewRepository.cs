@@ -192,32 +192,28 @@ public sealed class ReviewRepository(IDbConnectionFactory connectionFactory) : I
         var normalizedReviewId = NormalizeRequired(reviewId, nameof(reviewId));
 
         await using var connection = _connectionFactory.CreateConnection();
-        var exists = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
-            "select count(1) from game_review where review_id = :ReviewId and status = 'VISIBLE'",
-            new { ReviewId = normalizedReviewId },
-            cancellationToken: cancellationToken));
-
-        if (exists == 0)
-        {
-            throw new ResourceNotFoundException("Review does not exist.");
-        }
-
         var rows = await connection.QueryAsync<ReviewVersionRow>(new CommandDefinition(
             """
-            select version_id as VersionId,
-                   review_id as ReviewId,
-                   version_no as VersionNo,
-                   is_recommend as IsRecommendNumber,
-                   content as Content,
-                   create_time as CreateTime
-              from review_version
-             where review_id = :ReviewId
-             order by version_no desc
+            select rv.version_id as VersionId,
+                   rv.review_id as ReviewId,
+                   rv.version_no as VersionNo,
+                   rv.is_recommend as IsRecommendNumber,
+                   rv.content as Content,
+                   rv.create_time as CreateTime
+              from review_version rv
+              join game_review gr
+                on gr.review_id = rv.review_id
+               and gr.status = 'VISIBLE'
+             where rv.review_id = :ReviewId
+             order by rv.version_no desc
             """,
             new { ReviewId = normalizedReviewId },
             cancellationToken: cancellationToken));
 
-        return rows.Select(row => row.ToItem()).ToList();
+        var versions = rows.Select(row => row.ToItem()).ToList();
+        return versions.Count > 0
+            ? versions
+            : throw new ResourceNotFoundException("Review does not exist.");
     }
 
     private static async Task<ReviewListItem?> GetLatestReviewAsync(DbConnection connection, string reviewId, CancellationToken cancellationToken)

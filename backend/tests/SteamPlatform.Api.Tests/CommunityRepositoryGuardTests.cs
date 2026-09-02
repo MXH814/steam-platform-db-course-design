@@ -60,16 +60,19 @@ public sealed class CommunityRepositoryGuardTests
     }
 
     [Fact]
-    public async Task Review_version_history_requires_a_visible_review()
+    public async Task Review_version_query_atomically_requires_a_visible_review()
     {
-        var factory = new ScriptedScalarConnectionFactory(0);
+        var factory = new ScriptedScalarConnectionFactory();
         var repository = new ReviewRepository(factory);
 
         await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
             repository.ListVersionsAsync("REV001", CancellationToken.None));
 
-        Assert.Contains(factory.CommandTexts, command => ContainsSql(command, "status = 'VISIBLE'"));
-        Assert.DoesNotContain(factory.CommandTexts, command => ContainsSql(command, "from review_version"));
+        var command = Assert.Single(factory.CommandTexts);
+        Assert.True(ContainsSql(command, "from review_version"));
+        Assert.True(ContainsSql(command, "join game_review"));
+        Assert.True(ContainsSql(command, "gr.review_id = rv.review_id"));
+        Assert.True(ContainsSql(command, "gr.status = 'VISIBLE'"));
     }
 
     [Fact]
@@ -237,8 +240,16 @@ public sealed class CommunityRepositoryGuardTests
 
         protected override DbParameter CreateDbParameter() => new FakeParameter();
 
-        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior) =>
+        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
+        {
+            _commandTexts.Add(CommandText);
+            if (CommandText.Contains("from review_version", StringComparison.OrdinalIgnoreCase))
+            {
+                return new DataTable().CreateDataReader();
+            }
+
             throw new InvalidOperationException("The unowned-game guard should run before any read past ownership validation.");
+        }
     }
 
     private sealed class FakeParameterCollection : DbParameterCollection
