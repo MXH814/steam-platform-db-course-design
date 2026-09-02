@@ -129,6 +129,11 @@ public sealed class HttpsDeployTests
         Assert.Contains("location = /health/database", config);
         Assert.Contains("location /hubs/", config);
         Assert.Contains("proxy_set_header Upgrade $http_upgrade", config);
+        Assert.Contains("log_format steam_platform_safe", config);
+        Assert.Contains("\"$request_method $uri $server_protocol\"", config);
+        Assert.Contains("access_log /var/log/nginx/steam-platform-access.log steam_platform_safe", config);
+        Assert.Contains("error_log /var/log/nginx/steam-platform-signalr-error.log crit", config);
+        Assert.DoesNotContain("\"$request\"", config);
         Assert.Contains("/etc/letsencrypt/live/steam-platform-ip/fullchain.pem", config);
         Assert.DoesNotContain("1521", config);
         Assert.DoesNotContain("TLSv1.1", config);
