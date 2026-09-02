@@ -63,14 +63,14 @@ http.interceptors.response.use(
             ) {
               await router.push({
                 name: 'login',
-                query: { redirect: fullPath }
+                query: { redirect: fullPath, expired: '1' }
               });
             }
           } catch {
             const currentPath =
               window.location.pathname + window.location.search;
             if (!window.location.pathname.startsWith('/login')) {
-              window.location.assign(`/login?redirect=${encodeURIComponent(currentPath)}`);
+              window.location.assign(`/login?redirect=${encodeURIComponent(currentPath)}&expired=1`);
             }
           } finally {
             setTimeout(() => {
