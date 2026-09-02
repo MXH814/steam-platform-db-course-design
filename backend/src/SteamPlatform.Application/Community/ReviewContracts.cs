@@ -1,5 +1,26 @@
 namespace SteamPlatform.Application.Community;
 
+public static class ReviewRules
+{
+    public const int MaxContentLength = 1200;
+
+    public static string NormalizeContent(string? content)
+    {
+        var normalized = content?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            throw new ArgumentException("Content is required.", nameof(content));
+        }
+
+        if (normalized.Length > MaxContentLength)
+        {
+            throw new ArgumentException($"Content cannot exceed {MaxContentLength} characters.", nameof(content));
+        }
+
+        return normalized;
+    }
+}
+
 public sealed record CreateReviewRequest(bool IsRecommend, string Content);
 
 public sealed record UpdateReviewRequest(bool IsRecommend, string Content);

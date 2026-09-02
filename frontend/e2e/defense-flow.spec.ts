@@ -93,11 +93,23 @@ test('固定答辩链：注册、购买退款、库存挂单、撮合与账本',
     await recordingPause(player.page);
   });
 
-  await test.step('发表 DST 评测并解锁一个项目成就', async () => {
+  await test.step('发表并修改 DST 评测、查看历史并解锁项目成就', async () => {
+    const originalReview = '答辩自动回归：联机生存内容丰富，购买、评价与成就链路完整。';
+    const updatedReview = '答辩自动回归更新：评价修改会保留完整历史版本。';
     await player.page.goto('/games/GAME_DST/community');
-    await player.page.getByPlaceholder('告诉其他玩家这款游戏哪里值得推荐，或哪里需要谨慎。').fill('答辩自动回归：联机生存内容丰富，购买、评价与成就链路完整。');
+    await player.page.getByPlaceholder('告诉其他玩家这款游戏哪里值得推荐，或哪里需要谨慎。').fill(originalReview);
     await player.page.getByRole('button', { name: '发表评测' }).click();
     await expect(player.page.getByText('评价已发表。')).toBeVisible();
+    await player.page.getByLabel('显示顺序').selectOption('recent');
+    await player.page.locator('.steam-review-card').filter({ hasText: originalReview }).first().getByRole('button', { name: '编辑' }).click();
+    await player.page.getByPlaceholder('告诉其他玩家这款游戏哪里值得推荐，或哪里需要谨慎。').fill(updatedReview);
+    await player.page.getByRole('button', { name: '保存评测' }).click();
+    await expect(player.page.getByText('评价已更新，新的历史版本已经生成。')).toBeVisible();
+    await player.page.locator('.steam-review-card').filter({ hasText: updatedReview }).first().getByRole('button', { name: '版本历史' }).click();
+    const history = player.page.locator('.history-panel');
+    await expect(history.getByText('版本 2', { exact: true })).toBeVisible();
+    await expect(history.getByText('版本 1', { exact: true })).toBeVisible();
+    await expect(history.getByText(originalReview, { exact: true })).toBeVisible();
     const unlock = player.page.getByRole('button', { name: '解锁', exact: true }).first();
     await expect(unlock).toBeEnabled();
     await unlock.click();
