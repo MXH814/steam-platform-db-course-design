@@ -20,12 +20,34 @@ public static class GameEndpointExtensions
             int? page,
             int? pageSize,
             IGameService service,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
+            var normalizedStatus = status?.Trim().ToUpperInvariant();
+            var normalizedDeveloperId = developerId?.Trim();
+            if (normalizedStatus == "OFFLINE")
+            {
+                if (EndpointGuards.DenyUnless(httpContext, out var claims, "DEVELOPER", "ADMIN") is { } denied)
+                {
+                    return denied;
+                }
+
+                if (string.Equals(claims!.Role, "DEVELOPER", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (normalizedDeveloperId is not null &&
+                        !string.Equals(normalizedDeveloperId, claims.PrincipalId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Results.Forbid();
+                    }
+
+                    normalizedDeveloperId = claims.PrincipalId;
+                }
+            }
+
             var query = new GameListQuery(
                 keyword,
-                status,
-                developerId,
+                normalizedStatus,
+                normalizedDeveloperId,
                 minPrice,
                 maxPrice,
                 reputation,
@@ -39,17 +61,29 @@ public static class GameEndpointExtensions
         games.MapGet("{gameId}", async (
             string gameId,
             IGameService service,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
             var result = await service.GetDetailAsync(gameId, cancellationToken);
+            if (!GameVisibilityGuard.CanView(httpContext, result))
+            {
+                return GameVisibilityGuard.HiddenResult();
+            }
+
             return Results.Ok(ApiResponse<GameDetailResponse>.Success(result));
         });
 
         games.MapGet("{gameId}/reviews/summary", async (
             string gameId,
             IGameService service,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
+            if (await GameVisibilityGuard.DenyHiddenAsync(gameId, service, httpContext, cancellationToken) is { } denied)
+            {
+                return denied;
+            }
+
             var result = await service.GetReviewSummaryAsync(gameId, cancellationToken);
             return Results.Ok(ApiResponse<ReviewSummaryResponse>.Success(result));
         });
@@ -57,8 +91,14 @@ public static class GameEndpointExtensions
         games.MapGet("{gameId}/achievements/summary", async (
             string gameId,
             IGameService service,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
+            if (await GameVisibilityGuard.DenyHiddenAsync(gameId, service, httpContext, cancellationToken) is { } denied)
+            {
+                return denied;
+            }
+
             var result = await service.GetAchievementSummaryAsync(gameId, cancellationToken);
             return Results.Ok(ApiResponse<AchievementSummaryResponse>.Success(result));
         });
@@ -66,8 +106,14 @@ public static class GameEndpointExtensions
         games.MapGet("{gameId}/content-packages", async (
             string gameId,
             IGameService service,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
+            if (await GameVisibilityGuard.DenyHiddenAsync(gameId, service, httpContext, cancellationToken) is { } denied)
+            {
+                return denied;
+            }
+
             var result = await service.GetContentPackagesAsync(gameId, cancellationToken);
             return Results.Ok(ApiResponse<IReadOnlyList<GameContentPackageResponse>>.Success(result));
         });
@@ -75,8 +121,14 @@ public static class GameEndpointExtensions
         games.MapGet("{gameId}/items/summary", async (
             string gameId,
             IGameService service,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
+            if (await GameVisibilityGuard.DenyHiddenAsync(gameId, service, httpContext, cancellationToken) is { } denied)
+            {
+                return denied;
+            }
+
             var result = await service.GetItemSummaryAsync(gameId, cancellationToken);
             return Results.Ok(ApiResponse<GameItemSummaryResponse>.Success(result));
         });
@@ -168,4 +220,5 @@ public static class GameEndpointExtensions
 
         return app;
     }
+
 }

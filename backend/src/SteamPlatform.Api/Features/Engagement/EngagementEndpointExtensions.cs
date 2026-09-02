@@ -1,6 +1,8 @@
 using SteamPlatform.Api.Features.Auth;
+using SteamPlatform.Api.Features.Games;
 using SteamPlatform.Application.Common;
 using SteamPlatform.Application.Engagement;
+using SteamPlatform.Application.Games;
 
 namespace SteamPlatform.Api.Features.Engagement;
 
@@ -120,8 +122,16 @@ public static class EngagementEndpointExtensions
         });
 
         engagement.MapGet("/community/posts", async (
-            string? gameId, int? limit, IEngagementService service, HttpContext context, CancellationToken cancellationToken) =>
-            Results.Ok(await service.ListCommunityPostsAsync(TryGetPlayerId(context), gameId, limit ?? 30, cancellationToken)));
+            string? gameId, int? limit, IGameService gameService, IEngagementService service, HttpContext context, CancellationToken cancellationToken) =>
+        {
+            if (!string.IsNullOrWhiteSpace(gameId) &&
+                await GameVisibilityGuard.DenyHiddenAsync(gameId, gameService, context, cancellationToken) is { } denied)
+            {
+                return denied;
+            }
+
+            return Results.Ok(await service.ListCommunityPostsAsync(TryGetPlayerId(context), gameId, limit ?? 30, cancellationToken));
+        });
 
         engagement.MapPost("/community/posts", async (
             CreateCommunityPostRequest request, IEngagementService service, HttpContext context, CancellationToken cancellationToken) =>
@@ -151,11 +161,16 @@ public static class EngagementEndpointExtensions
         });
 
         engagement.MapGet("/games/{gameId}/discussions", async (
-            string gameId, int? limit, IEngagementService service, CancellationToken cancellationToken) =>
+            string gameId, int? limit, IGameService gameService, IEngagementService service, HttpContext context, CancellationToken cancellationToken) =>
         {
             if (InputGuards.IsBlank(gameId))
             {
                 return Results.BadRequest("GameId is required.");
+            }
+
+            if (await GameVisibilityGuard.DenyHiddenAsync(gameId, gameService, context, cancellationToken) is { } denied)
+            {
+                return denied;
             }
 
             return Results.Ok(await service.ListDiscussionTopicsAsync(gameId, limit ?? 30, cancellationToken));

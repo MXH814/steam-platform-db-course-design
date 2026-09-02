@@ -8,7 +8,7 @@
         <button type="button" @click="goToGames">游戏</button>
         <button type="button" @click="router.push('/refunds')">帮助</button>
         <span class="window-spacer" />
-        <span class="cloud-state"><Cloud :size="13" /> 云端已连接</span>
+        <span class="cloud-state" :class="`cloud-${cloudStatus}`" :title="cloudStatusTitle"><Cloud :size="13" /> {{ cloudStatusText }}</span>
       </div>
 
       <div class="client-menu">
@@ -197,6 +197,8 @@ import { useAuthStore } from './stores/auth';
 
 type MenuKey = '' | 'store' | 'library' | 'community' | 'profile' | 'account';
 type DrawerKey = '' | 'downloads' | 'friends';
+type CloudStatus = 'checking' | 'connected' | 'offline';
+interface AuthUnauthorizedDetail { redirect?: string; expired?: boolean; }
 interface StartupAnnouncement {
   id: string;
   title: string;
@@ -229,14 +231,18 @@ const chatMessages = ref<DirectMessageItem[]>([]);
 const friends = ref<FriendListItem[]>([]);
 const friendsLoading = ref(false);
 const sendingChat = ref(false);
+const cloudStatus = ref<CloudStatus>('checking');
 const realtime = new SocialRealtimeClient();
 const startupDismissKey = 'game-deck-startup-announcement-dismissed:2026-08-25';
 let menuTimer: number | undefined;
 let toastTimer: number | undefined;
+let cloudTimer: number | undefined;
 const filteredFriends = computed(() => { const keyword = friendSearch.value.trim().toLocaleLowerCase('zh-CN'); return friends.value.filter((friend) => !keyword || friend.nickname.toLocaleLowerCase('zh-CN').includes(keyword)); });
 const selectedFriend = computed(() => friends.value.find((friend) => friend.userId === selectedFriendId.value) || null);
 const unreadNotificationCount = computed(() => userNotifications.value.filter((notice) => !notice.isRead).length);
 const accountInitial = computed(() => auth.currentUser?.account?.trim().charAt(0).toUpperCase() || '?');
+const cloudStatusText = computed(() => cloudStatus.value === 'connected' ? '云端已连接' : cloudStatus.value === 'offline' ? '云端连接异常' : '正在连接云端');
+const cloudStatusTitle = computed(() => cloudStatus.value === 'connected' ? '应用服务器与 Oracle 数据库连接正常' : cloudStatus.value === 'offline' ? '暂时无法连接应用服务器或 Oracle 数据库' : '正在检查应用服务器与 Oracle 数据库');
 const gameMeta = getGameMeta;
 const fallbackAnnouncements: StartupAnnouncement[] = [
   { id: 'WELCOME-DST', title: '荒野生存特别活动现已开放', content: '进入饥荒联机版商店页面，查看买断制购买、内容包、社区评测和自定义成就完整流程。', image: '/assets/games/dst-library-hero.jpg', label: '特别活动', route: '/games/GAME_DST', publishedAt: '本周' },
@@ -407,20 +413,42 @@ function handleAppToast(event: Event) {
   }
 }
 
-function handleAuthUnauthorized() {
+function handleAuthUnauthorized(event: Event) {
   void realtime.disconnect();
   auth.logout();
   closeOverlays();
+  const detail = (event as CustomEvent<AuthUnauthorizedDetail>).detail;
+  if (route.name !== 'login') {
+    void router.push({
+      name: 'login',
+      query: {
+        redirect: detail?.redirect || route.fullPath,
+        ...(detail?.expired ? { expired: '1' } : {})
+      }
+    });
+  }
+}
+
+async function checkCloudStatus() {
+  try {
+    const { data } = await http.get<{ status?: string }>('/api/health/database', { timeout: 5000 });
+    cloudStatus.value = data?.status === 'OK' ? 'connected' : 'offline';
+  } catch {
+    cloudStatus.value = 'offline';
+  }
 }
 
 onMounted(() => {
   window.addEventListener('app-toast', handleAppToast);
   window.addEventListener('auth-unauthorized', handleAuthUnauthorized);
+  void checkCloudStatus();
+  cloudTimer = window.setInterval(checkCloudStatus, 60000);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('app-toast', handleAppToast);
   window.removeEventListener('auth-unauthorized', handleAuthUnauthorized);
+  if (cloudTimer) window.clearInterval(cloudTimer);
   void realtime.disconnect();
   cancelMenuClose();
   if (toastTimer) window.clearTimeout(toastTimer);

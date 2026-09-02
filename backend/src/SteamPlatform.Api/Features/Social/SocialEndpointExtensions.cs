@@ -1,5 +1,7 @@
 using SteamPlatform.Api.Features.Auth;
+using SteamPlatform.Api.Features.Games;
 using SteamPlatform.Application.Common;
+using SteamPlatform.Application.Games;
 using SteamPlatform.Application.Social;
 
 namespace SteamPlatform.Api.Features.Social;
@@ -22,6 +24,7 @@ public static class SocialEndpointExtensions
 
         social.MapGet("/games/{gameId}/friends-who-play", async (
             string gameId,
+            IGameService gameService,
             ISocialService service,
             HttpContext context,
             CancellationToken cancellationToken) =>
@@ -34,6 +37,11 @@ public static class SocialEndpointExtensions
             if (InputGuards.IsBlank(gameId))
             {
                 return Results.BadRequest("GameId is required.");
+            }
+
+            if (await GameVisibilityGuard.DenyHiddenAsync(gameId, gameService, context, cancellationToken) is { } hiddenGame)
+            {
+                return hiddenGame;
             }
 
             return Results.Ok(await service.ListFriendsWhoPlayAsync(claims!.PrincipalId, gameId, cancellationToken));
@@ -119,6 +127,7 @@ public static class SocialEndpointExtensions
 
         social.MapGet("/games/{gameId}/review-interactions", async (
             string gameId,
+            IGameService gameService,
             ISocialService service,
             HttpContext context,
             CancellationToken cancellationToken) =>
@@ -126,6 +135,11 @@ public static class SocialEndpointExtensions
             if (InputGuards.IsBlank(gameId))
             {
                 return Results.BadRequest("GameId is required.");
+            }
+
+            if (await GameVisibilityGuard.DenyHiddenAsync(gameId, gameService, context, cancellationToken) is { } denied)
+            {
+                return denied;
             }
 
             return Results.Ok(await service.ListReviewInteractionsAsync(gameId, TryGetPlayerId(context), cancellationToken));
@@ -153,6 +167,7 @@ public static class SocialEndpointExtensions
 
         social.MapGet("/games/{gameId}/workshop", async (
             string gameId,
+            IGameService gameService,
             ISocialService service,
             HttpContext context,
             CancellationToken cancellationToken) =>
@@ -160,6 +175,11 @@ public static class SocialEndpointExtensions
             if (InputGuards.IsBlank(gameId))
             {
                 return Results.BadRequest("GameId is required.");
+            }
+
+            if (await GameVisibilityGuard.DenyHiddenAsync(gameId, gameService, context, cancellationToken) is { } denied)
+            {
+                return denied;
             }
 
             return Results.Ok(await service.ListWorkshopItemsAsync(gameId, TryGetPlayerId(context), cancellationToken));

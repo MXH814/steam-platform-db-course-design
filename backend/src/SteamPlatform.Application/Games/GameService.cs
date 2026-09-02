@@ -4,6 +4,7 @@ namespace SteamPlatform.Application.Games;
 
 public sealed class GameService(IGameRepository repository) : IGameService
 {
+    private const decimal MaximumPrice = 99999999.99m;
     private static readonly HashSet<string> AllowedStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
         "ONLINE",
@@ -51,9 +52,9 @@ public sealed class GameService(IGameRepository repository) : IGameService
 
         var normalized = query with
         {
-            Keyword = NormalizeOptional(query.Keyword),
+            Keyword = NormalizeOptionalLimited(query.Keyword, 100, nameof(query.Keyword)),
             Status = status,
-            DeveloperId = NormalizeOptional(query.DeveloperId),
+            DeveloperId = NormalizeOptionalLimited(query.DeveloperId, 32, nameof(query.DeveloperId)),
             Reputation = reputation,
             Page = page,
             PageSize = pageSize
@@ -170,7 +171,7 @@ public sealed class GameService(IGameRepository repository) : IGameService
         return request with
         {
             DevId = developerId,
-            GameName = NormalizeRequired(request.GameName, nameof(request.GameName)),
+            GameName = NormalizeRequiredLimited(request.GameName, 100, nameof(request.GameName)),
             Reputation = NormalizeReputation(request.Reputation),
             BasePrice = NormalizeBasePrice(request.BasePrice),
             DiscountRate = NormalizeDiscountRate(request.DiscountRate),
@@ -181,7 +182,7 @@ public sealed class GameService(IGameRepository repository) : IGameService
     private static UpdateGameRequest NormalizeUpdateRequest(UpdateGameRequest request) =>
         request with
         {
-            GameName = NormalizeRequired(request.GameName, nameof(request.GameName)),
+            GameName = NormalizeRequiredLimited(request.GameName, 100, nameof(request.GameName)),
             Reputation = NormalizeReputation(request.Reputation),
             BasePrice = NormalizeBasePrice(request.BasePrice),
             DiscountRate = NormalizeDiscountRate(request.DiscountRate),
@@ -209,8 +210,17 @@ public sealed class GameService(IGameRepository repository) : IGameService
             : throw new ArgumentException("Game reputation is not supported.");
     }
 
-    private static decimal NormalizeBasePrice(decimal value) =>
-        value >= 0 ? value : throw new ArgumentException("BasePrice must be greater than or equal to 0.");
+    private static decimal NormalizeBasePrice(decimal value)
+    {
+        if (value is < 0 or > MaximumPrice)
+        {
+            throw new ArgumentException($"BasePrice must be between 0 and {MaximumPrice}.");
+        }
+
+        return decimal.Round(value, 2) == value
+            ? value
+            : throw new ArgumentException("BasePrice can have at most two decimal places.");
+    }
 
     private static decimal NormalizeDiscountRate(decimal value) =>
         value is >= 0 and <= 1 ? value : throw new ArgumentException("DiscountRate must be between 0 and 1.");
@@ -227,5 +237,21 @@ public sealed class GameService(IGameRepository repository) : IGameService
     {
         var normalized = value?.Trim();
         return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+    }
+
+    private static string NormalizeRequiredLimited(string? value, int maxLength, string fieldName)
+    {
+        var normalized = NormalizeRequired(value, fieldName);
+        return normalized.Length <= maxLength
+            ? normalized
+            : throw new ArgumentException($"{fieldName} must not exceed {maxLength} characters.");
+    }
+
+    private static string? NormalizeOptionalLimited(string? value, int maxLength, string fieldName)
+    {
+        var normalized = NormalizeOptional(value);
+        return normalized is null || normalized.Length <= maxLength
+            ? normalized
+            : throw new ArgumentException($"{fieldName} must not exceed {maxLength} characters.");
     }
 }

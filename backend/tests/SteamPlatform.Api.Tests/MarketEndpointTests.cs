@@ -58,6 +58,28 @@ public sealed class MarketEndpointTests(SteamPlatformApiFactory factory) : IClas
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData(100000000)]
+    [InlineData(1.001)]
+    public async Task Create_order_rejects_prices_outside_oracle_precision_before_opening_database(decimal targetPrice)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/market/orders")
+        {
+            Content = JsonContent.Create(new
+            {
+                orderType = "BUY",
+                templateId = "ITPL_CS2_AK_REDLINE",
+                itemId = (string?)null,
+                targetPrice
+            })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("PLAYER", "P001", "alice"));
+
+        using var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private string CreateToken(string role, string principalId, string account)
     {
         using var scope = _factory.Services.CreateScope();

@@ -36,6 +36,8 @@ public sealed class NoticeRepositoryGuardTests
             { new CreateNoticeRequest("ADMIN", "ADM001", "Title", " ", 1, null), "Content is required." },
             { new CreateNoticeRequest("ADMIN", "ADM001", "Title", "Content", -1, null), "Priority must be between 0 and 9." },
             { new CreateNoticeRequest("ADMIN", "ADM001", "Title", "Content", 10, null), "Priority must be between 0 and 9." }
+            ,{ new CreateNoticeRequest("ADMIN", "ADM001", new string('T', 201), "Content", 1, null), "Title must not exceed 200 characters." }
+            ,{ new CreateNoticeRequest("ADMIN", "ADM001", "Title", new string('C', 4001), 1, null), "Content must not exceed 4000 characters." }
         };
 
     public static TheoryData<string?, UpdateNoticeRequest, string> InvalidUpdateRequests() =>
@@ -48,5 +50,7 @@ public sealed class NoticeRepositoryGuardTests
             { "N001", new UpdateNoticeRequest("Title", "Content", 1, "OFFLINE", null), "Notice status must be DRAFT, PUBLISHED, EXPIRED or REVOKED." },
             { "N001", new UpdateNoticeRequest("Title", "Content", -1, "PUBLISHED", null), "Priority must be between 0 and 9." },
             { "N001", new UpdateNoticeRequest("Title", "Content", 10, "PUBLISHED", null), "Priority must be between 0 and 9." }
+            ,{ "N001", new UpdateNoticeRequest(new string('T', 201), "Content", 1, "PUBLISHED", null), "Title must not exceed 200 characters." }
+            ,{ "N001", new UpdateNoticeRequest("Title", new string('C', 4001), 1, "PUBLISHED", null), "Content must not exceed 4000 characters." }
         };
 }

@@ -57,8 +57,8 @@ public sealed class NoticeRepository(IDbConnectionFactory connectionFactory) : I
             NoticeId = IdGenerator.NewId("N"),
             PublisherType = publisherType,
             PublisherId = publisherId,
-            Title = NormalizeRequired(request.Title, nameof(request.Title)),
-            Content = NormalizeRequired(request.Content, nameof(request.Content)),
+            Title = NormalizeRequiredLimited(request.Title, 200, nameof(request.Title)),
+            Content = NormalizeRequiredLimited(request.Content, 4000, nameof(request.Content)),
             Priority = NormalizePriority(request.Priority),
             Status = "PUBLISHED",
             PublishTime = DateTime.UtcNow,
@@ -84,8 +84,8 @@ public sealed class NoticeRepository(IDbConnectionFactory connectionFactory) : I
         ArgumentNullException.ThrowIfNull(request);
 
         var normalizedNoticeId = NormalizeRequired(noticeId, nameof(noticeId));
-        var title = NormalizeRequired(request.Title, nameof(request.Title));
-        var content = NormalizeRequired(request.Content, nameof(request.Content));
+        var title = NormalizeRequiredLimited(request.Title, 200, nameof(request.Title));
+        var content = NormalizeRequiredLimited(request.Content, 4000, nameof(request.Content));
         var status = NormalizeStatus(request.Status);
         var priority = NormalizePriority(request.Priority);
 
@@ -153,5 +153,13 @@ public sealed class NoticeRepository(IDbConnectionFactory connectionFactory) : I
     {
         var normalized = value?.Trim();
         return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+    }
+
+    private static string NormalizeRequiredLimited(string? value, int maxLength, string fieldName)
+    {
+        var normalized = NormalizeRequired(value, fieldName);
+        return normalized.Length <= maxLength
+            ? normalized
+            : throw new ArgumentException($"{fieldName} must not exceed {maxLength} characters.");
     }
 }

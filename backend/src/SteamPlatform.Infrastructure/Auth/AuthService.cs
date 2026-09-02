@@ -3,6 +3,7 @@ using System.Data;
 using System.Security.Claims;
 using Dapper;
 using Microsoft.IdentityModel.Tokens;
+using Oracle.ManagedDataAccess.Client;
 using SteamPlatform.Application.Auth;
 using SteamPlatform.Application.Common;
 using SteamPlatform.Infrastructure.Data;
@@ -67,6 +68,11 @@ public sealed class AuthService(
                 cancellationToken: cancellationToken));
 
             await transaction.CommitAsync(cancellationToken);
+        }
+        catch (OracleException exception) when (exception.Number == 1)
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw new BusinessRuleException("ACCOUNT_ALREADY_EXISTS", "The account is already registered.");
         }
         catch
         {

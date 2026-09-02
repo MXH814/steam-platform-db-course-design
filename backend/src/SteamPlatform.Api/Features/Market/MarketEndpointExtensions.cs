@@ -1,4 +1,6 @@
 using SteamPlatform.Api.Features.Auth;
+using SteamPlatform.Api.Features.Games;
+using SteamPlatform.Application.Games;
 using SteamPlatform.Application.Market;
 using SteamPlatform.Shared;
 
@@ -6,15 +8,24 @@ namespace SteamPlatform.Api.Features.Market;
 
 public static class MarketEndpointExtensions
 {
+    private const decimal MaximumPrice = 99999999.99m;
     public static IEndpointRouteBuilder MapMarketEndpoints(this IEndpointRouteBuilder app)
     {
         var market = app.MapGroup("/api").WithTags("Market");
 
         market.MapGet("/market", async (
             string? gameId,
+            IGameService gameService,
             IMarketRepository repository,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
+            if (!string.IsNullOrWhiteSpace(gameId) &&
+                await GameVisibilityGuard.DenyHiddenAsync(gameId, gameService, httpContext, cancellationToken) is { } denied)
+            {
+                return denied;
+            }
+
             var listings = await repository.GetListingsAsync(NormalizeOptional(gameId), cancellationToken);
             return Results.Ok(ApiResponse<IReadOnlyList<MarketListingDto>>.Success(listings));
         });
@@ -144,9 +155,14 @@ public static class MarketEndpointExtensions
             throw new ArgumentException("TemplateId is required.");
         }
 
-        if (request.TargetPrice <= 0)
+        if (request.TargetPrice is <= 0 or > MaximumPrice)
         {
-            throw new ArgumentException("TargetPrice must be greater than 0.");
+            throw new ArgumentException($"TargetPrice must be between 0.01 and {MaximumPrice}.");
+        }
+
+        if (decimal.Round(request.TargetPrice, 2) != request.TargetPrice)
+        {
+            throw new ArgumentException("TargetPrice can have at most two decimal places.");
         }
 
         return new CreateMarketOrderRequest(

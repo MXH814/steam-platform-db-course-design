@@ -1,6 +1,8 @@
 using SteamPlatform.Api.Features.Auth;
+using SteamPlatform.Api.Features.Games;
 using SteamPlatform.Application.Common;
 using SteamPlatform.Application.Community;
+using SteamPlatform.Application.Games;
 
 namespace SteamPlatform.Api.Features.Community;
 
@@ -13,12 +15,19 @@ public static class CommunityEndpointExtensions
         community.MapGet("/games/{gameId}/reviews", async (
             string gameId,
             int? limit,
+            IGameService gameService,
             IReviewRepository repository,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
             if (InputGuards.IsBlank(gameId))
             {
                 return Results.BadRequest("GameId is required.");
+            }
+
+            if (await GameVisibilityGuard.DenyHiddenAsync(gameId, gameService, httpContext, cancellationToken) is { } denied)
+            {
+                return denied;
             }
 
             return Results.Ok(await repository.ListByGameAsync(gameId, limit ?? 50, cancellationToken));
@@ -128,6 +137,7 @@ public static class CommunityEndpointExtensions
 
         community.MapGet("/games/{gameId}/achievements", async (
             string gameId,
+            IGameService gameService,
             IAchievementRepository repository,
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
@@ -135,6 +145,11 @@ public static class CommunityEndpointExtensions
             if (InputGuards.IsBlank(gameId))
             {
                 return Results.BadRequest("GameId is required.");
+            }
+
+            if (await GameVisibilityGuard.DenyHiddenAsync(gameId, gameService, httpContext, cancellationToken) is { } denied)
+            {
+                return denied;
             }
 
             var userId = TryGetPlayerId(httpContext);

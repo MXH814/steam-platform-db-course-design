@@ -103,6 +103,14 @@ a {
   color: #79a963;
 }
 
+.cloud-state.cloud-checking {
+  color: #9aa6b2;
+}
+
+.cloud-state.cloud-offline {
+  color: #d77b68;
+}
+
 .client-menu {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

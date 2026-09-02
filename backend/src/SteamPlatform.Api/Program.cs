@@ -98,8 +98,11 @@ app.MapGet("/api/health", () => Results.Ok(new
     time = DateTimeOffset.UtcNow
 }));
 
-app.MapGet("/health/database", async (IDatabaseHealthProbe probe, CancellationToken cancellationToken) =>
-    Results.Ok(await probe.CheckAsync(cancellationToken)));
+static async Task<IResult> CheckDatabaseAsync(IDatabaseHealthProbe probe, CancellationToken cancellationToken) =>
+    Results.Ok(await probe.CheckAsync(cancellationToken));
+
+app.MapGet("/health/database", CheckDatabaseAsync);
+app.MapGet("/api/health/database", CheckDatabaseAsync);
 
 app.MapAuthEndpoints();
 app.MapInventoryEndpoints();

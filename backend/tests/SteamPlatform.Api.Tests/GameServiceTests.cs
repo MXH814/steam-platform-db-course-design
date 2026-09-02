@@ -63,6 +63,31 @@ public sealed class GameServiceTests
         Assert.False(repository.UpdateCalled);
     }
 
+    [Theory]
+    [InlineData("100000000")]
+    [InlineData("1.001")]
+    public async Task Update_rejects_price_outside_oracle_precision_before_repository_write(string value)
+    {
+        var repository = new RecordingGameRepository();
+        var service = new GameService(repository);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.UpdateAsync("G001", "DEV001", new UpdateGameRequest("Game", decimal.Parse(value), 1m, DateTime.Today, null), CancellationToken.None));
+
+        Assert.False(repository.UpdateCalled);
+    }
+
+    [Fact]
+    public async Task Create_rejects_game_name_over_schema_limit()
+    {
+        var service = new GameService(new RecordingGameRepository());
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreateAsync(new CreateGameRequest("DEV001", new string('G', 101), 10m, 1m, DateTime.Today, null), CancellationToken.None));
+
+        Assert.Contains("100", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task Update_rejects_games_owned_by_other_developer_before_repository_write()
     {
