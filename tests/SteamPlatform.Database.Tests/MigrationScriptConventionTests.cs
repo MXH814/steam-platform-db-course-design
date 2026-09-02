@@ -7,7 +7,7 @@ public sealed class MigrationScriptConventionTests
 {
     [Theory]
     [MemberData(nameof(MigrationScriptNames))]
-    public void Migration_scripts_use_current_date_and_slug_file_name(string scriptName)
+    public void Migration_scripts_use_valid_date_prefix_and_slug_file_name(string scriptName)
     {
         Assert.Matches(@"^\d{8}_[a-z0-9_]+\.sql$", scriptName);
 

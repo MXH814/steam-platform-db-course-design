@@ -185,9 +185,13 @@ public sealed class ReadOnlyCloudApiTests(ITestOutputHelper output)
 
     private static async Task AssertSuccessAsync(HttpResponseMessage response, string? operation = null)
     {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
         var body = await response.Content.ReadAsStringAsync();
-        Assert.True(
-            response.IsSuccessStatusCode,
+        Assert.Fail(
             $"{operation ?? response.RequestMessage?.RequestUri?.ToString()} returned {(int)response.StatusCode}: {body}");
     }
 }
