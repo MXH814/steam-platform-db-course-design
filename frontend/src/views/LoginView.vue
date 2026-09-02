@@ -25,6 +25,7 @@
         <input v-model="form.password" type="password" autocomplete="current-password" required />
       </label>
 
+      <p v-if="sessionNotice" class="message notice">{{ sessionNotice }}</p>
       <p v-if="error" class="message error">{{ error }}</p>
       <button class="primary-button" type="submit" :disabled="submitting">
         {{ submitting ? '登录中...' : '登录' }}
@@ -35,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getApiError } from '../api/http';
 import type { LoginRole } from '../api/types';
@@ -43,6 +44,16 @@ import { useAuthStore } from '../stores/auth';
 
 const auth = useAuthStore();
 const route = useRoute();
+
+const sessionNotice = computed(() => {
+  if (route.query.expired === '1') {
+    return '登录状态已失效，请重新登录。';
+  }
+  if (typeof route.query.redirect === 'string' && route.query.redirect && route.query.redirect !== '/store') {
+    return '该页面需要登录后访问，请先完成登录。';
+  }
+  return '';
+});
 const router = useRouter();
 const submitting = ref(false);
 const error = ref('');

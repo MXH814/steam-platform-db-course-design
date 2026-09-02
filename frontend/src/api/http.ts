@@ -28,6 +28,73 @@ http.interceptors.request.use((config) => {
   return config;
 });
 
+let isHandlingUnauthorized = false;
+
+http.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (axios.isAxiosError(error) && error.response) {
+      const status = error.response.status;
+      const requestUrl = error.config?.url || '';
+      const isAuthEndpoint =
+        requestUrl.includes('/api/auth/login') ||
+        requestUrl.includes('/api/auth/register');
+
+      if (status === 401 && !isAuthEndpoint) {
+        clearStoredToken();
+        window.dispatchEvent(new CustomEvent('auth-unauthorized'));
+
+        if (!isHandlingUnauthorized) {
+          isHandlingUnauthorized = true;
+          window.dispatchEvent(
+            new CustomEvent('app-toast', { detail: '登录状态已失效，请重新登录。' })
+          );
+
+          try {
+            const { router } = await import('../router');
+            const currentRoute = router.currentRoute.value;
+            const fullPath =
+              currentRoute?.fullPath ||
+              window.location.pathname + window.location.search;
+
+            if (
+              currentRoute?.name !== 'login' &&
+              !window.location.pathname.startsWith('/login')
+            ) {
+              await router.push({
+                name: 'login',
+                query: { redirect: fullPath, expired: '1' }
+              });
+            }
+          } catch {
+            const currentPath =
+              window.location.pathname + window.location.search;
+            if (!window.location.pathname.startsWith('/login')) {
+              window.location.assign(`/login?redirect=${encodeURIComponent(currentPath)}&expired=1`);
+            }
+          } finally {
+            setTimeout(() => {
+              isHandlingUnauthorized = false;
+            }, 1200);
+          }
+        }
+      } else if (status === 403) {
+        const errorMsg = getApiError(error);
+        const detailMsg =
+          errorMsg && errorMsg !== '请求失败'
+            ? errorMsg
+            : '操作失败：当前账号没有执行此操作的权限。';
+
+        window.dispatchEvent(
+          new CustomEvent('app-toast', { detail: detailMsg })
+        );
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export function getApiError(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data;

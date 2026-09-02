@@ -184,7 +184,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ArrowLeftRight, Bell, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Cloud, Download, Gamepad2, Menu, Play, Plus, Search, Send, UserPlus, Users, WalletCards, X } from '@lucide/vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getLibrary, type LibraryEntry } from './api/coreApi';
@@ -399,5 +399,30 @@ function goToGames() { router.push(auth.isAuthenticated ? '/library' : '/store')
 function showToast(text: string) { toast.value = text; if (toastTimer) window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => { toast.value = ''; }, 2400); }
 function closeOverlays() { activeMenu.value = ''; activeDrawer.value = ''; notificationOpen.value = false; if (startupAnnouncementOpen.value) dismissStartupAnnouncement(); }
 function logout() { void realtime.disconnect(); auth.logout(); closeOverlays(); router.push({ name: 'login' }); }
-onBeforeUnmount(() => { void realtime.disconnect(); cancelMenuClose(); if (toastTimer) window.clearTimeout(toastTimer); });
+
+function handleAppToast(event: Event) {
+  const customEvent = event as CustomEvent<string>;
+  if (customEvent.detail) {
+    showToast(customEvent.detail);
+  }
+}
+
+function handleAuthUnauthorized() {
+  void realtime.disconnect();
+  auth.logout();
+  closeOverlays();
+}
+
+onMounted(() => {
+  window.addEventListener('app-toast', handleAppToast);
+  window.addEventListener('auth-unauthorized', handleAuthUnauthorized);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('app-toast', handleAppToast);
+  window.removeEventListener('auth-unauthorized', handleAuthUnauthorized);
+  void realtime.disconnect();
+  cancelMenuClose();
+  if (toastTimer) window.clearTimeout(toastTimer);
+});
 </script>
