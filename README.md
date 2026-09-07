@@ -21,6 +21,8 @@
 
 GitHub 仓库已对 `main` 分支启用保护规则：
 
+- 仓库地址：<https://github.com/MXH814/steam-platform-db-course-design>，可见性为 Public。
+
 - 普通组员禁止直接 push 到 `main`。
 - 禁止 force push。
 - 禁止删除 `main`。
@@ -189,8 +191,8 @@ _local_tools_archive/
   -> HTTPS（启用后 HTTP 仅用于 ACME 验证和 308 跳转）
   -> 腾讯云 Nginx
   -> ASP.NET Core Web API 应用服务器
-  -> EF Core / Dapper / ODP.NET
-  -> Oracle Database
+  -> Dapper / ODP.NET
+  -> Oracle AI Database 26ai Free
 ```
 
 选择 B/S 的原因：
@@ -213,14 +215,14 @@ _local_tools_archive/
 | 层级 | 选型 | 说明 |
 |---|---|---|
 | 云平台 | 腾讯云轻量应用服务器 | 运行 Oracle、ASP.NET Core API、Nginx、前端静态文件 |
-| 操作系统 | Ubuntu Server 22.04 LTS 64-bit | 当前腾讯云轻量应用服务器系统镜像 |
-| 数据库 | Oracle Database Free / Oracle 26ai Free，满足 Oracle 18c+ 要求 | 课程要求 Oracle 18c 或更高版本 |
+| 操作系统 | Ubuntu Server 22.04.5 LTS 64-bit | 当前腾讯云轻量应用服务器系统 |
+| 数据库 | Oracle AI Database 26ai Free（云端 `VERSION_FULL=23.26.2.0.0`） | Docker 镜像为 `gvenzl/oracle-free:23-slim-faststart`，满足课程 Oracle 18c+ 要求 |
 | 后端语言 | C# | 课程提纲硬要求 |
 | 应用服务器 | ASP.NET Core Web API on .NET 10 LTS | C# Web API，运行于 Kestrel，前置 Nginx 反向代理 |
 | IDE | Visual Studio Community 2022 或更新版本 | 满足课程对 VS.NET 较新版本的要求，团队统一使用 |
-| ORM | Oracle.EntityFrameworkCore | Oracle 官方 EF Core Provider |
-| Oracle 数据访问 | Oracle.ManagedDataAccess.Core | Oracle 官方 ODP.NET Core 驱动 |
-| 复杂 SQL | Dapper + ODP.NET | 钱包流水、市场撮合、报表查询等复杂 SQL 可控 |
+| 当前数据访问 | Dapper + Oracle.ManagedDataAccess.Core | 所有正式 Repository、事务和查询均通过 Dapper/ODP.NET 访问 Oracle |
+| ORM 兼容依赖 | Oracle.EntityFrameworkCore | 保留 Oracle 官方 EF Core Provider 依赖；当前实现没有 `DbContext`，不使用 EF Migration |
+| 事务与复杂 SQL | Dapper + ODP.NET 原生事务 | 钱包、退款、市场撮合、报表查询等 SQL 与事务边界可控 |
 | API 权限 | ASP.NET Core Authentication + JWT | 玩家、开发商、管理员分角色鉴权 |
 | 实时通信 | ASP.NET Core SignalR + `@microsoft/signalr 10.x` | 好友消息、社交通知和状态变化按玩家私有分组推送 |
 | 前端 | Vue 3 + Vite + TypeScript | Steam 风格 Web 界面 |
@@ -236,9 +238,9 @@ _local_tools_archive/
 NuGet 包版本基线：
 
 ```text
-Oracle.EntityFrameworkCore     10.23.26200
-Oracle.ManagedDataAccess.Core  23.26.200
-Dapper                         2.1.79 或兼容 2.x
+Oracle.EntityFrameworkCore     10.23.26300
+Oracle.ManagedDataAccess.Core  23.26.300
+Dapper                         2.1.79
 dotnet-ef                      10.0.9
 ```
 
@@ -246,8 +248,8 @@ dotnet-ef                      10.0.9
 
 - 不使用 EF Core Migration 作为数据库结构主来源。
 - 数据库结构以 `database/schema.sql` 为准。
-- EF Core 采用 Database-first / 手动映射思路。
-- 复杂事务和复杂 SQL 不强行塞进 EF Core，优先使用 Dapper 或 ODP.NET 原生 SQL。
+- 当前代码没有定义 `DbContext` 或 EF 实体映射；`Oracle.EntityFrameworkCore` 只作为课程要求兼容性和后续扩展的官方 Provider 依赖保留。
+- 当前所有数据库读写、显式事务和复杂 SQL 均使用 Dapper 与 ODP.NET，不得在 README 或答辩中声称现有业务由 EF Core 映射实现。
 
 ## 5. 团队开发环境基线
 
@@ -261,8 +263,8 @@ dotnet-ef                      10.0.9
 | .NET SDK | 使用 .NET 10 SDK，确保能创建和构建 ASP.NET Core Web API 项目 |
 | ASP.NET Core Runtime | 与项目目标框架保持一致 |
 | Entity Framework CLI | 使用 `dotnet-ef 10.x` |
-| Node.js | 使用当前 LTS 或团队统一指定版本 |
-| npm | 随 Node.js 安装，使用团队统一镜像源策略 |
+| Node.js | Node.js 22 或 24 LTS；GitHub Actions 使用 22，2026-09-08 开发验收使用 24.16.0 |
+| npm | 随对应 Node.js LTS 安装；2026-09-08 开发验收使用 11.13.0 |
 | Git | 用于代码版本管理 |
 | Oracle 客户端工具 | 使用 SQL*Plus、SQL Developer 或 DataGrip，至少保证能连接 Oracle 并执行脚本 |
 | API 调试工具 | Apifox 或 Postman |
@@ -281,9 +283,9 @@ sqlplus -V
 团队工具链基线：
 
 - .NET 10 Web API 模板必须能创建并编译。
-- `Oracle.EntityFrameworkCore 10.23.26200` 作为 Oracle EF Core Provider 版本基线。
+- `Oracle.EntityFrameworkCore 10.23.26300` 作为保留的 Oracle EF Core Provider 版本基线。
 - `Dapper 2.1.79` 作为复杂 SQL 辅助访问版本基线。
-- `Oracle.ManagedDataAccess.Core 23.26.200` 作为 ODP.NET Core 驱动版本基线。
+- `Oracle.ManagedDataAccess.Core 23.26.300` 作为 ODP.NET Core 驱动版本基线。
 
 不作为项目主线的环境：
 
@@ -297,6 +299,8 @@ sqlplus -V
 云平台：腾讯云轻量应用服务器。
 
 当前项目最终云平台是腾讯云。部署、联调和文档说明都以腾讯云轻量应用服务器为准。
+
+当前公网访问地址：<https://124.222.213.245/>。HTTP 地址只用于同路径 308 跳转和 ACME 验证，正式访问统一使用 HTTPS。
 
 已确定云服务器配置：
 
@@ -317,11 +321,13 @@ sqlplus -V
 ```text
 腾讯云轻量应用服务器
   /opt/steam-platform/
-    api/        ASP.NET Core 发布产物
-    frontend/   Vue 打包后的 dist 静态文件
-    scripts/    部署脚本
+    app/        ASP.NET Core 发布产物
+    www/        Vue 打包后的 dist 静态文件
+    secrets/    systemd 私有环境文件，不进入 Git
+    tools/      演示恢复与 HTTPS 运维工具
 
-  Oracle Database
+  /opt/dotnet10/  .NET 10.0.9 ASP.NET Core Runtime，不安装 SDK
+  Oracle AI Database 26ai Free（Docker：steam-oracle）
   Nginx
   systemd service: steam-platform-api
 ```
@@ -337,8 +343,8 @@ sqlplus -V
 不对公网开放：
 
 ```text
-1521  Oracle，只允许服务器内部访问
-5000  ASP.NET Core Kestrel，只允许 Nginx 在服务器内部反向代理
+1521  Oracle，仅监听 127.0.0.1
+5253  ASP.NET Core Kestrel，仅监听 127.0.0.1，由 Nginx 反向代理
 ```
 
 Nginx 路由配置：
@@ -351,23 +357,23 @@ Nginx 路由配置：
 
 ## 7. ASP.NET Core 五层结构
 
-本项目后端采用 MVC 思想下的五层结构。
+本项目采用 MVC 职责分离思想下的五层结构。当前 HTTP 接口层使用 ASP.NET Core Minimal API 的 `Feature/*EndpointExtensions.cs` 承担 Controller 职责，不使用 Razor View 或传统 Controller 类；View 由独立 Vue 前端实现。
 
 ```text
 View 层
   Vue 前端页面
 
-Controller 层
-  ASP.NET Core Controllers
+Controller / HTTP 接口层
+  ASP.NET Core Minimal API Feature EndpointExtensions
 
 Application / BLL 业务逻辑层
-  业务服务、事务编排、权限判断、业务规则
+  用例契约、输入规则、权限口径与可复用业务服务
 
 Infrastructure / DAL 数据访问层
-  EF Core、Dapper、ODP.NET、Repository、SQL 查询
+  Dapper、ODP.NET、Repository、核心显式事务与 SQL 查询
 
 Domain / Model 模型层
-  Entity、DTO、Request、Response、Enum、领域模型
+  领域实体与领域模型；DTO、Request、Response 契约位于 Application 层
 ```
 
 后端目录结构：
@@ -377,49 +383,71 @@ backend/
   SteamPlatform.sln
   src/
     SteamPlatform.Api/
-      Controllers/
-      Middleware/
-      Filters/
+      Features/
+      Infrastructure/
+      Realtime/
       Program.cs
 
     SteamPlatform.Application/
-      Services/
-      Contracts/
-      Transactions/
+      Auth/
+      Common/
+      Community/
+      CoreTransactions/
+      Diagnostics/
+      Engagement/
+      Games/
+      Inventory/
+      Market/
+      Notices/
+      Social/
 
     SteamPlatform.Domain/
-      Entities/
-      Enums/
-      ValueObjects/
+      Community/
+      Engagement/
+      Notices/
+      Social/
 
     SteamPlatform.Infrastructure/
       Data/
-      Repositories/
-      Sql/
-      Oracle/
+      Auth/
+      Community/
+      CoreTransactions/
+      Engagement/
+      Games/
+      Inventory/
+      Market/
+      Notices/
+      Social/
 
     SteamPlatform.Shared/
-      Responses/
-      Exceptions/
-      Constants/
-      Utilities/
+      ApiResponse.cs
+      BusinessRuleException.cs
+      ForbiddenException.cs
+      IdGenerator.cs
+      ResourceNotFoundException.cs
 
   tests/
-    SteamPlatform.Tests/
+    SteamPlatform.Api.Tests/
+    SteamPlatform.DemoData.Tests/
+    SteamPlatform.HttpsDeploy.Tests/
+
+tests/
+  SteamPlatform.Api.CloudTests/
+  SteamPlatform.Database.Tests/
 ```
 
 各层职责：
 
-- `SteamPlatform.Api`：接收 HTTP 请求，做参数校验、鉴权入口、调用 Application 层，返回 JSON。
-- `SteamPlatform.Application`：实现业务用例，例如购买游戏、退款审核、CDKey 兑换、市场撮合。
+- `SteamPlatform.Api`：以按功能组织的 Minimal API 端点接收 HTTP 请求，完成参数入口、鉴权、SignalR 和 JSON 响应编排。
+- `SteamPlatform.Application`：定义业务契约、输入规则和可复用业务服务；Api 依赖该层抽象，不直接访问 Oracle。
 - `SteamPlatform.Domain`：定义实体、枚举和领域概念，不依赖数据库访问实现。
-- `SteamPlatform.Infrastructure`：访问 Oracle，封装 EF Core、Dapper、ODP.NET 和 SQL。
+- `SteamPlatform.Infrastructure`：实现 Application 契约，使用 Dapper、ODP.NET、Repository、显式事务和 SQL 访问 Oracle；购买、退款、CDKey 与市场等核心事务实现在此层。
 - `SteamPlatform.Shared`：统一响应、错误码、业务异常、通用工具。
 
 禁止：
 
-- Controller 直接写复杂业务。
-- Controller 直接拼 SQL。
+- Api 端点直接写复杂业务。
+- Api 端点直接拼 SQL。
 - 前端直接访问 Oracle。
 - Oracle 端口公网开放。
 - EF Core Migration 反向改写课程设计数据库结构。
@@ -433,10 +461,16 @@ database/
   schema.sql
   data.sql
   verify_phase1.sql
+  verify_defense.sql
+  migrations/
+  demo/
+  defense/
   admin/
 ```
 
-当前数据库设计文档共 27 张核心表：
+当前正式 Schema 共 45 张表：27 张核心业务表、6 张社交实时扩展表、9 张社区参与扩展表和 3 张演示恢复审计表。`DRB_<运行号>_<序号>` 是恢复工具按运行动态创建的逻辑快照，不属于正式 Schema，表数验收会显式排除这些快照表。
+
+原始 27 张核心业务表：
 
 1. `PLAYER`
 2. `WALLET_ACCOUNT`
@@ -466,6 +500,33 @@ database/
 26. `MARKET_TRADE`
 27. `ITEM_TRANSFER_LEDGER`
 
+6 张社交实时扩展表：
+
+1. `FRIEND_RELATION`
+2. `DIRECT_MESSAGE`
+3. `REVIEW_REACTION`
+4. `WORKSHOP_ITEM`
+5. `WORKSHOP_SUBSCRIPTION`
+6. `USER_NOTIFICATION`
+
+9 张社区参与扩展表：
+
+1. `PLAYER_PROFILE`
+2. `BADGE_CATALOG`
+3. `PLAYER_BADGE`
+4. `TRADE_OFFER`
+5. `TRADE_OFFER_ITEM`
+6. `COMMUNITY_POST`
+7. `COMMUNITY_POST_REACTION`
+8. `DISCUSSION_TOPIC`
+9. `DISCUSSION_REPLY`
+
+3 张演示恢复审计表：
+
+1. `DEMO_RESET_RUN`
+2. `DEMO_RESET_TABLE`
+3. `DEMO_RESET_EVENT`
+
 落地原则：
 
 - 使用 Oracle 类型：`VARCHAR2`、`NUMBER`、`DATE`、`TIMESTAMP`、`CLOB`。
@@ -489,7 +550,7 @@ database/
 
 ## 9. 核心业务事务
 
-以下业务必须在 C# Application 层使用事务，保证 Oracle 数据一致性。
+以下业务由 Application 层定义契约和业务口径，由 Infrastructure 层使用 ODP.NET 显式事务实现，保证 Oracle 数据一致性。
 
 ### 9.1 购买游戏
 
@@ -586,7 +647,7 @@ PLAYER_LIBRARY
 ```text
 /                 首页
 /store            商店列表
-/games/:id        游戏详情
+/games/:gameId    游戏详情
 /library          我的游戏库
 /inventory        我的饰品库存
 /market           饰品市场
@@ -595,8 +656,8 @@ PLAYER_LIBRARY
 /wallet/history   消费历史记录
 /login            登录
 /register         注册
-/developer        开发商工作台
-/admin            管理员后台
+/developer/games、/developer/cdkeys  开发商工作台
+/admin/games、/admin/notices、/admin/refunds  管理员后台
 ```
 
 要求：
@@ -640,7 +701,7 @@ GET    /api/orders/{orderId}
 POST   /api/wallet/recharge
 GET    /api/wallet/transactions?page=1&pageSize=20
 POST   /api/cdkeys/redeem
-POST   /api/reviews
+POST   /api/games/{gameId}/reviews
 PUT    /api/reviews/{reviewId}
 POST   /api/achievements/{achId}/unlock
 GET    /api/inventory
@@ -714,7 +775,9 @@ DEVELOPER   valve@example.com / valve
 DEVELOPER   klei@example.com / klei
 ```
 
-## 13. 开发顺序计划
+## 13. 开发顺序与实施状态
+
+本节保留既定开发顺序，并按当前成品标明完成状态。历史阶段的表数和测试数只代表当时里程碑，当前基线以第 24.10 节为准。
 
 ### 第 0 阶段：项目基线
 
@@ -741,6 +804,8 @@ DEVELOPER   klei@example.com / klei
 
 ### 第 2 阶段：C# 后端基础
 
+状态：已完成。正式数据访问实现为 Dapper + ODP.NET；Oracle EF Core Provider 仅保留依赖，不存在 `DbContext` 或 EF Migration。
+
 - 创建 `SteamPlatform.sln`。
 - 创建五层项目：
   - `SteamPlatform.Api`
@@ -759,6 +824,8 @@ DEVELOPER   klei@example.com / klei
 
 ### 第 3 阶段：认证与用户
 
+状态：已完成，并包含 JWT issuer、audience、签名、生命周期、角色守卫和认证限流。
+
 - 玩家注册。
 - 玩家登录。
 - JWT 签发与校验。
@@ -767,6 +834,8 @@ DEVELOPER   klei@example.com / klei
 - 基础角色权限。
 
 ### 第 4 阶段：商店与游戏基础
+
+状态：已完成，并扩展了商店集合页、媒体画廊、启动公告与开发商隔离。
 
 - 游戏列表。
 - 游戏详情。
@@ -779,6 +848,8 @@ DEVELOPER   klei@example.com / klei
 
 ### 第 5 阶段：钱包与订单主链路
 
+状态：已完成，并由 Oracle 显式事务、行锁、幂等键和资金流水约束保护。
+
 - 钱包账户初始化。
 - 充值模拟。
 - `DST` 买断制游戏购买事务。
@@ -789,6 +860,8 @@ DEVELOPER   klei@example.com / klei
 
 ### 第 6 阶段：社区与成就
 
+状态：已完成，并扩展了好友、私信、SignalR、资料、徽章、动态、讨论和工坊。
+
 - 发表评价。
 - 修改评价生成版本。
 - 查询评价历史。
@@ -798,6 +871,8 @@ DEVELOPER   klei@example.com / klei
 
 ### 第 7 阶段：CDKey 与资产确权
 
+状态：已完成，覆盖购买、免费领取与 CDKey 三种游戏授权来源。
+
 - 开发商创建 CDKey 批次。
 - 生成 CDKey 哈希。
 - 玩家兑换 CDKey。
@@ -805,6 +880,8 @@ DEVELOPER   klei@example.com / klei
 - 入库游戏资产。
 
 ### 第 8 阶段：饰品库存与市场
+
+状态：已完成，覆盖掉落、库存、挂单、价格优先撮合、交易报价和资产流转账本。
 
 - `CS2` 饰品模板。
 - `CS2` 饰品实例。
@@ -818,6 +895,8 @@ DEVELOPER   klei@example.com / klei
 
 ### 第 9 阶段：退款与审计
 
+状态：已完成，退款终态、钱包回补、授权撤销与审核日志可通过页面和 Oracle 交叉验证。
+
 - 玩家申请退款。
 - 管理员审核。
 - 写退款明细。
@@ -826,6 +905,8 @@ DEVELOPER   klei@example.com / klei
 - 必要时调整游戏库资产状态。
 
 ### 第 10 阶段：Vue 前端与 Steam 风格
+
+状态：已完成，正式页面接入云端 API/Oracle，并通过桌面与移动端 Playwright 回归。
 
 - 创建 Vue 3 + Vite + TypeScript 项目。
 - 配置 Pinia、Vue Router、Axios、自定义 Vue 组件和 Steam 深色主题 CSS。
@@ -840,9 +921,11 @@ DEVELOPER   klei@example.com / klei
 
 ### 第 11 阶段：腾讯云部署
 
+状态：已完成。云端使用项目专用 .NET 10.0.9 Runtime 运行 API，服务器不安装 .NET SDK。
+
 - 购买腾讯云轻量应用服务器。
 - 安装 Oracle。
-- 安装 .NET 10 Runtime。
+- 在 `/opt/dotnet10/` 安装项目专用 .NET 10.0.9 ASP.NET Core Runtime。
 - 安装 Nginx。
 - 部署 Oracle schema 和 seed data。
 - 发布 ASP.NET Core API。
@@ -854,13 +937,15 @@ DEVELOPER   klei@example.com / klei
 
 ### 第 12 阶段：测试、文档和答辩
 
+状态：代码测试、云端部署、需求分析文档、设计与实现文档和答辩演示手册已完成；答辩 PPT 与全员现场彩排尚未完成。
+
 - 核心业务流程测试。
 - 并发/重复提交测试。
 - 数据库约束测试。
 - 云端部署测试。
 - 系统需求分析文档。
 - 系统设计与实现文档。
-- 答辩 PPT。
+- 答辩 PPT（待完成）。
 - 演示脚本。
 
 ## 14. 最小可演示闭环
@@ -1072,7 +1157,7 @@ POST   /api/admin/games/{gameId}/offline
 ```text
 /
 /store
-/games/:id
+/games/:gameId
 /developer/games
 /admin/games
 ```
@@ -1100,8 +1185,8 @@ Group B 与其他组的边界：
 
 页面职责补充：
 
-- `/games/:id` 是商店侧游戏详情页，由 Group B 负责，面向搜索、浏览和购买前决策；页面需要展示游戏介绍、价格或免费入库状态、折扣、口碑、评价概览、成就概览，以及 CS2 市场入口、DST DLC/礼包和公告入口。
-- `/games/:id` 可以读取 `/api/library` 判断当前玩家是否已入库；已入库时只展示“已在库中”和跳转 `/library/:gameId` 的入口，不在商店详情页展示玩家个人库存、个人成就进度和游玩时长。
+- `/games/:gameId` 是商店侧游戏详情页，由 Group B 负责，面向搜索、浏览和购买前决策；页面需要展示游戏介绍、价格或免费入库状态、折扣、口碑、评价概览、成就概览，以及 CS2 市场入口、DST DLC/礼包和公告入口。
+- `/games/:gameId` 可以读取 `/api/library` 判断当前玩家是否已入库；已入库时只展示“已在库中”和跳转 `/library/:gameId` 的入口，不在商店详情页展示玩家个人库存、个人成就进度和游玩时长。
 - `/library/:gameId` 是游戏库侧详情页，由 Group C 游戏库链路和对应前端页面承接，面向已拥有游戏；页面展示玩家自己的游玩时长、最近游玩、个人成就进度，并根据游戏提供库存、市场、社区、DLC/礼包等入口。
 - 商店详情页和游戏库详情页可以复用视觉组件，但业务职责必须区分，避免同一个详情页同时承担购买前商品展示和已入库后的个人数据展示。
 
@@ -1193,21 +1278,21 @@ POST   /api/cdkeys/redeem
 /wallet/history
 /wallet/history/:historyId
 /orders -> /wallet/history
-/orders/:id
+/orders/:orderId
 /library
 /refunds
-/refunds/new
+/wallet/history/:historyId/refund
 /admin/refunds
-/developer/cdkey-batches
+/developer/cdkeys
 /redeem
-/games/:id 的购买区域
+/games/:gameId 的购买区域
 ```
 
 组内分工细则：
 
-- 马祥珲：核心交易总设计、购买事务、统一接口/代码规范、最终集成。
-- 胡知鱼：钱包、充值、资金流水、金额校验、余额展示页面。
-- 徐京：退款、CDKey、游戏库、资产确权、相关前端页面。
+- 马祥珲：核心交易总设计、退款申请与审批事务、退款审计、跨模块回归、统一接口/代码规范和最终集成。
+- 胡知鱼：钱包、充值、购买、订单、资金流水、金额校验和相关前端页面。
+- 徐京：CDKey、免费入库、游戏库、三种授权来源、资产确权和相关前端页面。
 
 Group C 必须优先保证的演示链路：
 
@@ -1266,10 +1351,14 @@ docs/group-c-core-transaction-contract.md
 
 - 游戏评价。
 - 评价历史版本。
-- 评价点赞或隐藏。
-- `DST` 评价、评价版本、社区讨论。
+- 评价互动、管理员隐藏与恢复。
+- `DST` 评价、评价版本、社区讨论与创意工坊订阅。
 - `DST` 课程项目自定义成就字典。
 - 玩家解锁 `DST` 自定义成就。
+- 玩家搜索、好友请求与好友关系。
+- 私聊消息、玩家通知与 SignalR 实时推送。
+- 个人资料、资料装扮、徽章与精选徽章。
+- 社区动态、动态互动、讨论主题与回复。
 - `CS2` 饰品模板。
 - `CS2` 饰品实例。
 - 玩家饰品库存。
@@ -1283,6 +1372,7 @@ docs/group-c-core-transaction-contract.md
 - 市场成交记录。
 - 饰品流转账本。
 - 市场价格展示。
+- 好友间交易报价、物品锁定、接受、拒绝与撤销。
 
 涉及表：
 
@@ -1300,6 +1390,21 @@ WALLET_ACCOUNT
 WALLET_TRANSACTION
 GAME
 PLAYER
+FRIEND_RELATION
+DIRECT_MESSAGE
+REVIEW_REACTION
+WORKSHOP_ITEM
+WORKSHOP_SUBSCRIPTION
+USER_NOTIFICATION
+PLAYER_PROFILE
+BADGE_CATALOG
+PLAYER_BADGE
+TRADE_OFFER
+TRADE_OFFER_ITEM
+COMMUNITY_POST
+COMMUNITY_POST_REACTION
+DISCUSSION_TOPIC
+DISCUSSION_REPLY
 ```
 
 主要后端接口：
@@ -1324,24 +1429,47 @@ POST   /api/market/match
 GET    /api/market/trades
 GET    /api/market/templates/{templateId}/price-history
 GET    /api/market/items/{itemId}/transfers
+GET    /api/friends
+POST   /api/friends/{targetUserId}
+POST   /api/friends/requests/{relationId}/accept
+GET    /api/friends/{friendUserId}/messages
+POST   /api/friends/{friendUserId}/messages
+GET    /api/notifications
+GET    /api/games/{gameId}/workshop
+PUT    /api/workshop/{workshopItemId}/subscription
+GET    /api/profile
+PUT    /api/profile
+GET    /api/trade-offers
+POST   /api/trade-offers
+POST   /api/trade-offers/{offerId}/actions
+GET    /api/community/posts
+POST   /api/community/posts
+GET    /api/games/{gameId}/discussions
+POST   /api/community/discussions
+POST   /api/community/discussions/{topicId}/replies
 ```
 
 主要前端页面：
 
 ```text
-/games/:id 的评价区
-/games/:id 的成就区
+/games/:gameId 的评价区
+/games/:gameId 的成就区
 /inventory
 /market
 /market/orders
 /market/trades
+/profile
+/profiles/:userId
+/trade-offers
+/community
+/community/discussions/:topicId
 ```
 
 组内分工细则：
 
-- 靳岱泽：评价、评价版本、成就解锁、相关前端。
-- 郭炫君：饰品模板、饰品实例、玩家库存、掉落模拟、相关前端。
-- 张茗博：市场挂单、撮合成交、流转账本、市场页面。
+- 靳岱泽：玩家搜索、好友、私信、通知、个人资料、徽章、社区动态、讨论区、SignalR 与相关前端。
+- 郭炫君：评价与版本、成就、工坊订阅、饰品模板与实例、玩家库存、掉落模拟及相关前端。
+- 张茗博：市场挂单、撮合成交、交易报价、流转账本、演示数据恢复、全局数据库验证及相关页面。
 
 Group D 必须优先保证的演示链路：
 
@@ -1350,6 +1478,8 @@ Group D 必须优先保证的演示链路：
   -> 修改评价
   -> 查看历史版本
   -> 解锁 DST 自定义成就
+  -> 添加好友并实时聊天
+  -> 发布动态、讨论回复并订阅工坊
   -> 获得 CS2 饰品
   -> 上架 CS2 饰品卖单
   -> 另一玩家创建 CS2 饰品买单
@@ -1364,7 +1494,7 @@ Group D 与其他组的边界：
 - `DST` 饰品只作为补充库存样例，可以展示但不要求进入市场主链路。
 - `DST` 成就为课程项目自定义成就，不能写成“官方 Steam 成就完全同步”。
 - 市场成交时涉及钱包冻结、解冻、转账流水，必须复用 Group C 的钱包账户和流水规则，不能另建余额字段。
-- 如果市场交易需要接口调用钱包能力，优先由 Application 层服务协作，不允许前端直接组合多个危险步骤来模拟事务。
+- 市场交易调用钱包能力时必须通过 C# 业务契约和 Infrastructure 显式事务协作，不允许前端组合多个危险步骤来模拟事务。
 
 ## 16. 各组交付规范
 
@@ -1376,9 +1506,9 @@ Group D 与其他组的边界：
 
 ```text
 1. 涉及表说明
-2. 后端 Controller
+2. 后端 API 端点（Feature EndpointExtensions）
 3. Application Service
-4. Repository / Dapper SQL / EF Core 查询
+4. Repository / Dapper / ODP.NET SQL 与事务
 5. Request / Response DTO
 6. 前端页面或组件
 7. API 调用封装
@@ -1393,13 +1523,13 @@ Group D 与其他组的边界：
 
 后端功能交付时必须满足：
 
-- Controller 只负责接收请求、基础参数校验和返回响应。
-- 业务逻辑必须写在 Application 层。
+- Api 端点只负责接收请求、基础参数校验、鉴权入口和返回响应。
+- 业务契约与可复用业务服务写在 Application 层，Oracle Repository 和事务实现写在 Infrastructure 层。
 - 数据库访问必须写在 Infrastructure 层。
 - 事务边界必须清楚，核心业务用事务包裹。
 - 金额必须使用 `decimal`。
 - 异步数据库操作方法使用 `Async` 后缀。
-- 不允许在 Controller 中拼 SQL。
+- 不允许在 Api 端点中拼 SQL。
 - 不允许在前端传来的 `userId` 上直接信任当前用户身份，必须从 JWT 中取当前用户。
 - 所有新增接口必须能在 Swagger 中看到。
 - 所有业务错误必须抛业务异常或返回统一错误码，不允许随便返回字符串。
@@ -1714,7 +1844,7 @@ appsettings.Local.json       不提交 Git
 
 测试方式：
 
-- C# 单元测试：Application 层核心事务。
+- C# 单元测试：Api、Application、Infrastructure、数据库脚本与运维工具。
 - 接口测试：Apifox / Postman。
 - SQL 验证：SQL*Plus 查询 Oracle。
 - 前端测试：浏览器手动流程。
@@ -1786,12 +1916,13 @@ Phase 1 database verification passed
 | 2026-07-08 | `DEVELOPER` 增加 `password_hash`，开发商使用 `contact_email + password` 登录 | 支撑开发商工作台、CDKey 批次、开发商游戏管理等权限闭环 |
 | 2026-07-08 | 补齐内容包、物品摘要、市场价格历史、评价隐藏/恢复后端接口 | 保证 Steam 风格详情页、市场页、社区管理页可直接联调 |
 | 2026-07-06 | 后端采用 ASP.NET Core Web API + 五层结构 | 符合 C# 要求，层次清晰，便于答辩说明 |
-| 2026-07-06 | 数据访问采用 Oracle EF Core + Dapper / ODP.NET | 兼顾 ORM 规范性与复杂 SQL 可控性 |
+| 2026-07-06 | 数据访问采用 Oracle 官方 Provider + Dapper / ODP.NET | 保留 Oracle EF Core Provider 兼容依赖，正式 Repository、SQL 和事务统一使用 Dapper / ODP.NET |
 | 2026-07-06 | 确定 .NET 10 SDK 与 dotnet-ef 10.x 作为开发工具链基线 | 支持 ASP.NET Core / EF Core 10 开发 |
 | 2026-07-06 | 确定四组纵向功能分工，马祥珲担任唯一总负责人 | 每组同时交付前端、后端、测试和文档，降低前后端等待和集成风险 |
 | 2026-07-07 | 建立项目归档目录 `_archive/legacy-files-2026-07-07/` | 我们自己做过的旧文件需要提交到 GitHub，第三方工具和安装包不提交 |
 | 2026-07-07 | 调整 `main` 分支保护为管理员可绕过 | 普通组员仍需 PR 和 review，总负责人可处理 README、配置和紧急修复 |
 | 2026-07-07 | 最终样板游戏确定为 `Counter-Strike 2` 与 `Don't Starve Together / 饥荒联机版` | `CS2` 承担饰品库存和市场交易主线，`DST` 承担买断制购买、DLC/礼包、社区、评价和自定义成就主线 |
+| 2026-09-08 | 以实际代码和云端环境校准 README | 明确 Dapper / ODP.NET 当前实现、45 张正式表、API 回环端口 5253、项目专用 .NET 10 Runtime 与最新验收结果 |
 
 ## 23. 变更维护规则
 
@@ -1829,7 +1960,7 @@ README 写了什么，后续开发就尽量照着做。
 | 3 | 持久化增强交互与实时通知 | 已完成并通过腾讯云 Oracle、API 与 SignalR 验收 | 好友聊天、评测互动、工坊订阅写入 Oracle；C# 五层接口完整；SignalR 推送消息和状态变化；刷新或换浏览器后状态不丢失 |
 | 4 | 商店媒体体验 | 已完成并通过本地及腾讯云公网验收 | CS2、DST 详情页具备视频预告片、截图画廊、缩略图切换、全屏查看、键盘操作和加载失败兜底 |
 | 5 | 社交与社区扩展 | 已完成并通过腾讯云 Oracle、API、桌面与移动端验收 | 好友关系与请求、交易报价、个人资料装扮、徽章、社区动态、讨论主题与回复形成可演示闭环 |
-| 6 | 固定答辩演示脚本 | 已完成，20 分钟多角色版本待集体彩排 | 使用两名现场注册玩家、Klei/Valve 两家开发商和管理员，覆盖游戏提交审核、DST 购买与 CDKey、好友聊天、评测成就、工坊、CS2 饰品交易、退款和 Oracle 证据；包含 A-G 七人分工、精确时间、金额、讲解词与故障预案 |
+| 6 | 固定答辩演示脚本 | 已完成，20 分钟多角色版本待集体彩排 | 使用两名现场注册玩家、Klei/Valve 两家开发商和管理员，覆盖游戏提交审核、DST 购买与 CDKey、好友聊天、评测成就、工坊、CS2 饰品交易、退款和 Oracle 证据；包含七人实名现场分工、十人知识责任、精确时间、金额、讲解词与故障预案 |
 | 7 | Playwright 回归与备用录屏 | 已完成并通过腾讯云前后恢复保护验收 | 桌面与移动视口自动化覆盖登录、交易主链和社交社区链；测试报告可复现；提供 1080p 答辩备用录屏 |
 | 8 | Oracle 数据库答辩证据 | 已完成并通过腾讯云 Oracle 只读验收 | 45 表与约束完整性、跨表一致性、复杂查询执行计划和双会话行锁均可重复演示 |
 
@@ -1865,9 +1996,9 @@ README 写了什么，后续开发就尽量照着做。
 4. 再次运行 `reset`，最终答辩基线运行编号为 `20260825122734C1C3`，状态为 `RESET_COMPLETED`。
 5. 最终关键行数：`PLAYER=2`、`GAME=2`、`ACHIEVEMENT=11`、`ITEM_TEMPLATE=39`、`MARKET_ORDER=4`、`WALLET_TRANSACTION=3`。
 6. 公网 `/api/health`、`/health/database`、`/api/games` 均正常，CS2 与 DST 目录返回正确。
-7. 社交与社区扩展全部接入后，恢复清单扩展到 42 张业务表、145 条基线插入。
+7. 社交与社区扩展全部接入后，恢复清单扩展到 42 张业务表；当前 `database/data.sql` 共 147 条基线插入。
 8. 真实浏览器写入资料、动态和讨论回复后再次执行完整恢复，最终答辩基线运行编号为 `202608251626294EFF`，状态为 `RESET_COMPLETED`。
-9. 当前本地验收通过：恢复工具 4 项测试、后端 188 项测试、数据库 39 项测试、Vue 生产构建。
+9. 当轮本地验收通过：恢复工具 4 项测试、后端 188 项测试、数据库 39 项测试、Vue 生产构建。
 
 云端恢复工具版本记录在 `/opt/steam-platform/DEMO_DATA_TOOL_COMMIT`，当前值为 `c425c59`。连接字符串仍只存在于服务器私有环境变量，不进入仓库、命令参数或日志。
 
@@ -1945,7 +2076,7 @@ Vue 页面与交互：
 
 2026-08-26 云端验收：
 
-1. 9 表迁移在腾讯云 Oracle 执行成功；当前为 42 张业务表和 3 张演示恢复审计表。
+1. 9 表迁移在腾讯云 Oracle 执行成功；当时正式 Schema 扩展为 42 张业务表和 3 张演示恢复审计表。
 2. 公网以 Alice 登录后读取到 3 枚徽章、1 位好友、4 条可见动态、CS2/DST 各 1 个主题和 1 份待处理报价；Bob 视角可接受该报价，Alice 视角可撤销。
 3. Playwright 实际完成资料保存、好友报价双方选物、动态发布和讨论回复；发送报价前保持未提交，避免改变基线库存。
 4. 动态与回复立即显示正确相对时间；浏览器控制台 0 错误、0 警告。
@@ -1957,7 +2088,7 @@ Vue 页面与交互：
 
 实现文件：
 
-- `docs/defense-demo-runbook.md`：20 分钟五角色主演示，使用两名现场注册玩家、两家开发商和管理员，包含 A-G 七人分工、切屏顺序、逐步讲解词、固定金额、预期数据库结果和故障备用步骤。
+- `docs/defense-demo-runbook.md`：20 分钟七人现场演示，使用两名现场注册玩家、两家开发商、管理员、总主讲和数据库/运维岗位，包含十人实名知识责任、切屏顺序、逐步讲解词、固定金额、预期数据库结果和故障备用步骤。
 - `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs`：游戏库只返回 `NORMAL` 授权；退款保留 `REVOKED` 审计记录但不再错误展示。
 - `backend/src/SteamPlatform.Infrastructure/Market/MarketRepository.cs`：撮合支持绑定本次买单、校验买单归属并排除自成交。
 - `frontend/src/views/MarketView.vue`：市场成交页提供“执行下一笔撮合”，可现场展示价格优先的 Oracle 事务撮合。
@@ -2039,7 +2170,7 @@ Vue 页面与交互：
 
 2026-08-27 生产验收：
 
-1. 工具按 `linux-x64` 自包含方式发布，运行项目锁定的 .NET 10；腾讯云服务器当前全局 .NET 9 不影响工具或现有自包含 API。
+1. HTTPS 工具按 `linux-x64` 自包含方式发布；正式 API 使用 `/opt/dotnet10/` 下的 .NET 10.0.9 ASP.NET Core Runtime 运行框架依赖发布产物。服务器不安装 .NET SDK，也不依赖系统 PATH 中的全局 `dotnet`。
 2. 服务器临时目录实测 Certbot `5.7.0`，确认支持 `--ip-address`、`--preferred-profile shortlived`、`--no-autorenew` 和 `--deploy-hook`。
 3. Ubuntu 镜像没有 `python3-venv`；实现已改为 `pip --target` 项目目录隔离安装，不修改系统 Python 包，也不新增系统运行时依赖。
 4. Let's Encrypt 已签发 SAN 为公网 IP `124.222.213.245` 的生产证书，由项目专用 timer 每小时检查并自动续期；开发机 `curl`、浏览器和 .NET 均在未关闭证书校验的情况下信任该证书。
@@ -2048,7 +2179,7 @@ Vue 页面与交互：
 7. 公网 HTTPS SignalR 冒烟成功收到 `DirectMessageReceived`；当前 `main` 前端部署后再次使用默认 HTTPS 地址运行完整云端 Playwright，12/12 通过，结束后的演示基线恢复运行编号为 `202608271139556A4F`。
 8. HTTPS 回归后再次运行 Oracle 只读总验收，21 组断言全部通过；固定基线保持 2 名玩家、2 款样板游戏、6 件库存资产和 1 笔市场成交。
 9. 本地完整后端解决方案 204 项测试通过：API 188 项、演示恢复 4 项、HTTPS 部署 12 项；构建 0 警告、0 错误。
-10. 自包含工具已上传到 `/opt/steam-platform/tools/https-deploy/`，文件哈希与本地发布产物一致；当前版本标记 `/opt/steam-platform/HTTPS_TOOL_COMMIT` 为 `5cd9d00`。
+10. 自包含工具已上传到 `/opt/steam-platform/tools/https-deploy/`，文件哈希与本地发布产物一致；当轮版本标记 `/opt/steam-platform/HTTPS_TOOL_COMMIT` 为 `5cd9d00`。
 
 ### 24.9 答辩前最终质量与安全收口
 
@@ -2064,3 +2195,18 @@ Vue 页面与交互：
 8. 腾讯云完整 Playwright 回归 `14/14` 通过；结束后的固定基线恢复运行编号为 `202608291704113E3B`。
 9. 回归后 Oracle 只读总验收 21 组断言全部通过：45 张表、45 个主键、至少 49 个业务索引，无失效对象、账实错误、资产错配或失败恢复记录。
 10. `steam-platform-api`、Nginx、项目专用证书续期 timer 均为 active，系统 failed unit 数量为 0；HTTP 跳转、HTTPS、API 与数据库健康检查全部通过。
+
+### 24.10 README 与当前成品一致性复核
+
+2026-09-08 对仓库、腾讯云运行环境和公网业务链重新核验：
+
+1. 后端各项目均以 `net10.0` 为目标框架；云端 API 使用 `/opt/dotnet10/` 中的 .NET 10.0.9 ASP.NET Core Runtime，Kestrel 仅监听 `127.0.0.1:5253`。
+2. 云端数据库产品为 Oracle AI Database 26ai Free，`VERSION_FULL=23.26.2.0.0`，Docker 镜像为 `gvenzl/oracle-free:23-slim-faststart`；Oracle 仅监听 `127.0.0.1:1521`。
+3. 正式 Schema 为 45 张表并具有 45 个主键和至少 49 个命名业务索引；恢复工具动态创建的 `DRB_*` 快照表不属于正式 Schema。恢复 manifest 覆盖 42 张业务表和 147 条基线插入；`database/verify_defense.sql` 的 21 组只读断言全部通过，无失效对象或账实异常。
+4. 当前正式 Repository 和事务实现均使用 Dapper 2.1.79 与 Oracle.ManagedDataAccess.Core 23.26.300；Oracle.EntityFrameworkCore 10.23.26300 只作为兼容依赖保留，代码中不存在 `DbContext` 或 EF Migration。
+5. `dotnet test backend/SteamPlatform.sln -c Release --no-restore` 共 `381/381` 通过：API 293、数据库 63、云端接口 9、演示恢复 4、HTTPS 部署 12。
+6. C# 全解决方案格式检查、Vue 类型检查与生产构建通过；使用 npm 官方源执行依赖审计为 0 漏洞。
+7. 腾讯云完整 Playwright 回归 `26/26` 通过，覆盖桌面 12、移动端 12、真实 Oracle 交易链 1、社交社区链 1；测试前后均执行受控基线恢复，最终恢复运行编号为 `20260907170243D36B`。
+8. 公网 HTTPS 首页、API 健康检查和数据库健康检查均返回 200；HTTP 同路径返回 308 并跳转 HTTPS。`steam-platform-api`、Nginx 和项目证书续期 timer 均为 active，系统 failed unit 数量为 0。
+9. 云端应用版本标记为 `DEPLOYED_COMMIT=63640db`；该提交之后至本次复核前的仓库提交仅修改项目文档，不改变已部署 API、前端或数据库行为。演示恢复工具标记为 `c425c59`，HTTPS 工具标记为 `d2436f2`。
+10. 当前尚未完成的答辩交付仅包括答辩 PPT 和全员按 `docs/defense-demo-runbook.md` 进行的现场彩排；代码、数据库、云端部署、两份课程文档和演示手册均已完成。

@@ -1,6 +1,6 @@
 # 数据库课程设计 20 分钟多角色答辩演示手册
 
-本文件是正式答辩、集体彩排和备用录屏的唯一演示口径。流程使用两名现场注册玩家、两家固定开发商和一名管理员，覆盖内容提交、审核上架、两种游戏授权、钱包订单、社区互动、饰品交易、退款审计和 Oracle 证据。
+本文件是正式答辩、集体彩排和备用录屏的唯一演示口径。流程使用两名现场注册玩家、两家固定开发商和一名管理员，覆盖内容提交、审核上架、三种游戏授权、钱包订单、社区互动、饰品交易、退款审计和 Oracle 证据。
 
 正式演示前后必须执行演示数据恢复。不得临场更换账号、价格、步骤或样板游戏；流程变化后必须同步更新本文件和 README。
 
@@ -12,13 +12,13 @@
 2. `PLAYER`、`DEVELOPER`、`ADMIN` 三类主体具有明确且不可越权的职责。
 3. Klei 与 Valve 两家开发商的数据彼此隔离；新游戏必须经过管理员上架后才能进入公开商店。
 4. 两名玩家从现场注册开始，分别通过钱包购买和 CDKey 兑换获得 DST，通过免费领取获得 CS2。
-5. 钱包、订单、退款和市场交易均由 Oracle 事务维护，并写入不可覆盖的资金或资产账本。
+5. 钱包、订单、退款和市场交易均由 Oracle 事务维护，并保留可审计的资金流水或资产流转记录。
 6. 好友、聊天、评测、成就和工坊订阅由 Oracle 持久化，SignalR 只负责实时推送。
 7. 数据库结构、约束、索引、执行计划、行锁和跨表一致性均有可重复验证的证据。
 
 ## 2. 固定业务口径
 
-- 固定样板游戏仍然只有 `GAME_CS2` 和 `GAME_DST`。
+- 固定样板游戏限定为 `GAME_CS2` 和 `GAME_DST`。
 - 临时创建的 `Survival Lab` 与 `Tactical Arena Lab` 只用于演示开发商提交和管理员审核，答辩结束后由恢复工具清除，不构成第三、第四款样板游戏。
 - CS2 负责免费入库、饰品掉落、库存实例、市场订单、成交和物品流转。
 - DST 负责付费购买、CDKey、评测、成就、工坊和退款。
@@ -29,46 +29,46 @@
 
 ### 3.1 七人现场操作与电脑准备
 
-正式演示使用 7 人 A-G，每人一台电脑。其余组员不安排重复操作，只在老师追问各自负责模块时补充回答。
+正式演示设置 7 个操作岗位，每人使用一台电脑。其余 3 名组员承担专项技术问答、代码定位和故障补位职责，不重复设置业务操作岗位。
 
 | 人员 | 电脑与账号 | 主要职责 | 切屏时段 |
 |---|---|---|---|
-| A | 主讲电脑 | 开场、架构、时间控制、切屏口令、安全与总结 | 0:00、17:20、18:40 |
-| B | Klei 开发商电脑 | `klei@example.com`，创建临时游戏和 DST CDKey | 0:50 |
-| C | Valve 开发商电脑 | `valve@example.com`，证明开发商隔离并提交第二款临时游戏 | 2:05 |
-| D | 管理员电脑 | `rootadmin`，选择性上架和退款审核 | 2:55、13:20 |
-| E | 玩家甲电脑 | 注册 `defense_p1`，购买 DST、评测、成就、出售 CS2 饰品、退款 | 3:45 起 |
-| F | 玩家乙电脑 | 注册 `defense_p2`，兑换 CDKey、好友聊天、工坊订阅、购买饰品 | 3:45 起 |
-| G | 数据库与运维电脑 | 恢复基线、健康检查、Oracle 证据、备用录屏和故障处理 | 答辩前、14:40 |
+| 马祥珲 | 主讲电脑 | 开场、架构、时间控制、切屏口令、安全、工程质量与总结 | 0:00、17:20、18:40 |
+| 徐京 | Klei 开发商电脑 | `klei@example.com`，创建临时游戏和 DST CDKey | 0:50 |
+| 王子轩 | Valve 开发商电脑 | `valve@example.com`，证明开发商隔离、提交第二款临时游戏并说明商店展示 | 2:05 |
+| 李胤龙 | 管理员电脑 | `rootadmin`，选择性上架、权限说明和退款审核 | 2:55、13:20 |
+| 胡知鱼 | 玩家甲电脑 | 注册 `defense_p1`，充值、购买 DST、评测、出售 CS2 饰品和申请退款 | 3:45 起 |
+| 靳岱泽 | 玩家乙电脑 | 注册 `defense_p2`，兑换 CDKey、好友聊天、解锁成就、工坊订阅和购买饰品 | 3:45 起 |
+| 张茗博 | 数据库与运维电脑 | 恢复基线、健康检查、Oracle 证据、市场账本、备用录屏和故障处理 | 答辩前、14:40 |
 
-A 负责唯一口头主线，B-G 只在被切到自己电脑时用一至两句话说明操作结果，避免多人重复解释。A 使用固定口令切屏，例如“下面请看 Klei 开发商电脑”“回到玩家甲”“切到数据库证据”。
+马祥珲负责开场、统一切屏口令、必要的环节衔接和最后总结；每个业务环节由实际操作者边操作边讲解，其他成员不得代替操作者说明。双人环节中，两名操作者分别说明自己屏幕上的动作和结果。马祥珲使用固定口令切屏，例如“下面请看徐京的 Klei 开发商电脑”“回到胡知鱼的玩家甲”“切到张茗博的数据库证据”。
 
-推荐使用会议软件的屏幕共享交接或现场 HDMI 切换器。正式彩排必须采用与答辩当天相同的切屏方式。A 的电脑同时保留所有角色的备用浏览器配置和备用录屏，任一成员电脑异常时由 A 接管。
+使用会议软件的屏幕共享交接或现场 HDMI 切换器。正式彩排必须采用与答辩当天相同的切屏方式。马祥珲的电脑同时保留所有角色的备用浏览器配置和备用录屏，任一成员电脑异常时由马祥珲接管。
 
 ### 3.2 十人知识责任总表
 
-现场操作仍由 A-G 七人完成，不增加角色切换。H-J 不接管玩家、开发商或管理员账号，负责专项技术问答、代码定位和故障补位。十个人都必须掌握自己模块从“前端页面 → API 端点 → Application 契约/服务 → Infrastructure/Oracle → 数据表 → 测试”的完整链路。
+现场操作仍由上表 7 人完成，不增加角色切换。元梓浩、周力扬、郭炫君不接管玩家、开发商或管理员账号，负责专项技术问答、代码定位和故障补位。十个人都必须掌握自己模块从“前端页面 → API 端点 → Application 契约/服务 → Infrastructure/Oracle → 数据表 → 测试”的完整链路。
 
 | 人员 | 现场身份 | 第一知识责任 | 老师提问时负责回答 |
 |---|---|---|---|
-| A | 总主讲，不固定业务账号 | 总体架构、五层结构、认证授权、公共约定 | B/S 选择、.NET 10、五层依赖、JWT、异常处理、全链路集成 |
-| B | Klei 开发商 | 游戏管理、开发商隔离、CDKey 生成 | 开发商为什么不能越权、游戏为什么默认下架、CDKey 为什么只显示一次 |
-| C | Valve 开发商 | 商店前端、游戏详情、媒体与 Steam 风格交互 | Vue 页面结构、商店数据来源、响应式布局、图片视频兜底和界面一致性 |
-| D | 管理员 | 游戏审核、公告、退款审核 | 管理员权限、审核状态变化、退款审计、为什么不能由开发商自行上架 |
-| E | 玩家甲 | 钱包、充值、购买、订单、退款申请 | 钱包唯一真相、购买事务、幂等、资金流水、退款资格与金额一致性 |
-| F | 玩家乙 | CDKey 兑换、游戏库、好友聊天、实时通知 | 三种入库方式、重复兑换、好友关系、Oracle 持久化与 SignalR 的边界 |
-| G | 数据库与运维电脑 | Oracle 总体设计、约束、索引、执行计划、锁 | 表关系、范式、主外键、索引理由、事务隔离、并发与恢复验证 |
-| H | 专项问答 | 评价、版本、成就、个人资料、社区与讨论区 | 社区数据模型、评价留痕、成就口径、内容互动和数据持久化 |
-| I | 专项问答 | 饰品库存、市场订单、撮合、交易报价与资产账本 | 模板和实例区别、挂单撮合、冻结资金、手续费、所有权转移和防重复出售 |
-| J | 专项问答与故障补位 | 自动化测试、CI、演示恢复、HTTPS 和腾讯云部署 | 如何证明可运行、如何恢复基线、CI 检查、云端拓扑、端口和故障预案 |
+| 马祥珲 | 总主讲，不固定业务账号 | 项目统筹、总体架构、退款审批与审计、核心事务工作流回归及最终验收 | B/S、.NET 10、五层结构、退款事务、关键跨模块边界与全局验收结论 |
+| 李胤龙 | 管理员 | 认证后端、JWT、角色守卫、HTTPS 与后端部署 | 登录鉴权、越权防护、管理员边界、Nginx 和云端健康检查 |
+| 元梓浩 | 专项问答 | 前端公共入口、公告、CI 与 Playwright | 会话恢复、角色路由、统一请求、自动构建与前端回归 |
+| 周力扬 | 专项问答 | 开发商游戏全链路、管理员状态修改、商店列表与筛选 | 默认下架、`dev_id` 所有权、公开可见性、搜索筛选与集合页数据流 |
+| 王子轩 | Valve 开发商 | 游戏详情、媒体画廊与 Steam 风格交互 | 详情组件拆分、响应式布局、图片视频兜底与视觉一致性 |
+| 胡知鱼 | 玩家甲 | 钱包、充值、购买、订单与资金流水 | 钱包唯一真相、定点金额、购买事务、幂等和流水核对 |
+| 徐京 | Klei 开发商 | CDKey、免费入库与游戏库授权 | 三种授权来源、CDKey 哈希、重复兑换和游戏库状态 |
+| 靳岱泽 | 玩家乙 | 好友、私信、通知、个人资料、社区动态与 SignalR | 好友状态、消息持久化、资料徽章、动态讨论、实时推送和断线恢复 |
+| 郭炫君 | 专项问答 | 饰品库存、评价、成就与工坊 | 模板/实例、所有权、评价版本、成就防重与工坊订阅 |
+| 张茗博 | 数据库与运维电脑 | 市场撮合、Oracle 总体证据与演示数据恢复 | 撮合与资产转移、全局约束、索引、锁、迁移规范和恢复审计 |
 
-“第一知识责任”表示该成员必须能独立回答，不表示其他成员不需要理解。涉及跨模块问题时，第一责任人先回答业务规则，G 补充数据库约束和 SQL 证据，J 补充测试与云端验证，A 最后统一结论。
+第一知识责任人须能够独立回答对应模块问题。跨模块问题由第一责任人说明业务规则，张茗博补充数据库约束和 SQL 证据，相关测试或部署责任人补充验证证据，马祥珲负责归纳其与总体架构的关系并统一结论。
 
-### 3.3 A-J 具体文件与掌握要求
+### 3.3 十人具体文件与掌握要求
 
-#### A：总体架构、五层结构与认证授权
+#### 李胤龙、元梓浩、马祥珲：总体架构、认证授权与前端公共入口
 
-第一责任文件：
+重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `README.md`
 - `PRODUCT.md`
@@ -98,28 +98,35 @@ A 负责唯一口头主线，B-G 只在被切到自己电脑时用一至两句�
 - `frontend/src/views/LoginView.vue`
 - `frontend/src/views/RegisterView.vue`
 
-A 必须完全讲明白：
+责任边界：李胤龙负责认证后端、JWT、角色守卫和公共异常；元梓浩负责登录/注册页面、路由守卫、会话恢复、统一 HTTP 调用与格式化；马祥珲负责 B/S、五层依赖、项目集成和技术选型。三人共同掌握以下内容：
 
-1. 浏览器、Vue、Nginx、ASP.NET Core、Oracle 之间一次请求如何流动。
-2. Api、Application、Domain、Infrastructure、Shared 五层分别负责什么，项目引用为什么不能反向。
-3. 玩家允许注册而开发商、管理员只能使用预置身份的原因。
-4. JWT 的签发、角色声明、有效期验证、路由守卫和后端最终鉴权之间的关系。
-5. 统一响应、业务异常、禁止访问和资源不存在如何映射为 HTTP 结果。
-6. 为什么选择 B/S、.NET 10、Vue 和 Oracle，而不是 C/S、纯前端或把 SQL 直接写在页面中。
+1. 浏览器、Vue、Nginx、ASP.NET Core 与 Oracle 之间的请求链路。
+2. Api、Application、Domain、Infrastructure、Shared 五层职责及项目引用的单向依赖原则。
+3. 玩家开放注册、开发商与管理员采用预置身份的权限依据。
+4. JWT 签发、角色声明、有效期验证、路由守卫与后端鉴权的协作关系。
+5. 统一响应、业务异常、禁止访问和资源不存在的 HTTP 结果映射。
+6. B/S、.NET 10、Vue 和 Oracle 技术选型及其相对于 C/S、纯前端和页面直连 SQL 方案的适用性。
 
-#### B：开发商游戏管理与 CDKey 生成
+#### 周力扬、徐京：开发商游戏管理与 CDKey 生成
 
-第一责任文件：
+重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `backend/src/SteamPlatform.Api/Features/Games/GameEndpointExtensions.cs`
 - `backend/src/SteamPlatform.Application/Games/GameContracts.cs`
 - `backend/src/SteamPlatform.Application/Games/GameService.cs`
 - `backend/src/SteamPlatform.Infrastructure/Games/GameRepository.cs`
 - `frontend/src/views/DeveloperGamesView.vue`
+- `frontend/src/views/AdminGamesView.vue`
+- `frontend/src/views/StoreView.vue`
+- `frontend/src/views/StoreCollectionView.vue`
+- `frontend/src/components/GameCard.vue`
+- `frontend/src/components/GameFilterBar.vue`
+- `frontend/src/data/gameCatalog.ts`
 - `frontend/src/views/CdkeyBatchView.vue`
 - `frontend/src/api/games.ts`
 - `backend/tests/SteamPlatform.Api.Tests/GameServiceTests.cs`
 - `backend/tests/SteamPlatform.Api.Tests/GameRepositoryGuardTests.cs`
+- `frontend/e2e/public-store.spec.ts`
 
 共享文件中的责任范围：
 
@@ -128,22 +135,16 @@ A 必须完全讲明白：
 - `backend/src/SteamPlatform.Application/CoreTransactions/CoreTransactionContracts.cs` 中 CDKey 批次请求与响应契约。
 - `database/schema.sql` 中 `DEVELOPER`、`GAME`、`CDKEY_BATCH`、`CDKEY`。
 
-B 必须完全讲明白：开发商身份如何映射 `dev_id`、查询和修改为什么都带所有权条件、创建游戏为何固定为 `OFFLINE`、管理员如何使其上线、CDKey 明文为什么只返回一次、Oracle 为什么只保存可校验值而不长期暴露明文。
+周力扬负责开发商身份、`dev_id` 所有权条件、游戏创建与 `OFFLINE/ONLINE` 状态，以及公开商店列表、搜索、筛选、集合页和后端可见性查询的完整数据流；徐京负责 CDKey 批次、明文只返回一次、哈希保存、兑换和重复兑换留痕。两人必须能把共享端点和事务服务按方法准确分开。
 
-#### C：公开商店、游戏详情与 Steam 风格前端
+#### 王子轩：游戏详情、媒体画廊与 Steam 风格前端
 
-第一责任文件：
+重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `frontend/src/App.vue`
 - `frontend/src/styles.css`
-- `frontend/src/views/StoreView.vue`
-- `frontend/src/views/HomeView.vue`
-- `frontend/src/views/StoreCollectionView.vue`
 - `frontend/src/views/GameDetailView.vue`
-- `frontend/src/views/GameStoreView.vue`
 - `frontend/src/views/NotFoundView.vue`
-- `frontend/src/components/GameCard.vue`
-- `frontend/src/components/GameFilterBar.vue`
 - `frontend/src/components/GameHeroPanel.vue`
 - `frontend/src/components/GamePriceBlock.vue`
 - `frontend/src/components/GameSummarySection.vue`
@@ -151,16 +152,15 @@ B 必须完全讲明白：开发商身份如何映射 `dev_id`、查询和修改
 - `frontend/src/components/SteamMediaGallery.vue`
 - `frontend/src/components/Cs2DetailSections.vue`
 - `frontend/src/components/GenericGameDetailSections.vue`
-- `frontend/src/data/gameCatalog.ts`
 - `frontend/public/assets/games/`
 - `frontend/public/assets/media/`
 - `frontend/e2e/public-store.spec.ts`
 
-C 必须完全讲明白：公开商店如何只展示在线游戏、列表与详情如何调用真实 API、CS2/DST 固定展示口径、Vue 组件为何拆分、视频海报与截图画廊如何降级、桌面和移动端如何避免溢出，以及界面仿 Steam 但不把官方 Logo 当作项目自身标识的处理方式。
+掌握范围：游戏详情 API 到 Vue 详情组件的数据映射、CS2/DST 固定展示口径、详情组件拆分、视频海报与截图画廊降级、桌面与移动端溢出控制，以及仿 Steam 界面中的项目标识规范。根路径、商店列表、搜索筛选和集合页由周力扬负责，二人共同掌握从列表进入详情的路由衔接。
 
-#### D：管理员审核、公告与退款审批
+#### 李胤龙、元梓浩、马祥珲：管理员审核、公告与退款审批
 
-第一责任文件：
+重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `frontend/src/views/AdminGamesView.vue`
 - `frontend/src/views/AdminNoticesView.vue`
@@ -179,11 +179,11 @@ C 必须完全讲明白：公开商店如何只展示在线游戏、列表与详
 - `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` 中 `ListAllRefundsAsync`、`ApproveRefundAsync`、`RejectRefundAsync`。
 - `database/schema.sql` 中 `ADMIN_USER`、`SYS_NOTICE`、`REFUND_TICKET`、`REFUND_DETAIL`、`REFUND_AUDIT_LOG`。
 
-D 必须完全讲明白：角色守卫为何必须在后端再次检查、审核状态如何影响公开商店、公告的发布时间与失效时间、退款批准如何回补钱包和撤销授权、审核人和审核意见如何留痕，以及重复审批为什么不会重复退款。
+责任边界：李胤龙负责管理员角色守卫与审核权限；元梓浩负责公告发布时间、失效时间和管理页面；马祥珲负责退款批准/拒绝、钱包回补、授权撤销和审核日志。三人共同掌握退款审批的幂等控制机制。
 
-#### E：钱包、充值、购买、订单与退款申请
+#### 胡知鱼、马祥珲：钱包、充值、购买、订单与退款
 
-第一责任文件：
+重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `docs/group-c-core-transaction-contract.md`
 - `docs/c2-wallet-module-readme.md`
@@ -193,9 +193,8 @@ D 必须完全讲明白：角色守卫为何必须在后端再次检查、审核
 - `frontend/src/views/WalletHistoryDetailView.vue`
 - `frontend/src/views/GameCheckoutView.vue`
 - `frontend/src/views/OrderDetailView.vue`
-- `frontend/src/views/OrdersView.vue`
 - `frontend/src/views/RefundsView.vue`
-- `frontend/src/views/WalletRefundPlaceholderView.vue`
+- `frontend/src/views/WalletRefundRequestView.vue`
 - `frontend/src/api/coreApi.ts` 中钱包、充值、购买、订单和退款申请函数。
 - `backend/tests/SteamPlatform.Api.Tests/CoreTransactionEndpointTests.cs`
 - `backend/tests/SteamPlatform.Api.Tests/CoreTransactionServiceGuardTests.cs`
@@ -207,48 +206,68 @@ D 必须完全讲明白：角色守卫为何必须在后端再次检查、审核
 - `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` 中 `GetWalletAsync`、`RechargeWalletAsync`、`ListWalletTransactionsAsync`、`ListWalletHistoryAsync`、`GetWalletHistoryEntryAsync`、`BuyGameAsync`、`ListOrdersAsync`、`GetOrderAsync`、`CreateRefundAsync`。
 - `database/schema.sql` 中 `WALLET_ACCOUNT`、`GAME_ORDER`、`ORDER_DETAIL`、`ORDER_STATUS_LOG`、`PAYMENT_TRANSACTION`、`WALLET_TRANSACTION` 和退款相关表。
 
-E 必须完全讲明白：钱包唯一真相为什么只有 available/frozen 两个余额、金额为什么使用定点小数、购买过程中如何锁定账户并在同一事务写订单/明细/支付/流水/游戏库、幂等键解决什么问题、任一步失败为什么必须整体回滚、退款金额和游玩资格如何校验。
+胡知鱼掌握钱包唯一余额来源、`available/frozen` 双余额模型、定点金额、充值、购买、订单、资金流水核对、账户锁定、订单/明细/支付/流水/游戏库原子写入和购买幂等。马祥珲负责退款申请与审批、退款幂等、钱包回补、支付与订单终态、授权撤销、审核日志，以及核心交易与授权之间的跨模块事务回归验收。
 
-#### F：CDKey 兑换、游戏库、好友聊天与实时通知
+#### 徐京：CDKey、免费入库与游戏库授权
 
-第一责任文件：
+重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `frontend/src/views/RedeemView.vue`
 - `frontend/src/views/LibraryView.vue`
 - `frontend/src/views/GameLibraryView.vue`
-- `frontend/src/views/AccountView.vue`
 - `frontend/src/components/LibraryRail.vue`
-- `frontend/src/api/socialApi.ts`
+- `frontend/src/api/coreApi.ts` 中免费入库、游戏库、游玩时长和 CDKey 兑换函数。
+
+共享文件中的责任范围：
+
+- `backend/src/SteamPlatform.Api/Features/CoreTransactions/CoreTransactionEndpointExtensions.cs` 中免费入库、游戏库、游玩时长和 CDKey 兑换端点。
+- `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` 中 `ClaimFreeGameAsync`、`ListLibraryAsync`、`AddPlaytimeAsync`、`RedeemCdkeyAsync`。
+- `database/schema.sql` 中 `PLAYER_LIBRARY`、`CDKEY_BATCH`、`CDKEY` 和 `CDKEY_REDEEM_LOG`。
+
+掌握范围：购买、免费领取和 CDKey 兑换三种 `acquire_way`，CDKey 明文单次展示与哈希保存、单次成功约束、失败尝试留痕、游戏库状态和游玩时长。
+
+#### 靳岱泽：好友、聊天、个人资料、社区内容与实时通信
+
+重点掌握文件（文件级第一责任分配见 3.4 节）：
+
+- `frontend/src/api/socialApi.ts` 中玩家搜索、好友、私信和通知函数。
 - `frontend/src/api/socialRealtime.ts`
+- `frontend/src/views/CommunityHubView.vue` 中玩家搜索与好友区域。
+- `frontend/src/views/ProfileView.vue`
+- `frontend/src/api/engagementApi.ts` 中资料、徽章、动态和讨论区函数。
+- `frontend/src/views/GameCommunityView.vue` 中好友概览与聊天区域。
 - `backend/src/SteamPlatform.Api/Features/Social/SocialEndpointExtensions.cs`
 - `backend/src/SteamPlatform.Api/Realtime/SocialHub.cs`
 - `backend/src/SteamPlatform.Api/Realtime/SignalRSocialNotifier.cs`
 - `backend/src/SteamPlatform.Application/Social/SocialContracts.cs`
 - `backend/src/SteamPlatform.Application/Social/SocialService.cs`
 - `backend/src/SteamPlatform.Domain/Social/`
-- `backend/src/SteamPlatform.Infrastructure/Social/SocialRepository.cs`
+- `backend/src/SteamPlatform.Infrastructure/Social/SocialRepository.cs` 中玩家搜索、好友、私信和通知方法。
+- `backend/src/SteamPlatform.Api/Features/Engagement/EngagementEndpointExtensions.cs` 中资料、徽章、动态和讨论区端点。
+- `backend/src/SteamPlatform.Application/Engagement/`
+- `backend/src/SteamPlatform.Domain/Engagement/`
+- `backend/src/SteamPlatform.Infrastructure/Engagement/EngagementRepository.cs` 中资料、徽章、动态和讨论区方法。
 - `backend/tests/SteamPlatform.Api.Tests/SocialEndpointTests.cs`
 - `backend/tests/SteamPlatform.Api.Tests/SocialServiceTests.cs`
 - `backend/tests/SteamPlatform.Api.Tests/SocialRepositoryGuardTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/EngagementServiceTests.cs`
+- `backend/tests/SteamPlatform.Api.Tests/EngagementRepositoryGuardTests.cs`
+- `database/schema.sql` 中 `FRIEND_RELATION`、`DIRECT_MESSAGE` 和 `USER_NOTIFICATION`。
+- `database/migrations/20260825_social_realtime_foundation.sql`
+- `database/migrations/20260825_community_engagement_expansion.sql`
 
-共享文件中的责任范围：
+掌握范围：好友关系规范化、请求方向与状态转换、陌生人私信限制、Oracle 消息持久化、SignalR 实时推送、断线后的历史查询，以及个人资料、徽章、社区动态、回应、讨论主题与回复的数据关系。交易报价仍由张茗博负责。
 
-- `backend/src/SteamPlatform.Api/Features/CoreTransactions/CoreTransactionEndpointExtensions.cs` 中免费入库、游戏库、游玩时长和 CDKey 兑换端点。
-- `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` 中 `ClaimFreeGameAsync`、`ListLibraryAsync`、`AddPlaytimeAsync`、`RedeemCdkeyAsync`。
-- `database/schema.sql` 中 `PLAYER_LIBRARY`、`CDKEY_REDEEM_LOG`、`FRIEND_RELATION`、`DIRECT_MESSAGE`、`WORKSHOP_ITEM`、`WORKSHOP_SUBSCRIPTION`、`USER_NOTIFICATION`。
+#### 张茗博：Oracle 总体设计、约束、索引、执行计划与并发；马祥珲：验收口径
 
-F 必须完全讲明白：购买、免费领取和 CDKey 兑换三种 `acquire_way` 的差异、同一 CDKey 为什么只能成功一次、失败尝试如何留痕、好友关系为什么规范化保存一对用户、陌生人为什么不能发私信、消息为什么先写 Oracle 再由 SignalR 推送、断线重连后为什么仍能查询历史消息，以及工坊订阅和用户通知如何持久化。
-
-#### G：Oracle 总体设计、约束、索引、执行计划与并发
-
-第一责任文件：
+重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `database/schema.sql`
 - `database/data.sql`
 - `E-R图（改）.drawio`
 - `“Steam-”数字游戏平台系统（改）.pdma`
 - `项目文档/“Steam-”数字游戏平台系统数据库设计文档.docx`
-- `database/migrations/`
+- `database/migrations/20260825_demo_reset_audit.sql`
 - `database/verify_phase1.sql`
 - `database/verify_defense.sql`
 - `database/defense/explain_plans.sql`
@@ -260,14 +279,15 @@ F 必须完全讲明白：购买、免费领取和 CDKey 兑换三种 `acquire_w
 - `tests/SteamPlatform.Database.Tests/VerifyScriptTests.cs`
 - `tests/SteamPlatform.Database.Tests/OracleSmokeTests.cs`
 - `tests/SteamPlatform.Database.Tests/DefenseScriptContractTests.cs`
+- `tests/SteamPlatform.Database.Tests/MigrationScriptConventionTests.cs`
 
-G 必须完全讲明白：核心实体及联系、主键/外键/唯一/检查约束、为什么不存在 `PLAYER.wallet_balance`、45 张表如何按业务域组织、哪些查询需要组合索引、执行计划怎么看、行锁如何防止余额超扣和物品重复出售、账本为什么只追加、迁移如何保持幂等，以及验证脚本如何证明跨表一致性。
+张茗博掌握核心实体及联系、主键/外键/唯一/检查约束、钱包字段归一化、45 张表的业务域划分、组合索引、执行计划、行锁、市场账本、迁移规范、演示恢复和跨表一致性。各业务迁移脚本的业务语义由对应模块责任人掌握，张茗博负责检查其全局兼容性。马祥珲掌握数据库设计在总体架构中的位置以及最终验收口径。
 
-每位业务成员仍必须掌握自己模块涉及的表；G 负责全局 DDL、规范化、索引和跨模块一致性，不代替模块成员回答业务规则。
+每位业务成员仍必须掌握自己模块涉及的表；张茗博负责全局 DDL、规范化、索引和跨模块一致性，不代替模块成员回答业务规则。
 
-#### H：评价、成就、资料与社区内容
+#### 郭炫君、靳岱泽：评价、成就、工坊、资料与社区内容
 
-第一责任文件：
+重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `docs/group-d-community-achievement-contract.md`
 - `frontend/src/views/GameCommunityView.vue`
@@ -289,11 +309,11 @@ G 必须完全讲明白：核心实体及联系、主键/外键/唯一/检查约
 - `backend/tests/SteamPlatform.Api.Tests/CommunityRepositoryGuardTests.cs`
 - `backend/tests/SteamPlatform.Api.Tests/EngagementServiceTests.cs`
 
-H 必须完全讲明白：评价为什么要求拥有游戏、修改评价为什么保留 `REVIEW_VERSION`、管理员隐藏和物理删除的区别、DST 成就为什么明确是课程演示口径、解锁如何防重复，以及个人资料、社区动态、回应和讨论回复之间的关系。
+责任边界：郭炫君负责评价所有权校验、`REVIEW_VERSION` 版本留痕、管理员隐藏、DST 课程演示成就、防重复解锁和工坊订阅；靳岱泽负责个人资料、徽章、社区动态、回应、讨论主题与回复的数据关系和事务实现。
 
-#### I：饰品库存、市场撮合、交易报价与资产账本
+#### 郭炫君、张茗博：饰品库存、市场撮合、交易报价与资产账本
 
-第一责任文件：
+重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `frontend/src/views/InventoryView.vue`
 - `frontend/src/views/MarketView.vue`
@@ -315,72 +335,99 @@ H 必须完全讲明白：评价为什么要求拥有游戏、修改评价为什
 - `backend/tests/SteamPlatform.Api.Tests/MarketRepositoryGuardTests.cs`
 - `tests/market-api.http`
 
-I 必须完全讲明白：`ITEM_TEMPLATE` 与 `INVENTORY_ITEM` 的区别、掉落为什么产生唯一实例、上架时如何校验归属和状态、为什么同一物品只能有一个有效卖单、买单为什么冻结资金、价格优先/时间优先如何匹配、5% 手续费如何记账、成交后如何同时转移物品与资金，以及 `ITEM_TRANSFER_LEDGER` 为什么能追溯历任所有者。
+郭炫君掌握 `ITEM_TEMPLATE` 与 `INVENTORY_ITEM` 的区别、掉落实例化、磨损/归属/状态保存和上架校验。张茗博掌握单物品有效卖单约束、买单资金冻结、价格优先/时间优先规则、5% 手续费、成交事务和 `ITEM_TRANSFER_LEDGER` 追溯。
 
-#### J：测试、CI、演示恢复、HTTPS 与云端部署
+#### 马祥珲：项目统筹、总体架构与总体验收
 
-第一责任文件：
+重点掌握文件（文件级第一责任分配见 3.4 节）：
 
-- `.github/workflows/ci.yml`
-- `frontend/package.json`
-- `frontend/playwright.config.ts`
-- `frontend/e2e/baseline.spec.ts`
-- `frontend/e2e/defense-flow.spec.ts`
-- `frontend/e2e/social-community-flow.spec.ts`
-- `frontend/e2e/helpers.ts`
-- `frontend/scripts/run-cloud-e2e.mjs`
-- `frontend/scripts/realtime-smoke.mjs`
-- `backend/tests/`
-- `backend/tools/SteamPlatform.DemoData/`
-- `backend/tools/SteamPlatform.HttpsDeploy/`
-- `database/demo/manifest.json`
-- `docs/playwright-regression-runbook.md`
-- `docs/https-deployment-runbook.md`
-- `backend/tools/SteamPlatform.DemoData/README.md`
-- `backend/tools/SteamPlatform.HttpsDeploy/README.md`
+- `README.md`
+- `PRODUCT.md`
+- `2026《数据库课程设计》课程提纲.doc`
+- `backend/SteamPlatform.sln`
+- `docs/defense-demo-runbook.md`
+- `项目文档/Steam-数字游戏平台系统需求分析文档.docx`
+- `项目文档/Steam-数字游戏平台系统设计与实现文档.docx`
+- `backend/tests/SteamPlatform.Api.Tests/CoreTransactionWorkflowRegressionTests.cs`
+- `frontend/src/views/RefundsView.vue`
+- `frontend/src/views/AdminRefundsView.vue`
+- `frontend/src/views/WalletRefundRequestView.vue`
 
-J 必须完全讲明白：单元测试、契约测试、Oracle 冒烟测试和 Playwright 端到端测试分别验证什么；CI 为什么同时执行格式、构建、测试、依赖审计和前端构建；写库 E2E 为什么要先备份并在结束后恢复；演示恢复工具如何按 manifest 清理、重建并记录审计；Nginx、ASP.NET Core 和 Oracle 在腾讯云上的部署关系；为什么公网只开放 80/443 和受限 22、不开放 1521；IP HTTPS 的用途、证书更新和失败时如何切换备用录屏。
+掌握范围：课程要求、技术路线、B/S 与五层架构、模块边界、文档统一口径、退款审批与审计闭环、核心交易跨模块回归、整体验收结果、答辩流程和成员协作。各专项工具的实现与操作由下列责任人承担，马祥珲掌握验收结论及其在整体架构中的作用。
 
-### 3.4 共享大文件的方法级责任
+#### 李胤龙、元梓浩、张茗博：部署、自动化测试与演示恢复
+
+重点掌握文件（文件级第一责任分配见 3.4 节）：
+
+- 李胤龙：`backend/tools/SteamPlatform.HttpsDeploy/`、`backend/tests/SteamPlatform.HttpsDeploy.Tests/`、`docs/https-deployment-runbook.md`、`tests/SteamPlatform.Api.CloudTests/`。
+- 元梓浩：`.github/workflows/ci.yml`、`frontend/playwright.config.ts`、`frontend/e2e/`、`frontend/scripts/`、`docs/playwright-regression-runbook.md`。
+- 张茗博：`backend/tools/SteamPlatform.DemoData/`、`backend/tests/SteamPlatform.DemoData.Tests/`、`database/demo/manifest.json`。
+
+责任边界：李胤龙负责 Nginx、ASP.NET Core、IP HTTPS、端口策略和云端健康检查；元梓浩负责 CI、前端构建、Playwright 与依赖审计；张茗博负责写库测试前后的备份恢复、基于 manifest 的演示数据清理重建和恢复审计。
+
+### 3.4 全仓库文件责任覆盖
+
+本节以当前 `git ls-files` 的 370 个跟踪文件为基线。下表中的 `/**` 表示对应目录下的全部当前文件；每个文件设置一名第一责任人，共享业务文件按 3.5 节进一步划分方法级责任。仓库文件发生新增、删除或移动时，本节须在同一 PR 中同步更新。
+
+| 第一责任人 | 完整文件范围 | 掌握重点 |
+|---|---|---|
+| 马祥珲 | `README.md`、`PRODUCT.md`、`.gitignore`、`2026《数据库课程设计》课程提纲.doc`、`_archive/**`、`模版文档/**`；`项目文档/Steam-数字游戏平台系统需求分析文档.docx`、`项目文档/Steam-数字游戏平台系统设计与实现文档.docx`、`项目文档/分组名单及项目选题.xlsx`；`docs/README.md`、`docs/defense-demo-runbook.md`；`backend/README.md`、`backend/SteamPlatform.sln`、`backend/tests/SteamPlatform.Api.Tests/SteamPlatform.Api.Tests.csproj`、`backend/tests/SteamPlatform.Api.Tests/TestDoubles.cs`、`backend/tests/SteamPlatform.Api.Tests/CoreTransactionWorkflowRegressionTests.cs`；`frontend/src/views/RefundsView.vue`、`frontend/src/views/AdminRefundsView.vue`、`frontend/src/views/WalletRefundRequestView.vue` | 项目统筹、课程要求、文档统一、总体架构、退款审批与审计、核心事务回归和最终验收；掌握 `_archive/**` 的历史来源及其不参与当前构建的原因 |
+| 李胤龙 | `backend/src/SteamPlatform.Api/Program.cs`、`backend/src/SteamPlatform.Api/Properties/**`、`backend/src/SteamPlatform.Api/appsettings*.json`、`backend/src/SteamPlatform.Api/SteamPlatform.Api.csproj`、`backend/src/SteamPlatform.Api/Infrastructure/**`；`backend/src/SteamPlatform.Application/Auth/**`、`backend/src/SteamPlatform.Application/Common/**`、`backend/src/SteamPlatform.Application/Diagnostics/**`、`backend/src/SteamPlatform.Application/SteamPlatform.Application.csproj`；`backend/src/SteamPlatform.Infrastructure/Auth/**`、`backend/src/SteamPlatform.Infrastructure/Data/**`、`backend/src/SteamPlatform.Infrastructure/DependencyInjection.cs`、`backend/src/SteamPlatform.Infrastructure/SteamPlatform.Infrastructure.csproj`；`backend/src/SteamPlatform.Shared/**`；`backend/src/SteamPlatform.Domain/SteamPlatform.Domain.csproj`；`backend/src/SteamPlatform.Api/Features/Auth/**`；`backend/tests/SteamPlatform.Api.Tests/Auth*Tests.cs`、`backend/tests/SteamPlatform.Api.Tests/EndpointGuardTests.cs`、`backend/tests/SteamPlatform.Api.Tests/ExceptionHandlingTests.cs`、`backend/tests/SteamPlatform.Api.Tests/PasswordHasherRegressionTests.cs`、`backend/tests/SteamPlatform.Api.Tests/ProtectedEndpointRegressionTests.cs`、`backend/tests/SteamPlatform.Api.Tests/HealthEndpointTests.cs`、`backend/tests/SteamPlatform.Api.Tests/UtcDateTimeJsonConverterTests.cs`；`backend/tools/SteamPlatform.HttpsDeploy/**`、`backend/tests/SteamPlatform.HttpsDeploy.Tests/**`、`tests/SteamPlatform.Api.CloudTests/**`、`docs/https-deployment-runbook.md` | 五层装配、认证、JWT、角色守卫、统一异常、Oracle 连接、HTTPS、后端部署和云端健康检查 |
+| 元梓浩 | `.github/**`；`backend/src/SteamPlatform.Api/Features/Notices/**`、`backend/src/SteamPlatform.Application/Notices/**`、`backend/src/SteamPlatform.Domain/Notices/**`、`backend/src/SteamPlatform.Infrastructure/Notices/**`、`backend/tests/SteamPlatform.Api.Tests/Notice*Tests.cs`；`frontend/.editorconfig`、`frontend/.env.example`、`frontend/README.md`、`frontend/index.html`、`frontend/package.json`、`frontend/package-lock.json`、`frontend/tsconfig*.json`、`frontend/vite.config.ts`、`frontend/playwright.config.ts`、`frontend/e2e/**`、`frontend/scripts/**`；`frontend/src/App.vue`、`frontend/src/main.ts`、`frontend/src/router.ts`、`frontend/src/env.d.ts`、`frontend/src/stores/**`、`frontend/src/utils/**`、`frontend/src/api/http.ts`、`frontend/src/api/types.ts`、`frontend/src/components/PageState.vue`、`frontend/src/components/StatusBadge.vue`、`frontend/src/components/SteamInfoPanel.vue`、`frontend/src/views/LoginView.vue`、`frontend/src/views/RegisterView.vue`、`frontend/src/views/AccountView.vue`、`frontend/src/views/AdminNoticesView.vue`、`frontend/src/views/NotFoundView.vue`；`docs/playwright-regression-runbook.md` | 前端启动与构建、登录注册、会话恢复、路由权限、公告、公共请求、CI、Playwright 和依赖审计 |
+| 周力扬 | `backend/src/SteamPlatform.Api/Features/Games/**`、`backend/src/SteamPlatform.Application/Games/**`、`backend/src/SteamPlatform.Infrastructure/Games/**`、`backend/tests/SteamPlatform.Api.Tests/Game*Tests.cs`；`frontend/src/api/games.ts`、`frontend/src/views/DeveloperGamesView.vue`、`frontend/src/views/AdminGamesView.vue`、`frontend/src/views/StoreView.vue`、`frontend/src/views/StoreCollectionView.vue`、`frontend/src/components/GameCard.vue`、`frontend/src/components/GameFilterBar.vue`、`frontend/src/data/gameCatalog.ts`；`database/migrations/20260708_developer_login_backend_completion.sql` | 开发商游戏 CRUD、所有权隔离、管理员上下架、公开可见性、商店列表、搜索筛选、集合页及对应迁移 |
+| 王子轩 | `frontend/src/styles.css`、`frontend/src/views/GameDetailView.vue`；`frontend/src/components/GameHeroPanel.vue`、`frontend/src/components/GamePriceBlock.vue`、`frontend/src/components/GameSummarySection.vue`、`frontend/src/components/SteamGameDetailTemplate.vue`、`frontend/src/components/SteamMediaGallery.vue`、`frontend/src/components/Cs2DetailSections.vue`、`frontend/src/components/GenericGameDetailSections.vue`；`frontend/public/assets/games/**`、`frontend/public/assets/media/**` | 游戏详情、Steam 风格、响应式布局、图片/视频与加载兜底 |
+| 胡知鱼 | `docs/group-c-core-transaction-contract.md`、`docs/c2-wallet-module-readme.md`；`backend/src/SteamPlatform.Application/CoreTransactions/**`、`backend/src/SteamPlatform.Infrastructure/CoreTransactions/**`、`backend/tests/SteamPlatform.Api.Tests/CoreTransactionServiceGuardTests.cs`；`frontend/src/api/coreApi.ts`、`frontend/src/views/WalletView.vue`、`frontend/src/views/WalletRechargeCheckoutView.vue`、`frontend/src/views/WalletHistoryView.vue`、`frontend/src/views/WalletHistoryDetailView.vue`、`frontend/src/views/GameCheckoutView.vue`、`frontend/src/views/OrderDetailView.vue`；`database/migrations/20260712_wallet_payment_method_history.sql`、`tests/SteamPlatform.Database.Tests/GroupCSeedContractTests.cs` | 钱包、充值、购买、订单、资金流水、业务契约、事务实现及对应迁移；退款以及 CDKey 与授权方法见 3.5 节 |
+| 徐京 | `backend/src/SteamPlatform.Api/Features/CoreTransactions/**`、`backend/tests/SteamPlatform.Api.Tests/CoreTransactionEndpointTests.cs`、`backend/tests/SteamPlatform.Api.Tests/CoreTransactionRepositoryGuardTests.cs`、`backend/tests/SteamPlatform.Api.Tests/InMemoryCoreTransactionService.cs`；`frontend/src/components/LibraryRail.vue`、`frontend/src/views/CdkeyBatchView.vue`、`frontend/src/views/RedeemView.vue`、`frontend/src/views/LibraryView.vue`、`frontend/src/views/GameLibraryView.vue` | 核心交易端点、CDKey 生成与兑换、免费入库、授权来源、游戏库状态和游玩时长；共享事务方法见 3.5 节 |
+| 靳岱泽 | `backend/src/SteamPlatform.Api/Features/Social/**`、`backend/src/SteamPlatform.Api/Realtime/**`、`backend/src/SteamPlatform.Application/Social/**`、`backend/src/SteamPlatform.Domain/Social/**`、`backend/src/SteamPlatform.Infrastructure/Social/**`、`backend/tests/SteamPlatform.Api.Tests/Social*Tests.cs`；`backend/src/SteamPlatform.Api/Features/Engagement/**`、`backend/src/SteamPlatform.Application/Engagement/**`、`backend/src/SteamPlatform.Domain/Engagement/**`、`backend/src/SteamPlatform.Infrastructure/Engagement/**`、`backend/tests/SteamPlatform.Api.Tests/Engagement*Tests.cs`；`frontend/src/api/socialApi.ts`、`frontend/src/api/socialRealtime.ts`、`frontend/src/api/engagementApi.ts`、`frontend/src/views/CommunityHubView.vue`、`frontend/src/views/ProfileView.vue`；`database/migrations/20260825_social_realtime_foundation.sql`、`database/migrations/20260825_community_engagement_expansion.sql` | 玩家搜索、好友、私信、通知、资料、徽章、社区动态、讨论区、Oracle 持久化和 SignalR；交易报价方法见 3.5 节 |
+| 郭炫君 | `docs/group-d-community-achievement-contract.md`；`backend/src/SteamPlatform.Api/Features/Inventory/**`、`backend/src/SteamPlatform.Application/Inventory/**`、`backend/src/SteamPlatform.Infrastructure/Inventory/**`、`backend/tests/SteamPlatform.Api.Tests/Inventory*Tests.cs`；`backend/src/SteamPlatform.Api/Features/Community/**`、`backend/src/SteamPlatform.Application/Community/**`、`backend/src/SteamPlatform.Domain/Community/**`、`backend/src/SteamPlatform.Infrastructure/Community/**`、`backend/tests/SteamPlatform.Api.Tests/Community*Tests.cs`；`frontend/src/api/inventoryApi.ts`、`frontend/src/api/communityApi.ts`、`frontend/src/data/achievementCatalog.ts`、`frontend/src/views/InventoryView.vue`、`frontend/src/views/GameCommunityView.vue`、`frontend/public/assets/items/**`、`frontend/public/assets/achievements/**`；`database/migrations/20260709_cs2_item_template_image_assets.sql`、`database/migrations/20260710_item_template_image_assets_by_game.sql`、`database/migrations/20260713_group_d_achievement_seed.sql`、`tests/SteamPlatform.Database.Tests/AchievementMigrationTests.cs` | 饰品模板与实例、掉落、库存状态、评价版本、成就、工坊订阅及对应迁移 |
+| 张茗博 | `database/README.md`、`database/admin/**`、`database/data.sql`、`database/defense/**`、`database/demo/**`、`database/schema.sql`、`database/verify_defense.sql`、`database/verify_phase1.sql`、`database/migrations/20260825_demo_reset_audit.sql`；`tests/SteamPlatform.Database.Tests/DefenseScriptContractTests.cs`、`tests/SteamPlatform.Database.Tests/MigrationScriptConventionTests.cs`、`tests/SteamPlatform.Database.Tests/OracleSmokeTests.cs`、`tests/SteamPlatform.Database.Tests/README.md`、`tests/SteamPlatform.Database.Tests/SchemaContractTests.cs`、`tests/SteamPlatform.Database.Tests/SeedDataTests.cs`、`tests/SteamPlatform.Database.Tests/SqlFile.cs`、`tests/SteamPlatform.Database.Tests/SteamPlatform.Database.Tests.csproj`、`tests/SteamPlatform.Database.Tests/VerifyScriptTests.cs`；`tests/market-api.http`、`E-R图（改）.drawio`、`“Steam-”数字游戏平台系统（改）.pdma`、`图（改）/**`、`项目文档/“Steam-”数字游戏平台系统数据库设计文档.docx`、`docs/database-defense-runbook.md`；`backend/tools/SteamPlatform.DemoData/**`、`backend/tests/SteamPlatform.DemoData.Tests/**`；`backend/src/SteamPlatform.Api/Features/Market/**`、`backend/src/SteamPlatform.Application/Market/**`、`backend/src/SteamPlatform.Infrastructure/Market/**`、`backend/tests/SteamPlatform.Api.Tests/Market*Tests.cs`；`frontend/src/api/marketApi.ts`、`frontend/src/views/MarketView.vue`、`frontend/src/views/TradeOffersView.vue` | 45 表总体设计、全局 SQL/迁移规范/验证、演示数据恢复、市场撮合、交易报价、资产账本、执行计划和行锁 |
+
+各业务测试的具体断言仍由对应模块成员共同掌握。以上规则覆盖根目录、`_archive`、后端、数据库、文档、前端、测试、模型图和正式项目文档，不存在无人负责或多人同时作为第一责任人的跟踪文件。
+
+### 3.5 共享大文件的方法级责任
 
 以下文件承载多个业务域，不能用“整个文件都归某一个人”代替方法级学习：
 
 | 共享文件 | 方法或区域 | 第一责任人 |
 |---|---|---|
-| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | 钱包、充值、购买、订单、玩家退款申请 | E |
-| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | 免费入库、游戏库、游玩时长、CDKey 兑换 | F |
-| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | CDKey 批次生成 | B |
-| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | 管理员退款批准/拒绝 | D |
-| `backend/src/SteamPlatform.Api/Features/CoreTransactions/CoreTransactionEndpointExtensions.cs`、`backend/src/SteamPlatform.Application/CoreTransactions/CoreTransactionContracts.cs` | 与上面相同的端点和 DTO 分区 | B、D、E、F 各自对应 |
-| `backend/src/SteamPlatform.Infrastructure/Games/GameRepository.cs` | 开发商 CRUD、所有权隔离、管理员状态修改 | B；D 负责状态修改 |
-| `backend/src/SteamPlatform.Infrastructure/Games/GameRepository.cs` | 商店列表、详情、评价/成就/饰品概览查询 | C |
-| `backend/src/SteamPlatform.Infrastructure/Engagement/EngagementRepository.cs` | 资料、动态、讨论区 | H |
-| `backend/src/SteamPlatform.Infrastructure/Engagement/EngagementRepository.cs` | 交易报价 | I |
-| `backend/tests/`、`frontend/e2e/` | 测试框架、运行配置和总体验收 | J；具体业务断言由对应模块责任人共同掌握 |
-| `database/schema.sql` | 全局结构、约束、索引 | G |
+| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | 钱包、充值、购买、订单及资金流水 | 胡知鱼 |
+| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | `CreateRefundAsync`、`ListRefundsAsync`、`ListAllRefundsAsync`、`ApproveRefundAsync`、`RejectRefundAsync` 及退款审计事务 | 马祥珲 |
+| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | 免费入库、游戏库、游玩时长、CDKey 生成与兑换 | 徐京 |
+| `backend/src/SteamPlatform.Infrastructure/CoreTransactions/CoreTransactionService.cs` | 管理员退款批准/拒绝中的权限边界 | 李胤龙；退款交易与审计逻辑由马祥珲负责 |
+| `backend/src/SteamPlatform.Api/Features/CoreTransactions/CoreTransactionEndpointExtensions.cs`、`backend/src/SteamPlatform.Application/CoreTransactions/CoreTransactionContracts.cs` | 与上面相同的端点和 DTO 分区 | 胡知鱼、徐京、马祥珲、李胤龙各自对应 |
+| `backend/tests/SteamPlatform.Api.Tests/CoreTransactionWorkflowRegressionTests.cs` | 核心交易、授权、钱包与退款的跨模块回归 | 马祥珲 |
+| `backend/src/SteamPlatform.Infrastructure/Games/GameRepository.cs` | 开发商 CRUD、所有权隔离、管理员状态修改 | 周力扬；李胤龙负责管理员权限解释 |
+| `backend/src/SteamPlatform.Infrastructure/Games/GameRepository.cs` | 商店列表、详情、评价/成就/饰品概览查询 | 周力扬负责公开查询实现与列表需求，王子轩负责详情展示需求 |
+| `backend/src/SteamPlatform.Infrastructure/Social/SocialRepository.cs`、`frontend/src/api/socialApi.ts` | 玩家搜索、好友、私信和通知 | 靳岱泽 |
+| `backend/src/SteamPlatform.Infrastructure/Social/SocialRepository.cs`、`frontend/src/api/socialApi.ts` | 工坊浏览与订阅 | 郭炫君 |
+| `frontend/src/views/CommunityHubView.vue` | 玩家搜索、好友、动态与讨论区域 | 靳岱泽 |
+| `backend/src/SteamPlatform.Infrastructure/Engagement/EngagementRepository.cs`、`frontend/src/api/engagementApi.ts` | 资料、徽章、动态和讨论区 | 靳岱泽 |
+| `backend/src/SteamPlatform.Infrastructure/Engagement/EngagementRepository.cs`、`frontend/src/api/engagementApi.ts` | 交易报价 | 张茗博 |
+| `backend/tests/**`、`frontend/e2e/**` | 验收口径与结果汇总 | 马祥珲；测试配置与执行由对应文件责任人负责，业务断言由模块责任人掌握 |
+| `database/schema.sql` | 全局结构、约束、索引 | 张茗博 |
 | `database/schema.sql` | 各业务表含义与字段规则 | 对应业务责任人 |
 
-### 3.5 每个人的学习验收标准
+### 3.6 每个人的学习验收标准
 
-每个人在正式答辩前必须通过以下验收，不能只记住按钮顺序：
+所有成员在正式答辩前均须通过以下知识验收：
 
 1. 不看稿，在 90 秒内说明本模块的业务目标、核心表和关键约束。
 2. 在 60 秒内从前端页面定位到 API、Application、Infrastructure 和 Oracle 表。
 3. 解释一个正常流程、一个越权/重复操作失败流程和一个事务回滚场景。
 4. 指出至少一个本模块的自动化测试，并说明它防止什么回归。
 5. 能在云端演示本模块，且知道接口或网络失败时如何判断是前端、API 还是数据库问题。
-6. 能回答“为什么这样设计”，而不只回答“代码就是这样写的”。
+6. 能够说明关键设计决策的依据、约束条件与取舍。
 
 彩排时由其他成员随机从下列角度追问：权限、事务、并发、约束、索引、异常、测试、安全和可扩展性。任何一项答不上来，责任人必须回到上述文件补学，并在下一次彩排重新接受提问。
 
-### 3.6 现场提问转交规则
+### 3.7 现场提问转交规则
 
-1. A 听完老师问题后，只在问题归属不清时简短复述并点名责任人。
+1. 马祥珲听完老师问题后，只在问题归属不清时简短复述并点名责任人。
 2. 被点名者先用一句话给结论，再解释代码路径和数据库依据，控制在 30 至 60 秒。
-3. 跨业务与数据库的问题由业务责任人先答，G 再补充表、约束、索引或事务证据。
-4. 涉及“如何证明测试过、如何部署、如何恢复”的问题由 J 补充。
-5. 其他成员不得抢答或给出不同口径；发现表述遗漏时先由 A 邀请补充。
-6. A 负责最终收束，确保回答与 README、课程要求和既定技术路线一致。
+3. 跨业务与数据库的问题由业务责任人先答，张茗博再补充表、约束、索引或事务证据。
+4. 总体验收与跨模块回归由马祥珲回答；HTTPS 与后端部署由李胤龙回答，CI 与 Playwright 由元梓浩回答，演示数据恢复由张茗博回答。
+5. 其他成员不得抢答或给出不同口径；发现表述遗漏时先由马祥珲邀请补充。
+6. 马祥珲负责最终收束，确保回答与 README、课程要求和既定技术路线一致。
 
 ## 4. 固定账号与现场数据
 
@@ -400,15 +447,15 @@ J 必须完全讲明白：单元测试、契约测试、Oracle 冒烟测试和 P
 |---|---|
 | Klei 临时游戏 | `Survival Lab`，原价 `68.00`，折扣系数 `0.80` |
 | Valve 临时游戏 | `Tactical Arena Lab`，原价 `88.00`，折扣系数 `0.90` |
-| Klei CDKey 批次 | 数量 1，当前时间生效，一个月后过期 |
+| Klei CDKey 批次 | 批次号 `DST-DEFENSE-LIVE`，数量 1，当前时间生效，30 天后过期 |
 | 玩家甲充值与购买 | 充值 `60.00`，购买 DST `24.00` |
-| 玩家乙市场充值 | `100.00` |
+| 玩家乙市场充值 | `150.00` |
 | 玩家甲饰品售价 | `49.00` |
 | 市场平台费率 | 5%，手续费 `2.45`，卖方实收 `46.55` |
 
 ## 5. 答辩前 30 分钟检查
 
-G 执行以下工作：
+张茗博执行以下工作：
 
 1. 运行演示恢复工具 `reset`，保存运行编号。
 2. 确认 `/api/health` 和 `/health/database` 均返回 `OK`。
@@ -417,157 +464,368 @@ G 执行以下工作：
 5. 打开 Oracle 只读查询、总验收结果、执行计划和行锁证据。
 6. 准备最新 1080p 备用录屏，但不在主演示中播放。
 
-B-G 执行以下工作：
+徐京、王子轩、李胤龙、胡知鱼、靳岱泽、张茗博执行以下工作：
 
 1. 所有浏览器缩放保持 100%，关闭无关扩展、通知和悬浮窗口。
-2. B、C、D 停留在各自登录页，不提前提交业务。
-3. E、F 停留在注册页。
+2. 徐京、王子轩、李胤龙停留在各自登录页，不提前提交业务。
+3. 胡知鱼、靳岱泽停留在注册页。
 4. 每台电脑确认 HTTPS 页面可访问，中文、图片和视频正常。
-5. B 的电脑准备一个仅本机可见的临时文本框，用于保存本轮生成的 CDKey；不得把 CDKey 写入 Git 或公开文档。
+5. 徐京的电脑准备一个仅本机可见的临时文本框，用于保存本轮生成的 CDKey；不得把 CDKey 写入 Git 或公开文档。
 
-A 完成一次屏幕共享顺序检查：A → B → C → D → E/F → D → G → A。
+马祥珲最后新建一个无痕或 InPrivate 浏览器窗口，并从根路径 `/` 打开正式站点。该窗口不得提前关闭启动公告；新会话必须不存在 `game-deck-startup-announcement-dismissed:2026-08-25` 这一 `sessionStorage` 标记，以确保 0:00 时展示商店首页及其公告浮窗。
+
+马祥珲完成一次屏幕共享顺序检查：马祥珲 → 徐京 → 王子轩 → 李胤龙 → 胡知鱼/靳岱泽 → 李胤龙 → 张茗博 → 马祥珲。
 
 ## 6. 20 分钟精确时间轴
 
 | 时间 | 操作电脑 | 内容 | 目标结束时间 |
 |---|---|---|---|
-| 0:00-0:50 | A | 项目定位、技术路线、五层结构 | 0:50 |
-| 0:50-2:05 | B | Klei 创建 `Survival Lab` 和 1 个 DST CDKey | 2:05 |
-| 2:05-2:55 | C | Valve 证明隔离并创建 `Tactical Arena Lab` | 2:55 |
-| 2:55-3:45 | D | 管理员只上架 `Survival Lab` | 3:45 |
-| 3:45-5:20 | E、F | 两名玩家注册、发送并接受好友请求 | 5:20 |
-| 5:20-6:40 | E、F | 商店审核结果、CS2 免费入库、各掉落一件饰品 | 6:40 |
-| 6:40-8:45 | E、F | 玩家甲购买 DST；玩家乙兑换并重复兑换 CDKey | 8:45 |
-| 8:45-10:15 | E、F | SignalR 聊天、评测、成就、工坊订阅 | 10:15 |
-| 10:15-13:20 | E、F | 玩家甲上架饰品，玩家乙立即购买，核对账本 | 13:20 |
-| 13:20-14:40 | E、D | 玩家甲申请退款，管理员审核通过 | 14:40 |
-| 14:40-17:20 | G | Oracle 数据、索引、执行计划与行锁证据 | 17:20 |
-| 17:20-18:40 | A | 安全、测试、部署和团队协作 | 18:40 |
-| 18:40-19:25 | A | 总结 | 19:25 |
+| 0:00-0:50 | 马祥珲 | 商店首页与启动公告、项目定位、技术路线、五层结构 | 0:50 |
+| 0:50-2:05 | 徐京 | Klei 创建 `Survival Lab` 和 1 个 DST CDKey | 2:05 |
+| 2:05-2:55 | 王子轩 | Valve 证明隔离并创建 `Tactical Arena Lab` | 2:55 |
+| 2:55-3:45 | 李胤龙 | 管理员只上架 `Survival Lab` | 3:45 |
+| 3:45-5:20 | 胡知鱼、靳岱泽 | 两名玩家注册、发送并接受好友请求 | 5:20 |
+| 5:20-6:40 | 胡知鱼、靳岱泽 | 商店审核结果、CS2 免费入库、各掉落一件饰品 | 6:40 |
+| 6:40-8:45 | 胡知鱼、靳岱泽 | 玩家甲购买 DST；玩家乙兑换并重复兑换 CDKey | 8:45 |
+| 8:45-10:15 | 胡知鱼、靳岱泽 | SignalR 聊天、评测、成就、工坊订阅 | 10:15 |
+| 10:15-13:20 | 胡知鱼、靳岱泽 | 玩家甲上架饰品，玩家乙立即购买，核对账本 | 13:20 |
+| 13:20-14:40 | 胡知鱼、李胤龙 | 玩家甲申请退款，管理员审核通过 | 14:40 |
+| 14:40-17:20 | 张茗博 | Oracle 数据、索引、执行计划与行锁证据 | 17:20 |
+| 17:20-18:40 | 马祥珲 | 安全、工程质量、团队协作与总体验收 | 18:40 |
+| 18:40-19:25 | 马祥珲 | 总结 | 19:25 |
 | 19:25-20:00 | 全员 | 网络延迟、切屏或老师打断缓冲 | 20:00 |
+
+硬性时间控制：10:15 必须结束社区环节，14:40 必须结束业务页面操作，17:20 必须离开 Oracle 证据。累计延迟达到 30 秒时，张茗博只展示总验收结论、玩家资金/授权查询和市场成交查询，执行计划与双会话锁改用预先保存的本轮截图；不得压缩最后的总结，也不得为了补一个次要页面让总时长超过 20 分钟。
 
 ## 7. 逐步演示与讲解词
 
-### 7.1 开场与架构，0:00-0:50，A
+本节是正式演示脚本。所有成员按“操作 → 等待结果 → 指向证据 → 讲解”的顺序执行。引号中的内容可直接照念；方括号中的内容是动作提示，不需要读出。除马祥珲负责开场、串场和总结外，业务讲解均由当前屏幕的实际操作者完成。出现加载状态时先等待成功提示，不连续点击按钮，也不临时补充本节之外的功能。
 
-A 展示一页架构图并讲解：
+### 7.1 开场与架构，0:00-0:50，马祥珲
 
-> 本项目实现了一个仿 Steam 的数据库应用。浏览器访问 Vue 单页应用，Nginx 负责 HTTPS 和反向代理，ASP.NET Core .NET 10 按 Api、Application、Domain、Infrastructure、Shared 五层处理业务，最终访问腾讯云 Oracle。接下来我们用两名新玩家、两家开发商和一名管理员现场完成整个平台生命周期。
+1. [保持投影在马祥珲电脑；从正式 HTTPS 根路径 `/` 打开网站。等待商店首页和启动公告浮窗同时出现。]
 
-只讲数据流和五层职责，不在开场逐表朗读数据库。
+   马祥珲说：
 
-### 7.2 Klei 提交内容与 CDKey，0:50-2:05，B
+   > 老师好，本项目是部署在腾讯云上的“Steam-数字游戏平台系统”。根路径进入商店，浮窗来自 Oracle 公告数据。
 
-1. 选择 `DEVELOPER`，登录 `klei@example.com`。
-2. 打开“开发商游戏管理”，指出列表中只有 Klei 的 DST。
-3. 创建 `Survival Lab`，原价 68，折扣系数 0.80，发行日期为当天，口碑留空。
-4. 指出创建结果固定为 `OFFLINE`，不能直接进入商店。
-5. 打开“CDKey 批次”，为 DST 生成 1 个当前生效、一个月后过期的 CDKey。
-6. 将明文 CDKey 保存在 B 电脑的临时文本框，稍后交给 F；不在投影上长时间停留。
+2. [用鼠标依次指向公告图片、标题、轮播圆点和右上角关闭按钮，不点击“点击查看详细信息”；随后点击右上角关闭按钮。]
 
-B 讲解：
+   马祥珲说：
 
-> 开发商只能提交内容，不能自行公开上架。CDKey 明文只在创建响应中展示一次，Oracle 只保存哈希。
+   > 公告支持轮播和有效期。现在关闭浮窗，继续演示真实业务。
 
-预期数据库变化：`GAME` 新增一条 OFFLINE 记录；`CDKEY_BATCH` 和 `CDKEY` 各新增记录。
+3. [切到准备好的系统架构图，鼠标沿“浏览器 → Nginx → ASP.NET Core → Oracle”方向移动。]
 
-### 7.3 Valve 证明开发商隔离，2:05-2:55，C
+   马祥珲说：
 
-1. 选择 `DEVELOPER`，登录 `valve@example.com`。
-2. 打开“开发商游戏管理”，指出只能管理 CS2，看不到 Klei 的 `Survival Lab`。
-3. 创建 `Tactical Arena Lab`，原价 88，折扣系数 0.90，状态自动为 `OFFLINE`。
+   > 系统采用 B/S 架构：Vue 经 HTTPS 和 Nginx 访问 .NET 10 后端，数据进入 Oracle；后端按 Api、Application、Domain、Infrastructure、Shared 五层组织。下面演示完整业务生命周期。
 
-C 讲解：
+4. [切屏给徐京。]
 
-> 开发商主体 ID 来自 JWT。即使修改前端请求，也不能以 Valve 身份更新 Klei 的游戏。
+   马祥珲只说：
 
-### 7.4 管理员选择性上架，2:55-3:45，D
+   > 下面由徐京演示 Klei 开发商。
 
-1. 选择 `ADMIN`，登录 `rootadmin`。
-2. 打开“管理 / 游戏上下架”，切换到“已下架”。
-3. 找到两家开发商刚提交的游戏。
-4. 只将 `Survival Lab` 上架；`Tactical Arena Lab` 保持下架。
+### 7.2 Klei 提交内容与 CDKey，0:50-2:05，徐京
 
-D 讲解：
+1. [登录页角色选择“开发商”，账号输入 `klei@example.com`，密码输入 `klei`，点击“登录”。]
 
-> 内容维护和公开审核相互分离。只有 ADMIN 可以调用上下架接口，开发商和玩家访问会被拒绝。
+   徐京说：
 
-### 7.5 两名玩家注册并成为好友，3:45-5:20，E、F
+   > 我使用 Klei 开发商账号登录，开发商身份由 JWT 确定。
 
-E 注册 `defense_p1 / 答辩玩家甲 / Demo123456`，F 同时注册 `defense_p2 / 答辩玩家乙 / Demo123456`。
+2. [展开顶部“管理”，点击“游戏管理”。等待“开发商游戏管理”页面加载；指向“当前开发商”和“我的游戏”中的 DST。]
 
-注册完成后：
+   徐京说：
 
-1. E 打开玩家搜索，搜索“答辩玩家乙”并发送好友请求。
-2. F 打开社区人员页，接受来自玩家甲的请求。
-3. E 刷新，双方显示“已经是好友”。
+   > 页面只返回当前开发商的游戏。这里能看到 Klei 的 DST，看不到 Valve 的 CS2。
 
-A 讲解：
+3. [在“新建游戏”表单依次填写：游戏名称 `Survival Lab`，原价 `68.00`，折扣系数 `0.80`，发行日期选择当天，口碑保持“暂无口碑”；指一下价格预览，然后点击“创建游戏”。]
 
-> 玩家可以公开注册。注册会创建 `PLAYER` 和一对一的 `WALLET_ACCOUNT`，初始可用和冻结余额均为 0。好友关系由 Oracle 保存，不是浏览器本地状态。
+   徐京边填边说：
 
-### 7.6 商店审核结果、CS2 免费入库与掉落，5:20-6:40，E、F
+   > 我提交临时游戏，原价 68 元、折扣系数 0.80，开发商不能指定公开状态。
 
-1. E 打开公开商店，搜索到已经上架的 `Survival Lab`。
-2. 搜索 `Tactical Arena Lab`，确认下架游戏不可见。
-3. E、F 分别打开 CS2，点击“免费入库”。
-4. 两人分别进入 CS2 库存，点击一次“模拟掉落”并确认。
-5. E 记录自己掉落物品的名称、`item_id` 和 `template_id`。
+4. [等待“游戏已创建”成功提示；在“我的游戏”中找到 `Survival Lab`，指向“已下架”状态。]
 
-A 讲解：
+   徐京说：
 
-> CS2 免费入库仍会生成零元订单、明细、支付记录和 `PLAYER_LIBRARY` 授权，但钱包不变。库存物品是带实例编号、磨损、所有者和状态的实体，不是模板数量。
+   > 创建后状态固定为 OFFLINE。Oracle 已新增游戏，但必须经管理员审核才能公开。
 
-### 7.7 DST 的购买授权与 CDKey 授权，6:40-8:45，E、F
+5. [再次展开“管理”，点击“CDKey 批次”。确认“游戏”为饥荒联机版；把“批次号”改为 `DST-DEFENSE-LIVE`，数量改为 `1`，生效时间和过期时间保留页面默认值；点击“生成 CDKey”。]
 
-E 执行钱包购买：
+   徐京说：
 
-1. 充值 60 元，默认使用微信模拟支付。
-2. 购买折后 24 元的 DST。
-3. 打开钱包流水，确认 `+60.00` 和 `-24.00`，余额为 `36.00`。
-4. 打开游戏库，确认 CS2 和 DST 均存在。
+   > 现在为 DST 生成一个兑换码，当前生效，三十天后过期。
 
-F 执行 CDKey 兑换：
+6. [等待“本次生成结果”和“明文只展示一次”出现；复制唯一的 CDKey 到本机临时文本框，并通过私下消息发送给靳岱泽。]
 
-1. 从 B 获取刚生成的明文 CDKey。
-2. 兑换成功后打开游戏库，确认 DST 的授权来源为兑换，钱包仍为 0。
-3. 再次输入同一个 CDKey，展示“已经兑换”的可解释结果。
+   徐京说：
 
-A 讲解：
+   > 明文只展示一次，Oracle 长期保存哈希。本次新增批次和 CDKey，稍后由玩家乙兑换。
 
-> 玩家甲通过 BUY 获得 DST，玩家乙通过 REDEEM 获得同一游戏。重复兑换不会产生第二份权益，并写入 `CDKEY_REDEEM_LOG`。
+7. [切屏前把页面停在生成结果，不再生成第二批。]
 
-### 7.8 好友聊天、评测、成就与工坊，8:45-10:15，E、F
+   徐京说：
 
-1. E、F 同时打开“好友与聊天”。
-2. E 发送“答辩实时消息：Oracle 与 SignalR 已贯通”。
-3. F 不刷新页面，展示实时通知和聊天内容。
-4. F 刷新聊天，确认历史消息仍然存在。
-5. E 打开 DST 社区，发表推荐评测并解锁 `First Night Together`。
-6. F 打开 DST 工坊，订阅“自动整理箱”，刷新后仍显示已订阅。
+   > Klei 操作完成，下面切换到 Valve。
 
-A 讲解：
+### 7.3 Valve 证明开发商隔离，2:05-2:55，王子轩
 
-> SignalR 只负责实时通知，`DIRECT_MESSAGE` 才是消息真相。评测、成就和工坊订阅同样由 Oracle 持久化，并在后端检查游戏所有权。
+1. [登录页角色选择“开发商”，账号输入 `valve@example.com`，密码输入 `valve`，点击“登录”；展开“管理”，点击“游戏管理”。]
 
-### 7.9 两名新玩家完成 CS2 饰品交易，10:15-13:20，E、F
+   王子轩说：
+
+   > 我使用 Valve 账号登录。列表中只有 Valve 的 CS2，看不到 Klei 的 `Survival Lab`。
+
+2. [快速滚动“我的游戏”列表确认不存在 `Survival Lab`，然后回到“新建游戏”表单。依次填写：游戏名称 `Tactical Arena Lab`，原价 `88.00`，折扣系数 `0.90`，发行日期为当天，口碑保持“暂无口碑”；点击“创建游戏”。]
+
+   王子轩边操作边说：
+
+   > 我提交第二款临时游戏。后端查询和修改都校验 `dev_id`，Valve 无法管理 Klei 数据。
+
+3. [等待成功提示，在列表中指向 `Tactical Arena Lab` 的“已下架”状态。]
+
+   王子轩说：
+
+   > 第二款游戏同样默认下架，公开权统一交给管理员。
+
+4. [切屏给李胤龙。]
+
+   王子轩说：
+
+   > 下面由管理员选择性审核。
+
+### 7.4 管理员选择性上架，2:55-3:45，李胤龙
+
+1. [登录页角色选择“管理员”，账号输入 `rootadmin`，密码输入 `admin`，点击“登录”。]
+
+   李胤龙说：
+
+   > 我使用管理员账号登录，负责平台级审核。
+
+2. [展开顶部“管理”，点击“游戏上下架”；在状态筛选中点击“已下架”。]
+
+   李胤龙说：
+
+   > “已下架”列表显示两家开发商刚提交、尚未公开的游戏。
+
+3. [在 `Survival Lab` 行点击“上架”，等待“Survival Lab 已上架”提示；不要操作 `Tactical Arena Lab`。]
+
+   李胤龙说：
+
+   > 我只上架 `Survival Lab`；`Tactical Arena Lab` 保持下架。上下架接口只允许 ADMIN 调用。
+
+4. [保持管理员登录，不退出；切屏给胡知鱼和靳岱泽。]
+
+   李胤龙说：
+
+   > 内容维护与审核相互分离。管理员保持登录，稍后继续审核退款。
+
+### 7.5 两名玩家注册并成为好友，3:45-5:20，胡知鱼、靳岱泽
+
+1. [两台玩家电脑同时开始。胡知鱼在注册页填写账号 `defense_p1`、昵称“答辩玩家甲”、密码 `Demo123456`；靳岱泽填写账号 `defense_p2`、昵称“答辩玩家乙”、同一演示密码。两人同时点击“注册”。]
+
+   胡知鱼说：
+
+   > 我现场注册玩家甲。公开注册只能创建 PLAYER 角色。
+
+   靳岱泽接着说：
+
+   > 我同时注册玩家乙。系统会创建一对一的钱包账户，初始余额为零。
+
+2. [两人等待跳转到“账户”页面，分别指向自己的账号和 PLAYER 角色，确认没有使用预置 Alice/Bob。]
+
+   胡知鱼说：
+
+   > 两个账号均为本轮新数据，后续业务都由他们完成。
+
+3. [胡知鱼点击顶部“社区”，再点击页面选项卡“寻找玩家”；在“搜索玩家”中输入“答辩玩家乙”，等待搜索结果，点击“添加好友”。]
+
+   胡知鱼说：
+
+   > 我搜索玩家乙并发送好友请求，关系先进入 PENDING。
+
+4. [切到靳岱泽电脑；进入“社区 → 寻找玩家”，在右侧“待处理请求”找到“答辩玩家甲”，点击接受图标或在搜索结果中点击“接受”。]
+
+   靳岱泽说：
+
+   > 玩家乙收到请求，接受后状态变为 ACCEPTED。
+
+5. [切回胡知鱼电脑；刷新“寻找玩家”页或重新搜索“答辩玩家乙”，指向“已经是好友”。]
+
+   胡知鱼说：
+
+   > 刷新后仍显示“已经是好友”，证明关系保存在 Oracle。
+
+### 7.6 商店审核结果、CS2 免费入库与掉落，5:20-6:40，胡知鱼、靳岱泽
+
+1. [胡知鱼点击顶部“商店”，在商店搜索框输入 `Survival Lab`，展示搜索结果；随后改为 `Tactical Arena Lab`，确认没有结果。]
+
+   胡知鱼说：
+
+   > `Survival Lab` 已进入公开商店，未审核的 `Tactical Arena Lab` 不可见，公开查询只返回 ONLINE 游戏。
+
+2. [胡知鱼和靳岱泽分别在商店搜索 `Counter-Strike 2`，进入详情页，点击绿色“免费入库”；等待页面显示已加入游戏库或按钮变为“开始游戏”。]
+
+   胡知鱼说：
+
+   > 玩家甲免费领取 CS2。系统仍记录零元订单、支付和游戏库授权，但钱包不变。
+
+   靳岱泽说：
+
+   > 玩家乙也完成免费入库，两人各有独立授权。
+
+3. [两人分别点击顶部“库存”，确认游戏分类为 CS2；每人只点击一次“模拟掉落”，在浏览器确认框中选择确定，并等待“已获得……”成功提示。]
+
+   胡知鱼说：
+
+   > 玩家甲获得一件 CS2 饰品，钱包和物品所有权相互独立。
+
+   靳岱泽说：
+
+   > 玩家乙也获得一件独立饰品。每次掉落都从模板生成唯一实例，并保存所有者、磨损率和状态。
+
+4. [胡知鱼选中刚掉落且带有“这是刚刚模拟掉落获得的新饰品”提示的物品；把页面中的“饰品实例”和“图案模板”复制到本机临时记录，并私下发送给靳岱泽、张茗博。]
+
+   胡知鱼说：
+
+   > 我记录 `item_id` 和 `template_id`。市场按模板聚合，成交按唯一实例转移。
+
+### 7.7 DST 的购买授权与 CDKey 授权，6:40-8:45，胡知鱼、靳岱泽
+
+1. [胡知鱼点击顶部“钱包”，在充值金额列表找到 60 元一行并点击“充值”；在“支付方式”页明确选择“微信支付”，核对充值金额 60 元后点击“确认充值”。]
+
+   胡知鱼说：
+
+   > 玩家甲通过模拟微信支付充值 60 元，系统同时更新余额并写入充值流水。
+
+2. [等待“充值成功，当前钱包余额 ¥60.00”提示；点击“商店”，打开饥荒联机版详情；指向原价、折扣和折后价 24 元，点击“购买游戏”。]
+
+   胡知鱼说：
+
+   > DST 原价 48 元，折扣系数 0.50，应付 24 元。
+
+3. [在“复核并购买”页确认购入账户是 `defense_p1`、合计 24 元；支付方式选择“Steam 钱包”，点击“支付”，等待成功后跳转。]
+
+   胡知鱼说：
+
+   > 使用 Steam 钱包支付。订单、明细、支付、扣款流水和游戏库授权在同一事务中完成。
+
+4. [打开顶部账号菜单中的“购买历史”或进入“钱包 → 查看我的账户明细”；指向 `+60.00` 充值和 `-24.00` 购买两条记录，再展示当前余额 `36.00`；点击顶部“库”，确认 CS2 与 DST 都在库中。]
+
+   胡知鱼说：
+
+   > 流水显示加 60、减 24，余额 36 元；游戏库已有 CS2 和 BUY 来源的 DST。
+
+5. [切到靳岱泽电脑；点击底部“添加游戏”或顶部“激活产品”，把徐京私下发送的 CDKey 粘贴到“在此处输入您的产品代码”，点击“确认”。]
+
+   靳岱泽说：
+
+   > 玩家乙不购买，直接兑换 CDKey。校验哈希、有效期和状态后写入 REDEEM 授权。
+
+6. [等待成功提示；打开“库”，确认 DST 已出现，再进入钱包确认余额仍为 0。]
+
+   靳岱泽说：
+
+   > DST 已入库，来源为 REDEEM，钱包仍为零。
+
+7. [再次进入“激活产品”，粘贴同一个 CDKey，点击“确认”；指向“您已经拥有该游戏”或结果 `REDEEMED`。]
+
+   靳岱泽说：
+
+   > 重复提交不会生成第二份权益，并在兑换日志中保留 REDEEMED 结果。
+
+### 7.8 好友聊天、评测、成就与工坊，8:45-10:15，胡知鱼、靳岱泽
+
+1. [两人都点击页面右下角“好友与聊天”。胡知鱼在好友列表选择“答辩玩家乙”，输入“答辩实时消息：Oracle 与 SignalR 已贯通”，点击发送图标。]
+
+   胡知鱼说：
+
+   > 消息先写入 `DIRECT_MESSAGE`，提交后再由 SignalR 实时推送。
+
+2. [立刻切到靳岱泽电脑，不刷新页面；指向实时出现的消息和通知。]
+
+   靳岱泽说：
+
+   > 玩家乙未刷新就收到消息；SignalR 负责推送，Oracle 负责持久化。
+
+3. [靳岱泽关闭并重新打开“好友与聊天”，或刷新页面后重新选择玩家甲；确认消息仍存在。]
+
+   靳岱泽说：
+
+   > 重新载入后消息仍在，实时连接中断不会丢失数据。
+
+4. [切回胡知鱼电脑；进入“库 → 饥荒联机版 → 社区中心”，选择“评测”；保持“推荐”，输入“联机生存体验完整，推荐和好友一起游玩。”，点击“发表评测”。]
+
+   胡知鱼说：
+
+   > 玩家甲拥有 DST，后端校验有效授权后保存评测及版本记录。
+
+5. [等待“评价已发表”；切到靳岱泽电脑，进入 DST“社区中心”，点击“成就”，找到 `First Night Together` 并点击“解锁”。]
+
+   靳岱泽说：
+
+   > 玩家乙有 REDEEM 授权，可以解锁项目自定义成就；唯一约束防止重复解锁。
+
+6. [点击“创意工坊”；搜索“自动整理箱”，在对应卡片点击“订阅”；等待“工坊作品已同步订阅”，然后把排序改为“我的订阅”或刷新页面，确认仍显示该作品。]
+
+   靳岱泽说：
+
+   > 刷新后订阅仍在，说明工坊订阅由 Oracle 持久化。
+
+### 7.9 两名新玩家完成 CS2 饰品交易，10:15-13:20，胡知鱼、靳岱泽
 
 本流程采用“卖方先挂单、买方立即购买”，不使用预置 Alice/Bob 订单，也不使用可能匹配到其他模板的全局撮合按钮。
 
-E 执行卖方操作：
+1. [胡知鱼返回“库存”，选择刚才记录的 CS2 饰品实例，确认状态为 `NORMAL`；点击“出售”。]
 
-1. 打开刚掉落的 CS2 饰品实例。
-2. 点击“出售”，固定填写 `49.00`。
-3. 确认实例状态由 `NORMAL` 变为 `IN_MARKET`。
-4. 将物品名称或模板编号告诉 F。
+   胡知鱼说：
 
-F 执行买方操作：
+   > 我选择本轮掉落的唯一实例。只有所有者能出售 NORMAL 状态物品。
 
-1. 先充值 `100.00`。
-2. 在市场搜索 E 的物品模板。
-3. 打开该模板，确认当前最低售价为 `49.00`。
-4. 点击“立即购买”。该操作创建绑定本次购买的买单并立即撮合最低卖单。
-5. 查看成交记录、钱包和库存。
+2. [在“出售库存物品”窗口再次核对“饰品实例”和“图案模板”；“出售价格”输入 `49.00`，点击“确认出售”。]
+
+   胡知鱼说：
+
+   > 我以 49 元创建卖单，系统校验所有权并把实例改为 IN_MARKET。
+
+3. [等待“已为……创建出售挂单”提示；重新选中该物品，指向状态 `IN_MARKET`；把物品名称和 `template_id` 告诉靳岱泽。]
+
+   胡知鱼说：
+
+   > IN_MARKET 状态防止重复出售；市场按模板展示，成交精确到实例。
+
+4. [切到靳岱泽电脑；进入“钱包”，选择 150 元一行的“充值”，支付方式选择“微信支付”，点击“确认充值”；等待余额变为 150 元。]
+
+   靳岱泽说：
+
+   > 玩家乙充值 150 元，稍后直接核对市场扣款。
+
+5. [点击顶部“社区市场”；保持“游戏内物品”，在“筛选结果...”输入胡知鱼提供的物品名称或 `template_id`；等待只出现对应模板。]
+
+   靳岱泽说：
+
+   > 市场按模板聚合同类物品，我用模板编号精确搜索。
+
+6. [点击搜索结果卡片或价格按钮；在“社区市场交易”窗口指向“当前最低售价”49 元和“将以当前最低售价立即购买一件在售物品”。]
+
+   靳岱泽说：
+
+   > 当前最低卖价是 49 元，系统将按价格和时间优先立即撮合。
+
+7. [点击“立即购买”一次，等待成功提示；不要重复点击。]
+
+   靳岱泽说：
+
+   > 撮合事务同时处理订单、钱包、手续费、成交、流水和所有权，失败则整体回滚。
+
+8. [依次点击市场顶部“市场交易记录”，找到刚完成的成交；打开钱包确认余额 101 元；打开库存确认收到同一个饰品实例。]
+
+   靳岱泽说：
+
+   > 成交价 49 元，余额变为 101 元；库存收到的是同一个实例。
 
 预期结果：
 
@@ -576,21 +834,47 @@ F 执行买方操作：
 平台费 49.00 x 5%            2.45
 玩家甲实收                  46.55
 玩家甲成交后余额 36 + 46.55 82.55
-玩家乙成交后余额 100 - 49    51.00
+玩家乙成交后余额 150 - 49   101.00
 玩家乙冻结余额                0.00
 ```
 
-E 打开物品流转账本，按本轮 `item_id` 查询，确认物品由玩家甲转移到玩家乙。F 在库存中确认收到同一个实例。
+9. [切回胡知鱼电脑；打开原饰品的“饰品流转记录”，点击“更新”；确认记录显示由玩家甲转移到玩家乙，同时打开钱包确认余额为 82.55 元。]
 
-A 讲解：
+   胡知鱼说：
 
-> 撮合事务同时写市场订单、成交、钱包、钱包流水、库存所有权和物品流转账本。买卖双方 ID 和物品 ID 均来自已锁定的数据库记录，前端不能指定结算结果。
+   > 平台费 2.45 元，玩家甲实收 46.55 元，余额变为 82.55 元；流转记录证明该实例已转给玩家乙。
 
-### 7.10 玩家退款与管理员审核，13:20-14:40，E、D
+### 7.10 玩家退款与管理员审核，13:20-14:40，胡知鱼、李胤龙
 
-1. E 打开退款页，选择刚购买的 DST 订单并提交全额退款。
-2. D 打开“管理 / 退款审核”，通过最新 PENDING 申请。
-3. E 刷新钱包、订单和游戏库。
+1. [胡知鱼点击顶部“客服”或窗口菜单“帮助”，进入“退款申请”；在“选择订单”中选择本轮 DST 订单，确认可退金额 24 元；保留默认退款原因“体验不符合预期，申请课程演示退款。”，点击“提交退款”。]
+
+   胡知鱼说：
+
+   > 玩家只能对自己的可退款订单申请。提交后状态为 PENDING，钱包和授权暂不改变。
+
+2. [等待“退款申请已提交”提示；在“我的退款单”中指向最新记录的订单号、金额 24 元和状态 PENDING。]
+
+   胡知鱼说：
+
+   > 申请已写入 Oracle，金额来自订单明细。下面由管理员审核。
+
+3. [切到一直保持登录的李胤龙电脑；展开“管理”，点击“退款审核”，点击“刷新”，找到最新一张金额 24 元、状态 PENDING 的退款单；核对订单号后点击“通过”。]
+
+   李胤龙说：
+
+   > 管理员核对退款号、订单、金额和状态，玩家不能调用此接口。
+
+4. [等待“退款单……已更新为 APPROVED”提示；指向该行状态 APPROVED，确认“通过”和“拒绝”按钮已不可再次操作。]
+
+   李胤龙说：
+
+   > 审批事务回补 24 元，更新支付和订单，撤销 BUY 授权并写审计日志；重复审批不会重复入账。
+
+5. [切回胡知鱼电脑；刷新钱包，确认余额 106.55 元；进入“购买历史”打开本轮 DST 交易，确认 CLOSED / REFUNDED；打开“库”，确认玩家甲的 DST 已不再作为正常授权显示。]
+
+   胡知鱼说：
+
+   > 玩家甲余额变为 106.55 元，订单与支付保留终态，BUY 权益被撤销；玩家乙的 REDEEM 权益不受影响。
 
 预期结果：
 
@@ -598,22 +882,22 @@ A 讲解：
 玩家甲退款前余额              82.55
 退款入账                      24.00
 玩家甲最终余额               106.55
-订单状态          CLOSED / REFUNDED
-DST 授权                      REVOKED
+订单业务状态                  CLOSED
+订单支付状态               REFUNDED
+退款单状态                 APPROVED
+玩家甲 DST 授权       REVOKED / BUY
 玩家乙 DST 授权      NORMAL / REDEEM
 ```
 
-A 讲解：
+退款模块的知识责任人是马祥珲；正式演示中的页面操作和上述讲解仍分别由胡知鱼、李胤龙完成。老师在演示后追问事务实现、幂等或跨模块回归时，再由马祥珲回答代码与测试细节。
 
-> 退款不会删除原购买记录，而是在一个事务中更新退款单、明细、订单、支付、钱包和授权，并写管理员审核日志。玩家乙的 CDKey 权益不受玩家甲退款影响。
+### 7.11 Oracle 专项证据，14:40-17:20，张茗博
 
-### 7.11 Oracle 专项证据，14:40-17:20，G
+张茗博使用只读查询按以下顺序展示：
 
-G 使用只读查询按以下顺序展示：
-
-1. Klei 与 Valve 各自拥有的固定游戏和临时提交，只有 `Survival Lab` 为 ONLINE。
+1. Klei 与 Valve 各自拥有对应固定游戏和临时提交；固定样板 CS2、DST 保持 ONLINE，两款临时提交中只有 `Survival Lab` 为 ONLINE。
 2. 两名临时玩家、好友关系和聊天消息均存在。
-3. 玩家甲最终可用余额 106.55；玩家乙最终可用余额 51.00、冻结余额 0。
+3. 玩家甲最终可用余额 106.55；玩家乙最终可用余额 101.00、冻结余额 0。
 4. 玩家甲 DST 权益为 REVOKED；玩家乙 DST 权益为 NORMAL 且 `acquire_way = REDEEM`。
 5. 本轮市场成交价格、手续费、买卖双方和 `item_id` 与页面一致。
 6. `ITEM_TRANSFER_LEDGER` 显示该实例从玩家甲转移到玩家乙。
@@ -622,48 +906,184 @@ G 使用只读查询按以下顺序展示：
 9. 订单、市场和讨论查询分别使用对应业务索引。
 10. 双会话钱包行锁采用有限等待并安全回滚，不改变业务数据。
 
-G 只展示结论和三条代表性记录，不滚动大量 SQL 输出。详细脚本见 `database/verify_defense.sql`、`database/defense/` 和 `docs/database-defense-runbook.md`。
+张茗博只展示结论和三组代表性结果，不滚动大量 SQL 输出。正式答辩前把下列查询保存在同一只读 SQL 工作表中，现场只执行选中的语句；不得临时手敲表名或账号。
 
-### 7.12 安全、工程质量与总结，17:20-19:25，A
+现场按以下顺序操作和讲解：
 
-A 说明：
+1. [切到张茗博电脑。先展示已经打开的 `/api/health` 与 `/health/database` 两个页面，确认服务和 Oracle 均为 `OK`；随后切到预先连接好的 Oracle 只读 SQL 工作表，连接口令不得出现在投影中。]
 
-- JWT 验证 issuer、audience、HMAC-SHA256 签名和生命周期，浏览器仅在 `sessionStorage` 保存 token。
-- 登录和注册按真实客户端 IP 限流；Oracle 1521 和 API 内部端口不向公网开放。
-- 钱包、订单、退款和市场接口从 token 读取当前主体，不信任前端传入的用户 ID。
-- Nginx 已启用 CSP、HSTS、防 iframe 和其他安全响应头。
-- `main` 受保护，普通组员必须通过 PR、review 和 GitHub Actions `verify`。
-- 当前验收包括后端与工具测试 `208/208`、云端 Playwright `14/14`、Oracle 总验收 `21/21`、npm 审计 0 漏洞。
+   张茗博说：
 
-固定总结词：
+   > 页面操作已经形成真实数据。两个健康接口均为 OK，下面用只读 SQL 从 Oracle 侧交叉验证。
 
-> 我们现场使用了两名新注册玩家、两家相互隔离的开发商和一名管理员，完成了内容提交审核、两种游戏授权、钱包订单、实时社区、饰品交易和退款审计。每个页面结果都可以在 Oracle 业务表、资金账本和资产账本中交叉验证，因此本项目不是静态界面原型，而是一套可部署、可测试、可恢复的数据库应用系统。
+2. [展示本轮已经执行完成的 `database/verify_defense.sql` 结果页，只停留在 PASS 汇总，不从头滚动脚本。]
+
+   张茗博说：
+
+   > 21 项总验收全部通过：45 张表、45 个主键、至少 49 个业务索引；禁用约束、无效对象和跨表金额错误均为零。
+
+3. [执行下方第 1 组查询；用鼠标依次指向公司名、游戏名和状态列。]
+
+   张茗博说：
+
+   > 第一组验证开发商归属和审核：`Survival Lab` 在线，`Tactical Arena Lab` 下架，与页面一致。
+
+4. [执行第 2 组查询；先指玩家甲一行，再指玩家乙一行，最后指好友状态、消息数量和 CDKey 结果。]
+
+   张茗博说：
+
+   > 第二组验证玩家闭环：玩家甲余额 106.55 元、BUY 权益已撤销、退款已批准；玩家乙余额 101 元、REDEEM 权益正常。好友、消息和 CDKey 日志也都存在。
+
+5. [执行第 3 组查询；指向卖方、买方、`item_id`、成交价、手续费和账本方向。]
+
+   张茗博说：
+
+   > 第三组验证同一饰品：玩家甲卖给玩家乙，成交 49 元、平台费 2.45 元，成交和流转账本的 `item_id` 相同。
+
+6. [打开预先保存的三张执行计划截图或结果页，依次指向订单、市场、讨论查询使用的索引；再打开双会话钱包行锁证据，只展示有限等待和回滚结果。]
+
+   张茗博说：
+
+   > 订单、市场和讨论查询均命中相应索引。双会话行锁采用有限等待并在验证后回滚，可防止钱包并发超扣且不污染数据。
+
+7. [停在三组代表性结果的汇总页，切屏给马祥珲。]
+
+   张茗博说：
+
+   > 数据库证据与页面一致。下面进行最终总结。
+
+```sql
+-- 1. 两家开发商、固定样板与两款临时提交
+select d.company_name, g.game_name, g.status, g.base_price, g.discount_rate
+  from developer d
+  join game g on g.dev_id = d.dev_id
+ where d.contact_email in ('klei@example.com', 'valve@example.com')
+   and (g.game_id in ('GAME_CS2', 'GAME_DST')
+        or g.game_name in ('Survival Lab', 'Tactical Arena Lab'))
+ order by d.company_name, g.game_name;
+
+-- 2. 两名玩家的余额、DST 权益、订单/支付/退款终态与 CDKey 结果
+select p.account,
+       w.available_balance,
+       w.frozen_balance,
+       pl.status as dst_library_status,
+       pl.acquire_way as dst_acquire_way,
+       max(case when od.detail_id is not null then go.order_status end) as dst_order_status,
+       max(case when od.detail_id is not null then go.payment_status end) as dst_payment_status,
+       max(rt.status) as dst_refund_status,
+       (select listagg(crl.result, ',') within group (order by crl.create_time, crl.log_id)
+          from cdkey_redeem_log crl
+         where crl.user_id = p.user_id) as cdkey_results,
+       (select max(fr.status)
+          from friend_relation fr
+          join player low_player on low_player.user_id = fr.user_low_id
+          join player high_player on high_player.user_id = fr.user_high_id
+         where low_player.account in ('defense_p1', 'defense_p2')
+           and high_player.account in ('defense_p1', 'defense_p2')) as friend_status,
+       (select count(*)
+          from direct_message dm
+          join friend_relation fr on fr.relation_id = dm.relation_id
+          join player low_player on low_player.user_id = fr.user_low_id
+          join player high_player on high_player.user_id = fr.user_high_id
+         where low_player.account in ('defense_p1', 'defense_p2')
+           and high_player.account in ('defense_p1', 'defense_p2')) as message_count
+  from player p
+  join wallet_account w on w.user_id = p.user_id
+  left join player_library pl
+    on pl.user_id = p.user_id and pl.game_id = 'GAME_DST'
+  left join game_order go on go.user_id = p.user_id
+  left join order_detail od
+    on od.order_id = go.order_id and od.game_id = 'GAME_DST'
+  left join refund_ticket rt on rt.order_id = go.order_id
+ where p.account in ('defense_p1', 'defense_p2')
+ group by p.user_id, p.account, w.available_balance, w.frozen_balance,
+          pl.status, pl.acquire_way
+ order by p.account;
+
+-- 3. 本轮 CS2 成交与同一物品的资产转移
+select tr.trade_id,
+       seller.account as seller_account,
+       buyer.account as buyer_account,
+       tr.item_id,
+       tr.trade_price,
+       tr.platform_fee,
+       from_player.account as ledger_from,
+       to_player.account as ledger_to
+  from market_trade tr
+  join player seller on seller.user_id = tr.seller_id
+  join player buyer on buyer.user_id = tr.buyer_id
+  join item_transfer_ledger itl
+    on itl.item_id = tr.item_id and itl.transfer_type = 'TRADE'
+  left join player from_player on from_player.user_id = itl.from_user_id
+  join player to_player on to_player.user_id = itl.to_user_id
+ where seller.account = 'defense_p1'
+   and buyer.account = 'defense_p2'
+ order by tr.trade_time desc
+ fetch first 1 row only;
+```
+
+第一组结果应证明开发商隔离和审核状态；第二组应显示玩家甲 `106.55 / 0 / REVOKED / BUY / CLOSED / REFUNDED / APPROVED`，玩家乙 `101.00 / 0 / NORMAL / REDEEM` 且 CDKey 结果包含 `SUCCESS,REDEEMED`，两行的好友状态均为 `ACCEPTED`、消息数至少为 1；第三组应显示成交价 `49.00`、手续费 `2.45`，账本方向为玩家甲到玩家乙。任何一项不符时不得继续照念预设结论，应先按第 9 节故障预案处理。表/约束/索引、执行计划和行锁证据使用 `database/verify_defense.sql`、`database/defense/` 与 `docs/database-defense-runbook.md`。
+
+### 7.12 安全、工程质量与总结，17:20-19:25，马祥珲
+
+1. [切到事先准备好的安全与部署汇总页，页面只显示架构、开放端口和关键安全项，不展示任何密码、私钥或连接串。]
+
+   马祥珲说：
+
+   > JWT 验证签发者、接收方、签名和有效期。资金与资产接口从令牌读取主体，不信任前端传入的用户 ID。
+
+2. [指向网络拓扑中的 22、80、443 和仅回环监听的 1521；再指向 Nginx 安全响应头清单。]
+
+   马祥珲说：
+
+   > 公网只开放 22、80、443；Oracle 1521 和后端端口不公开。Nginx 提供 HTTPS、HSTS、CSP 和防 iframe 策略。
+
+3. [切到 GitHub 仓库的分支保护和最近一次通过的 `verify` 工作流；不要打开任何包含密钥的本地目录。]
+
+   马祥珲说：
+
+   > 普通组员通过功能分支、PR、审查和 CI 合并代码。私钥与本地配置不入库，`_archive` 只保存团队历史文件。
+
+4. [切到准备好的验收汇总页，依次指向四组数字。]
+
+   马祥珲说：
+
+   > 本轮 .NET 测试 381 项全部通过，腾讯云 Playwright 26 项全部通过，Oracle 总验收 21 项全部通过，npm 审计为零漏洞；写库测试前后均成功恢复演示基线。
+
+5. [回到项目总览页或商店首页，停止切换页面，面向老师完成总结。]
+
+   马祥珲照念：
+
+   > 我们用两名新玩家、两家开发商和一名管理员完成了提交审核、三种授权、社区互动、饰品交易和退款审计。页面结果均可由 Oracle 业务表、资金流水和资产账本交叉验证。系统具备权限、事务、并发、索引、测试、HTTPS 部署和数据恢复能力，是一套围绕数据库完整实现、可部署、可重复验收的 B/S 应用。演示完毕，谢谢老师。
+
+6. [说完后停止主动操作。若老师没有立即提问，保持商店首页，不再临时添加功能。]
 
 19:25 后停止主动增加演示内容，将剩余时间留给切屏延迟或老师临时提问。
 
 ## 8. 切屏与协作规则
 
-1. 只有 A 发出切屏口令，其他成员不得主动抢占共享画面。
+1. 只有马祥珲发出切屏口令，其他成员不得主动抢占共享画面。
 2. 下一位操作者必须在上一阶段结束前准备好目标页面，切屏后直接点击，不现场寻找菜单。
-3. B 生成 CDKey 后通过私下消息发送给 F，同时保留在 B 的临时文本框作为备用。
-4. E 掉落饰品后把名称、`item_id`、`template_id` 发给 F 和 G；F 用模板搜索，G 用实例编号查询账本。
-5. D 的管理员页面始终保持登录，用于前半段上架和后半段退款，避免重复登录。
-6. G 全程观察健康状态，但只在异常或数据库证据阶段发言。
+3. 徐京生成 CDKey 后通过私下消息发送给靳岱泽，同时保留在徐京的临时文本框作为备用。
+4. 胡知鱼掉落饰品后把名称、`item_id`、`template_id` 发给靳岱泽和张茗博；靳岱泽用模板搜索，张茗博用实例编号查询账本。
+5. 李胤龙的管理员页面始终保持登录，用于前半段上架和后半段退款，避免重复登录。
+6. 张茗博全程观察健康状态，但只在异常或数据库证据阶段发言。
 7. 任何成员点击后等待明确成功提示，不因网络延迟重复提交。
+8. 胡知鱼和靳岱泽始终各自操作自己的玩家账号；玩家环节按步骤中出现的姓名切换两块独立屏幕，不互登、不代点。
 
 ## 9. 故障预案
 
 | 问题 | 立即处理 | 主讲说明 |
 |---|---|---|
-| 页面暂时无数据 | G 检查健康接口；操作者只刷新一次 | 正在重新读取云端数据 |
-| 临时账号或批次已存在 | G 执行 `reset`，从该阶段开头重来 | 上次彩排数据未清理，正在恢复固定基线 |
+| 页面暂时无数据 | 张茗博检查健康接口；操作者只刷新一次 | 正在重新读取云端数据 |
+| 临时账号或批次已存在 | 张茗博执行 `reset`，从该阶段开头重来 | 上次彩排数据未清理，正在恢复固定基线 |
 | 视频加载慢 | 使用海报、截图和全屏图片，不等待视频 | 媒体与核心数据库业务解耦 |
-| CDKey 未及时传给 F | B 重新复制本轮结果；不得生成第二批 | 明文只在创建响应中展示一次 |
-| 市场物品搜索错误 | F 使用 E 提供的 `template_id` 搜索 | 交易按模板匹配、按实例转移 |
-| 交易按钮尚未可用 | F 等待一次市场刷新；不要再次上架 | 等待云端订单查询完成 |
+| CDKey 未及时传给靳岱泽 | 徐京重新复制本轮结果；不得生成第二批 | 明文只在创建响应中展示一次 |
+| 市场物品搜索错误 | 靳岱泽使用胡知鱼提供的 `template_id` 搜索 | 交易按模板匹配、按实例转移 |
+| 交易按钮尚未可用 | 靳岱泽等待一次市场刷新；不得再次上架 | 等待云端订单查询完成 |
 | SignalR 暂时断线 | 刷新后展示 Oracle 聊天历史 | 实时推送失败不会丢失持久化消息 |
-| 某成员电脑故障 | A 使用备用浏览器配置接管该角色 | 切换备用演示环境 |
-| 公网不可用 | A 播放最新 1080p 录屏，G 展示本地测试和 Oracle 证据 | 使用已经过同一数据恢复保护的备用录屏 |
+| 某成员电脑故障 | 马祥珲使用备用浏览器配置接管该角色 | 切换备用演示环境 |
+| 公网不可用 | 马祥珲播放最新 1080p 录屏，张茗博展示本地测试和 Oracle 证据 | 使用已经过同一数据恢复保护的备用录屏 |
 
 不得手工修改 Oracle 表来修复演示状态。需要回滚时使用恢复工具的运行编号，或执行一次新的 `reset`。
 
@@ -671,22 +1091,27 @@ A 说明：
 
 | 问题方向 | 第一回答人 | 回答重点 |
 |---|---|---|
-| 总体架构、B/S、五层 | A | 各层职责与调用方向 |
-| 游戏、开发商、上下架 | B 或 C | 开发商隔离、管理员审核、状态约束 |
-| 钱包、订单、退款 | E | 唯一余额真相、显式事务、幂等和审计 |
-| 库存、市场、资产转移 | F | 实例化资产、锁定状态、手续费和流转账本 |
-| Oracle 表设计、索引、锁 | G | 约束、执行计划、行锁与一致性检查 |
-| 权限与安全 | A | JWT、角色、限流、端口和私钥规则 |
+| 总体架构、B/S、五层与整体验收 | 马祥珲 | 各层职责、技术选型、跨模块事务边界和验收结论 |
+| 认证、JWT、管理员权限、HTTPS 与后端部署 | 李胤龙 | 主体声明、后端守卫、越权防护、Nginx 和健康检查 |
+| 登录注册、路由、公告、CI 与 Playwright | 元梓浩 | 会话恢复、前端公共状态、自动构建和端到端回归 |
+| 游戏、开发商、上下架、商店列表与筛选 | 周力扬 | 开发商隔离、管理员审核、状态约束、公开查询、搜索筛选和集合页 |
+| 游戏详情、媒体和 Steam 风格 | 王子轩 | 详情数据映射、组件拆分、媒体降级与响应式界面 |
+| 钱包、充值、购买、订单与资金流水 | 胡知鱼 | 唯一余额真相、定点金额、购买事务、幂等和流水核对 |
+| 退款申请、审批、授权撤销与审计 | 马祥珲 | 退款事务、钱包回补、支付与订单终态、审批幂等和审核日志 |
+| CDKey、免费入库与游戏库 | 徐京 | 授权来源、哈希保存、重复兑换、库状态和游玩时长 |
+| 好友、私信、通知、个人资料、动态讨论与 SignalR | 靳岱泽 | 关系状态、消息持久化、资料徽章、社区内容、实时推送和断线恢复 |
+| 饰品库存、评价、成就与工坊 | 郭炫君 | 唯一实例、所有权校验、版本留痕、防重复和订阅状态 |
+| 市场、Oracle 总体设计与数据恢复 | 张茗博 | 撮合、资产账本、全局约束、索引、锁、迁移规范和恢复审计 |
 
-被追问的成员只回答自己负责的部分；A 在回答结束后补一句与整体架构的关系。
+被追问的成员先回答自己负责的部分；马祥珲在回答结束后补一句与整体架构的关系。
 
 ## 11. 答辩结束
 
-1. G 再执行一次 `reset`，保存最终运行编号。
+1. 张茗博再执行一次 `reset`，保存最终运行编号。
 2. 确认两名临时玩家、两款临时提交、CDKey、订单、退款、聊天、订阅和市场成交已清理。
 3. 确认 `/api/health` 与 `/health/database` 仍为 `OK`。
-4. 确认云端部署标记与 `main` 最新验收提交一致。
-5. B 删除临时保存的明文 CDKey。
+4. 读取云端 `/opt/steam-platform/DEPLOYED_COMMIT`，确认其提交哈希与最新可部署代码提交一致；纯文档提交不要求重新发布运行产物。
+5. 徐京删除临时保存的明文 CDKey。
 
 ## 12. 正式答辩前必须完成的彩排
 
