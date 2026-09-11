@@ -231,9 +231,15 @@ function summaryAchievementIcon(item: GameAchievementSummaryItem) {
 }
 
 .green-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
   border: 0;
   color: #102009;
   background: var(--steam-green);
+  box-shadow: none;
+  appearance: none;
   cursor: pointer;
 }
 

@@ -53,7 +53,7 @@ const featured = computed(() => {
   return [...props.games].sort((a, b) => priority.indexOf(a.gameId) - priority.indexOf(b.gameId)).slice(0, 2);
 });
 const activeGame = computed(() => featured.value[activeIndex.value] ?? featured.value[0]);
-const activeMeta = computed(() => getGameMeta(activeGame.value?.gameId || 'GAME_DST'));
+const activeMeta = computed(() => getGameMeta(activeGame.value?.gameId || 'GAME_DST', activeGame.value?.gameName));
 
 watch(featured, (items) => {
   if (activeIndex.value >= items.length) activeIndex.value = 0;

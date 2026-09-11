@@ -138,6 +138,24 @@ function money(value?: number | null) {
   return typeof value === 'number' ? `¥${value.toFixed(2)}` : '暂无挂单';
 }
 
+function tradeDirection(trade: MarketTrade) {
+  return trade.buyerId === auth.currentUser?.principalId ? 'buy' : 'sell';
+}
+
+function tradeDirectionLabel(trade: MarketTrade) {
+  return tradeDirection(trade) === 'buy' ? '买入' : '卖出';
+}
+
+function tradeSignedAmount(trade: MarketTrade) {
+  if (tradeDirection(trade) === 'buy') return `-${money(trade.tradePrice)}`;
+  return `+${money(trade.tradePrice - trade.platformFee)}`;
+}
+
+function tradeAmountTitle(trade: MarketTrade) {
+  if (tradeDirection(trade) === 'buy') return `买入支出 ${money(trade.tradePrice)}`;
+  return `成交价 ${money(trade.tradePrice)}，平台手续费 ${money(trade.platformFee)}，实际入账 ${money(trade.tradePrice - trade.platformFee)}`;
+}
+
 function categoryLabel(key: CategoryKey) {
   return categories.find((item) => item.key === key)?.label ?? key;
 }
@@ -601,8 +619,8 @@ watch(
             <strong>{{ trade.itemName }}</strong>
             <span>{{ shortId(trade.tradeId) }} · {{ trade.itemId }}</span>
           </div>
-          <span>{{ trade.sellerId }} → {{ trade.buyerId }}</span>
-          <strong>{{ money(trade.tradePrice) }}</strong>
+          <span class="trade-party"><b :class="tradeDirection(trade)">{{ tradeDirectionLabel(trade) }}</b> · {{ trade.sellerId }} → {{ trade.buyerId }}</span>
+          <strong class="trade-amount" :class="tradeDirection(trade)" :title="tradeAmountTitle(trade)">{{ tradeSignedAmount(trade) }}</strong>
           <time>{{ formatTime(trade.tradeTime) }}</time>
         </article>
       </div>
@@ -1394,6 +1412,21 @@ watch(
 
 .trade-rows article {
   grid-template-columns: 48px minmax(220px, 1.7fr) minmax(180px, 1fr) 100px 170px;
+}
+
+.trade-party b,
+.trade-amount {
+  font-weight: 800;
+}
+
+.trade-party b.buy,
+.trade-amount.buy {
+  color: #ff9b89;
+}
+
+.trade-party b.sell,
+.trade-amount.sell {
+  color: #a8d66d;
 }
 
 .transfer-rows article {

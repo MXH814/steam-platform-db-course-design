@@ -46,7 +46,8 @@ test('固定答辩链：注册、购买退款、库存挂单、撮合与账本',
     await player.page.goto('/register');
     await player.page.getByLabel('账号').fill('defense_demo');
     await player.page.getByLabel('昵称').fill('答辩演示');
-    await player.page.getByLabel('密码').fill('Demo123456');
+    await player.page.getByLabel('密码', { exact: true }).fill('Demo123456');
+    await player.page.getByLabel('确认密码', { exact: true }).fill('Demo123456');
     await player.page.getByRole('button', { name: '注册并登录' }).click();
     await expect(player.page).toHaveURL(/\/account$/);
     await expect(player.page.getByRole('heading', { name: '账户中心' })).toBeVisible();

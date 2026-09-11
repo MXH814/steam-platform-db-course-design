@@ -38,7 +38,8 @@ test('社交社区闭环：好友、实时聊天、资料、动态、讨论、�
       await social.page.goto('/register');
       await social.page.getByLabel('账号').fill('social_demo');
       await social.page.getByLabel('昵称').fill('社交回归玩家');
-      await social.page.getByLabel('密码').fill('Demo123456');
+      await social.page.getByLabel('密码', { exact: true }).fill('Demo123456');
+      await social.page.getByLabel('确认密码', { exact: true }).fill('Demo123456');
       await social.page.getByRole('button', { name: '注册并登录' }).click();
       await expect(social.page).toHaveURL(/\/account$/);
 

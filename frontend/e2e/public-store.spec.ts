@@ -11,10 +11,19 @@ test.describe('公开商店与媒体画廊', () => {
     await expect(page.getByText('精选与推荐')).toBeVisible();
     await expect(page.getByRole('heading', { name: '浏览热门游戏' })).toBeVisible();
 
-    const announcement = page.getByRole('dialog', { name: /荒野生存特别活动现已开放|饰品市场/ });
+    const announcement = page.locator('.startup-announcement');
     await expect(announcement).toBeVisible();
+    await announcement.getByRole('button', { name: '查看第 3 条公告' }).click();
+    await expect(announcement.locator('.announcement-media img')).toHaveAttribute('src', '/assets/media/workshop-cosmetics-banner.jpg');
     await dismissStartupAnnouncement(page);
     await expect(announcement).toBeHidden();
+
+    const search = page.getByRole('searchbox', { name: '搜索商店' });
+    await search.fill('不存在的游戏名称');
+    await page.waitForTimeout(350);
+    await expect(page.getByRole('status').getByText('没有找到游戏', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: '搜索', exact: true }).click();
+    await expect(page.getByRole('status').getByText('没有找到游戏', { exact: true })).toBeVisible();
   });
 
   test('未知地址显示可恢复的 404 页面', async ({ page }) => {

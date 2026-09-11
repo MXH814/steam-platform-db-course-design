@@ -1,14 +1,14 @@
 <template>
   <section class="filter-bar" aria-label="商店筛选">
-    <form class="search-box" @submit.prevent="emitChange">
-      <input v-model="draft.search" type="search" placeholder="搜索商店" aria-label="搜索商店" @input="queueChange" />
-      <button type="submit" aria-label="搜索">⌕</button>
+    <form class="search-box" @submit.prevent="submitSearch">
+      <input v-model="searchDraft" type="search" placeholder="搜索商店" aria-label="搜索商店" />
+      <button type="submit" title="搜索" aria-label="搜索"><Search :size="18" /></button>
     </form>
 
     <div class="filter-controls" aria-label="游戏筛选条件">
       <label>
         <span>类型</span>
-        <select v-model="draft.priceFilter" @change="emitChange">
+        <select v-model="draft.priceFilter" @change="emitFilterChange">
           <option value="all">全部</option>
           <option value="free">免费</option>
           <option value="paid">买断制</option>
@@ -20,7 +20,7 @@
 
       <label>
         <span>排序</span>
-        <select v-model="draft.sort" @change="emitChange">
+        <select v-model="draft.sort" @change="emitFilterChange">
           <option value="default">推荐</option>
           <option value="price">价格</option>
           <option value="releaseDate">发行时间</option>
@@ -32,7 +32,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue';
+import { Search } from '@lucide/vue';
+import { reactive, ref, watch } from 'vue';
 import type { GameQuery } from '../api/types';
 
 const props = defineProps<{
@@ -44,7 +45,7 @@ const emit = defineEmits<{
 }>();
 
 const draft = reactive<GameQuery>({ ...props.modelValue });
-let timer: number | undefined;
+const searchDraft = ref(props.modelValue.search ?? '');
 
 watch(
   () => props.modelValue,
@@ -52,14 +53,17 @@ watch(
   { deep: true }
 );
 
-function emitChange() {
-  window.clearTimeout(timer);
-  emit('update:modelValue', { ...draft, page: 1 });
+watch(
+  () => props.modelValue.search,
+  (value) => { searchDraft.value = value ?? ''; }
+);
+
+function submitSearch() {
+  emit('update:modelValue', { ...draft, search: searchDraft.value, page: 1 });
 }
 
-function queueChange() {
-  window.clearTimeout(timer);
-  timer = window.setTimeout(emitChange, 220);
+function emitFilterChange() {
+  emit('update:modelValue', { ...draft, search: props.modelValue.search, page: 1 });
 }
 </script>
 

@@ -31,7 +31,7 @@ const props = defineProps<{
 }>();
 
 const releaseYear = computed(() => (props.game.releaseDate ? new Date(props.game.releaseDate).getFullYear() : '待定'));
-const meta = computed(() => getGameMeta(props.game.gameId));
+const meta = computed(() => getGameMeta(props.game.gameId, props.game.gameName));
 </script>
 
 <style scoped>

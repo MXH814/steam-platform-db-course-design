@@ -26,14 +26,8 @@
               <RouterLink to="/store/specials">特别优惠</RouterLink>
             </div>
           </div>
-          <div v-if="auth.isPlayer" class="supernav-entry" @mouseenter="openMenu('library')" @mouseleave="scheduleMenuClose">
-            <RouterLink to="/library" @focus="openMenu('library')">库</RouterLink>
-            <div v-if="activeMenu === 'library'" class="supernav-menu" @mouseenter="cancelMenuClose">
-              <RouterLink to="/library">主页</RouterLink>
-              <RouterLink to="/library/GAME_CS2">Counter-Strike 2</RouterLink>
-              <RouterLink to="/library/GAME_DST">饥荒联机版</RouterLink>
-              <button type="button" @click="openDownloads">下载</button>
-            </div>
+          <div v-if="auth.isPlayer" class="supernav-entry">
+            <RouterLink to="/library">库</RouterLink>
           </div>
           <div class="supernav-entry" @mouseenter="openMenu('community')" @mouseleave="scheduleMenuClose">
             <RouterLink to="/community" @focus="openMenu('community')">社区</RouterLink>
@@ -145,7 +139,7 @@
         <header><div><Download :size="19" /><strong>下载</strong></div><button type="button" aria-label="关闭下载" @click="activeDrawer = ''"><X :size="17" /></button></header>
         <div v-if="libraryLoading" class="drawer-state">正在读取游戏库...</div>
         <article v-for="entry in libraryEntries" :key="entry.libId">
-          <img :src="gameMeta(entry.gameId).coverImage" alt="" /><div><strong>{{ entry.gameName }}</strong><span><CheckCircle2 :size="13" /> 已安装 · 云状态已同步</span><i><b /></i></div>
+          <img :src="gameMeta(entry.gameId, entry.gameName).coverImage" alt="" /><div><strong>{{ entry.gameName }}</strong><span><CheckCircle2 :size="13" /> 已安装 · 云状态已同步</span><i><b /></i></div>
           <button type="button" @click="launchLibrary(entry.gameId)"><Play :size="15" fill="currentColor" /></button>
         </article>
         <RouterLink v-if="!libraryEntries.length && !libraryLoading" to="/store" @click="activeDrawer = ''">前往商店添加游戏</RouterLink>
@@ -176,9 +170,9 @@
 
     <div v-if="activeDrawer" class="drawer-scrim" @click="activeDrawer = ''" />
     <div v-if="toast" class="client-toast" role="status">{{ toast }}</div>
-    <footer class="client-status">
-      <RouterLink v-if="auth.isPlayer" to="/redeem"><Plus :size="15" /> 添加游戏</RouterLink><span class="status-spacer" />
-      <button v-if="auth.isPlayer" type="button" @click="openDownloads"><Download :size="15" /> 下载</button><button v-if="auth.isPlayer" type="button" @click="openFriends"><Users :size="15" /> 好友与聊天</button>
+    <footer v-if="auth.isPlayer" class="client-status">
+      <RouterLink to="/redeem"><Plus :size="15" /> 添加游戏</RouterLink><span class="status-spacer" />
+      <button type="button" @click="openDownloads"><Download :size="15" /> 下载</button><button type="button" @click="openFriends"><Users :size="15" /> 好友与聊天</button>
     </footer>
   </div>
 </template>
@@ -195,7 +189,7 @@ import type { DirectMessageItem, DiscussionTopicView, FriendListItem, SysNotice,
 import { getGameMeta } from './data/gameCatalog';
 import { useAuthStore } from './stores/auth';
 
-type MenuKey = '' | 'store' | 'library' | 'community' | 'profile' | 'account';
+type MenuKey = '' | 'store' | 'community' | 'profile' | 'account';
 type DrawerKey = '' | 'downloads' | 'friends';
 type CloudStatus = 'checking' | 'connected' | 'offline';
 interface AuthUnauthorizedDetail { redirect?: string; expired?: boolean; }
@@ -247,14 +241,14 @@ const gameMeta = getGameMeta;
 const fallbackAnnouncements: StartupAnnouncement[] = [
   { id: 'WELCOME-DST', title: '荒野生存特别活动现已开放', content: '进入饥荒联机版商店页面，查看买断制购买、内容包、社区评测和自定义成就完整流程。', image: '/assets/games/dst-library-hero.jpg', label: '特别活动', route: '/games/GAME_DST', publishedAt: '本周' },
   { id: 'WELCOME-CS2', title: 'CS2 库存与社区市场全面联动', content: '免费加入游戏库，浏览饰品库存、市场挂单、价格历史、成交记录和资产转移账本。', image: '/assets/games/cs2-library-hero.jpg', label: '平台更新', route: '/games/GAME_CS2', publishedAt: '本周' },
-  { id: 'WELCOME-WORKSHOP', title: '社区创意工坊浏览功能上线', content: '现在可以搜索、排序、查看详情并订阅 CS2 与饥荒联机版的课程演示工坊作品。', image: '/assets/games/cs2-header.jpg', label: '社区更新', route: '/games/GAME_CS2/community?section=workshop', publishedAt: '今天' }
+  { id: 'WELCOME-WORKSHOP', title: '社区创意工坊浏览功能上线', content: '现在可以搜索、排序、查看详情并订阅 CS2 与饥荒联机版的课程演示工坊作品。', image: '/assets/media/workshop-cosmetics-banner.jpg', label: '社区更新', route: '/games/GAME_CS2/community?section=workshop', publishedAt: '今天' }
 ];
 const startupAnnouncements = computed<StartupAnnouncement[]>(() => notifications.value.length
-  ? notifications.value.map((notice, index) => ({
+  ? notifications.value.map((notice) => ({
       id: notice.noticeId,
       title: notice.title,
       content: notice.content,
-      image: index % 2 === 0 ? '/assets/games/dst-library-hero.jpg' : '/assets/games/cs2-library-hero.jpg',
+      image: noticeImage(notice),
       label: notice.priority >= 8 ? '重要公告' : '平台公告',
       route: noticeRoute(notice),
       publishedAt: new Date(notice.publishTime).toLocaleDateString('zh-CN')
@@ -340,6 +334,7 @@ function openAnnouncementDetail() {
 }
 function noticeRoute(notice: SysNotice) {
   const text = `${notice.title} ${notice.content}`.toLocaleLowerCase();
+  if (text.includes('工坊') || text.includes('workshop')) return '/games/GAME_CS2/community?section=workshop';
   if (text.includes('cs2') || text.includes('counter-strike')) return '/games/GAME_CS2';
   if (text.includes('饥荒') || text.includes("don't starve") || text.includes('dst')) return '/games/GAME_DST';
   return '/store';
@@ -427,6 +422,18 @@ function handleAuthUnauthorized(event: Event) {
       }
     });
   }
+}
+
+function noticeImage(notice: SysNotice) {
+  const text = `${notice.title} ${notice.content}`.toLowerCase();
+  if (text.includes('工坊') || text.includes('workshop')) return '/assets/media/workshop-cosmetics-banner.jpg';
+  if (text.includes('cs2') || text.includes('counter-strike') || text.includes('饰品') || text.includes('库存') || text.includes('市场')) {
+    return '/assets/games/cs2-library-hero.jpg';
+  }
+  if (text.includes('饥荒') || text.includes("don't starve") || text.includes('dst') || text.includes('荒野') || text.includes('生存')) {
+    return '/assets/games/dst-library-hero.jpg';
+  }
+  return '/assets/games/cs2-header.jpg';
 }
 
 async function checkCloudStatus() {

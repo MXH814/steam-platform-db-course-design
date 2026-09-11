@@ -105,8 +105,48 @@ export const gameCatalog: Record<string, GameCatalogItem> = {
   }
 };
 
-export function getGameMeta(gameId: string): GameCatalogItem {
-  return gameCatalog[gameId] ?? { ...fallbackGame, gameId, shortName: gameId, title: gameId };
+export function getGameMeta(gameId: string, gameName?: string): GameCatalogItem {
+  const catalogGame = gameCatalog[gameId];
+  if (catalogGame) return catalogGame;
+
+  const title = gameName?.trim() || gameId;
+  const normalizedTitle = title.toLowerCase();
+  if (normalizedTitle.includes('survival lab')) {
+    return {
+      ...fallbackGame,
+      gameId,
+      title,
+      shortName: 'Survival Lab',
+      subtitle: '开发商测试中的合作生存项目',
+      storeLine: '独立的测试游戏条目，用于演示开发商提交、管理员审核和上下架流程。',
+      libraryLine: '该游戏作为开发商与管理员工作流的测试数据展示。',
+      capsuleLabel: 'SURVIVAL LAB',
+      heroImage: '/assets/media/dst-screenshot-4.jpg',
+      coverImage: '/assets/media/dst-screenshot-5.jpg',
+      headerImage: '/assets/media/dst-screenshot-3.jpg',
+      tags: ['开发中', '合作', '生存', '测试项目']
+    };
+  }
+
+  if (normalizedTitle.includes('tactical arena')) {
+    const cs2 = gameCatalog.GAME_CS2;
+    return {
+      ...cs2,
+      gameId,
+      title,
+      shortName: 'Tactical Arena',
+      subtitle: '开发商测试中的战术竞技项目',
+      storeLine: '独立的测试游戏条目，用于演示第二个开发商的内容管理流程。',
+      libraryLine: '该游戏作为开发商与管理员工作流的测试数据展示。',
+      capsuleLabel: 'TACTICAL ARENA',
+      heroImage: '/assets/media/cs2-screenshot-5.jpg',
+      coverImage: '/assets/media/cs2-screenshot-2.jpg',
+      headerImage: '/assets/media/cs2-screenshot-4.jpg',
+      tags: ['开发中', '战术竞技', '多人', '测试项目']
+    };
+  }
+
+  return { ...fallbackGame, gameId, shortName: title, title };
 }
 
 export function getGameMedia(gameId: string): GameMediaItem[] {

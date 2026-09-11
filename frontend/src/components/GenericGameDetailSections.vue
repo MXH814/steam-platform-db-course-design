@@ -159,7 +159,7 @@ const emit = defineEmits<{
 }>();
 
 const isDst = computed(() => props.game.shortName === 'DST');
-const meta = computed(() => getGameMeta(props.game.gameId));
+const meta = computed(() => getGameMeta(props.game.gameId, props.game.gameName));
 const mediaItems = computed(() => getGameMedia(props.game.gameId));
 const communityRoute = computed(() => ({ name: 'game-community', params: { gameId: props.game.gameId } }));
 const workshopRoute = computed(() => ({ name: 'game-community', params: { gameId: props.game.gameId }, query: { section: 'workshop' } }));

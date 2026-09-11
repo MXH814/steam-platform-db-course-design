@@ -59,7 +59,7 @@
         <div v-if="library.length" class="recent-grid">
           <article v-for="entry in displayedLibrary" :key="entry.libId" class="recent-game">
             <RouterLink :to="{ name: 'game-library', params: { gameId: entry.gameId } }">
-              <img :src="gameMeta(entry.gameId).coverImage" :alt="entry.gameName" />
+              <img :src="gameMeta(entry.gameId, entry.gameName).coverImage" :alt="entry.gameName" />
             </RouterLink>
             <div class="recent-game-info">
               <button type="button" :disabled="playingGameId === entry.gameId" @click="play(entry.gameId)">

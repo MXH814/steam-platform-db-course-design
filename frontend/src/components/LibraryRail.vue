@@ -37,7 +37,7 @@
         :to="{ name: 'game-library', params: { gameId: entry.gameId } }"
         :class="{ active: entry.gameId === activeGameId }"
       >
-        <img :src="gameMeta(entry.gameId).coverImage" alt="" />
+        <img :src="gameMeta(entry.gameId, entry.gameName).coverImage" alt="" />
         <span>{{ entry.gameName }}</span>
       </RouterLink>
       <p v-if="!filteredEntries.length" class="rail-empty">没有匹配的游戏</p>
