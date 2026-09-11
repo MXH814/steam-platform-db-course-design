@@ -1,6 +1,6 @@
-# Playwright 端到端回归与答辩录屏手册
+# Playwright 端到端回归手册
 
-本手册规定项目的浏览器回归、真实云端写库测试、失败证据和答辩备用录屏流程。测试目标固定为 Vue 前端、ASP.NET Core .NET 10 五层后端、腾讯云 Oracle 和 SignalR，不得用前端 Mock 代替云端业务闭环验收。
+本手册规定项目的浏览器回归、真实云端写库测试和失败证据处理流程。测试目标固定为 Vue 前端、ASP.NET Core .NET 10 五层后端、腾讯云 Oracle 和 SignalR，不得用前端 Mock 代替云端业务闭环验收。
 
 ## 1. 测试分层
 
@@ -9,7 +9,6 @@
 | `desktop-chromium` | 1440 x 900 | 只读 | 启动公告、商店、CS2/DST 媒体画廊、Alice/Bob 登录基线、游戏库、库存、钱包、资料、社区、报价和市场 |
 | `mobile-chromium` | Pixel 7 | 只读 | 与桌面相同的主要入口、响应式布局和页面横向溢出检查 |
 | `defense-chromium` | 1440 x 900 | 写 Oracle | 交易答辩链；资料装扮、好友请求、SignalR 聊天、动态、讨论、徽章、评测互动、工坊订阅和交易报价社交链 |
-| `defense-recording` | 1920 x 1080 | 写 Oracle | 与固定答辩链相同，并生成连续 WebM 备用录屏 |
 
 完整回归先完成两个只读项目，再执行 `defense-chromium` 中的两条写库链。这个依赖顺序不可移除，否则市场成交和交易报价会改变 Alice、Bob 的固定库存和挂单基线，使后续只读断言失真。
 
@@ -45,41 +44,23 @@ npm run test:e2e:cloud
 PowerShell 使用同名环境变量后运行相同 npm 命令。脚本会依次完成：
 
 1. 通过 SSH 调用服务器固定入口 `/opt/steam-platform/bin/reset-demo-data`。
-2. 恢复工具生成快照、审计运行号并校验 42 张业务表固定基线。
+2. 恢复工具生成快照、审计运行号并校验 45 张业务表固定基线。
 3. 执行桌面只读、移动只读和真实写库答辩链。
 4. 无论测试成功、失败或抛出异常，都在 `finally` 中再次执行固定基线恢复。
 5. 返回 Playwright 的真实退出码；后置恢复失败时强制返回失败。
 
 仅调试交易答辩链时使用 `npm run test:e2e:defense:cloud`，仅调试社交社区链时使用 `npm run test:e2e:social:cloud`。两个命令同样执行前后恢复，不允许直接绕过恢复器运行写库用例。
 
-## 5. 备用录屏
-
-```bash
-E2E_SSH_TARGET="ubuntu@<server>" \
-E2E_SSH_KEY="<private-key-path>" \
-npm run record:defense:cloud
-```
-
-录制模式在一个 1920 x 1080 浏览器上下文中依次切换临时玩家、管理员、Alice 和 Bob，避免生成无法按业务顺序播放的多段视频。稳定副本输出到：
-
-```text
-output/playwright/defense-recording/steam-platform-defense-demo.webm
-```
-
-该目录是本地验收产物并被 Git 忽略。正式答辩电脑需提前把视频复制到离线演示介质，并实际播放一次确认画面、时长和解码正常。
-
-## 6. 报告和失败证据
+## 5. 报告和失败证据
 
 | 产物 | 位置 |
 |---|---|
 | 完整 HTML 报告 | `output/playwright/html-report/index.html` |
-| 录屏测试报告 | `output/playwright/defense-recording-report/index.html` |
 | 失败截图、视频与 Trace | `output/playwright/test-results/` |
-| 稳定备用录屏 | `output/playwright/defense-recording/steam-platform-defense-demo.webm` |
 
 失败时不得只看终端最后一行。先查看截图和 `error-context.md`，再使用 `npx playwright show-trace <trace.zip>` 检查网络响应、DOM、操作时间线和控制台。修复选择器时必须继续验证原业务事实，不能为了变绿而删除关键断言。
 
-## 7. 固定业务断言
+## 6. 固定业务断言
 
 写库答辩链至少证明：
 
@@ -102,19 +83,8 @@ output/playwright/defense-recording/steam-platform-defense-demo.webm
 
 金额、实例编号、账号或顺序变化必须先由总负责人批准，并同步修改固定数据、答辩手册、Playwright 断言和 README。
 
-## 8. 2026-08-26 验收记录
+## 7. 最终回归基线
 
-1. 云端完整回归 11/11 通过，用时约 1.1 分钟。
-2. 桌面只读 5 项、移动只读 5 项、真实 Oracle 写库答辩链 1 项全部通过。
-3. 完整回归结束后的恢复运行编号为 `202608251745528ED6`。
-4. 录屏链 1/1 通过，产出 1920 x 1080、25 fps、22.12 秒 WebM，文件约 2.73 MiB。
-5. 录屏结束后的恢复运行编号为 `202608251746364404`。
-6. 本轮自动化发现并修复了库存“模拟掉落”和“确认出售”成功提示被刷新操作立即清空的问题。
-
-## 9. 2026-08-27 社交社区补充验收
-
-1. 云端完整回归 12/12 通过，用时约 1.4 分钟。
-2. 桌面只读 5 项、移动只读 5 项、交易答辩链 1 项、社交社区写库链 1 项全部通过。
-3. 社交单项回归前后恢复运行编号为 `202608270951137295`、`20260827095140E3BC`。
-4. 完整回归前后恢复运行编号为 `202608270953516559`、`20260827095519A6D0`。
-5. 后置恢复后 Oracle 总验收 21 组断言全部通过，临时账号及所有测试写入均已清理。
+1. 浏览器回归共 28 项：桌面只读 13 项、移动只读 13 项、交易答辩链 1 项、社交社区写库链 1 项。
+2. 两条写库链只能通过带前后恢复的云端命令执行。
+3. 每次完成写库回归后，必须再次运行 Oracle 总验收，确认临时账号和测试写入均已清理。

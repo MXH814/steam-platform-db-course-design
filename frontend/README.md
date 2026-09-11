@@ -54,13 +54,13 @@ VITE_API_BASE_URL=https://124.222.213.245
 
 ## 浏览器回归
 
-本地只读回归会自动启动 Vite，不允许写入云端 Oracle：
+回归配置会自动启动 Vite。桌面与移动只读场景不会写入云端 Oracle：
 
 ```powershell
 npm run test:e2e
 ```
 
-总负责人执行云端完整回归时，使用服务器 SSH 目标和私钥文件位置配置 `E2E_SSH_TARGET`、`E2E_SSH_KEY`。`npm run test:e2e:cloud` 会在 12 项测试前后自动恢复演示基线。单独排查交易链或社交社区链分别使用：
+完整回归共 28 项，其中桌面与移动只读场景 26 项，固定答辩业务链和社交社区闭环各 1 项。执行云端完整回归时，使用服务器 SSH 目标和私钥文件位置配置 `E2E_SSH_TARGET`、`E2E_SSH_KEY`。`npm run test:e2e:cloud` 会在写库测试前后自动恢复演示基线。单独排查交易链或社交社区链分别使用：
 
 ```powershell
 npm run test:e2e:defense:cloud

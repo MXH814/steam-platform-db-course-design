@@ -1,107 +1,65 @@
-# Backend
+# 后端工程
 
-ASP.NET Core C# 后端工程目录。
+本目录包含 C#/.NET 10 后端解决方案、自动化测试和服务器运维工具。
 
-本目录用于创建课程项目的 B/S 应用服务器，必须遵守课程提纲中的 VS.NET、C#、Oracle 18c+、Oracle 数据访问组件或 ORM 框架要求。
-
-当前已落地 Group A 后端与联调基础闭环：健康检查、玩家注册、玩家登录、管理员登录、当前用户查询、公告公开查询、管理员公告发布和公告更新。
-
-当前结构：
+## 目录
 
 ```text
 backend/
   SteamPlatform.sln
   src/
-    SteamPlatform.Api/
-    SteamPlatform.Application/
-    SteamPlatform.Domain/
-    SteamPlatform.Infrastructure/
-    SteamPlatform.Shared/
+    SteamPlatform.Api/             HTTP、认证授权、异常映射和 SignalR
+    SteamPlatform.Application/     应用契约、服务和输入校验
+    SteamPlatform.Domain/          领域实体与业务规则
+    SteamPlatform.Infrastructure/  Oracle 仓储、SQL 和事务
+    SteamPlatform.Shared/          公共响应与异常类型
   tests/
     SteamPlatform.Api.Tests/
     SteamPlatform.DemoData.Tests/
     SteamPlatform.HttpsDeploy.Tests/
   tools/
-    SteamPlatform.DemoData/
-    SteamPlatform.HttpsDeploy/
+    SteamPlatform.DemoData/        演示数据计划、快照、恢复和审计
+    SteamPlatform.HttpsDeploy/     IP HTTPS 配置、验证和回滚
 ```
 
-当前技术：
+## 技术栈
 
-- C#
-- .NET 10 LTS
-- ASP.NET Core Web API
-- Oracle.EntityFrameworkCore
-- Oracle.ManagedDataAccess.Core
-- Dapper
-- ASP.NET Core Authentication + JWT Bearer
-- Swagger / OpenAPI
+- C#、.NET 10、ASP.NET Core Web API
+- Dapper、Oracle.ManagedDataAccess.Core
+- JWT Bearer 认证与角色授权
+- SignalR 实时消息
+- xUnit 自动化测试
 
-已实现接口：
+`Oracle.EntityFrameworkCore` 作为依赖保留，当前业务路径没有启用 `DbContext` 或实体映射。
 
-```text
-GET    /health
-GET    /health/database
-POST   /api/auth/register
-POST   /api/auth/register/player
-POST   /api/auth/login
-GET    /api/auth/me
-GET    /api/wallet
-POST   /api/wallet/recharge
-GET    /api/wallet/transactions?page=1&pageSize=20
-POST   /api/orders
-POST   /api/games/{gameId}/free-claim
-GET    /api/orders
-GET    /api/orders/{orderId}
-GET    /api/library
-POST   /api/library/{gameId}/playtime
-POST   /api/refunds
-GET    /api/refunds
-POST   /api/admin/refunds/{refundId}/approve
-POST   /api/admin/refunds/{refundId}/reject
-POST   /api/developer/cdkey-batches
-POST   /api/cdkeys/redeem
-GET    /api/notices
-POST   /api/notices
-POST   /api/admin/notices
-PUT    /api/admin/notices/{noticeId}
+## 业务模块
+
+- Auth：玩家注册，多角色登录，JWT 签发和当前用户。
+- Games / Notices：商店、开发商游戏维护、管理员状态治理和公告。
+- CoreTransactions：钱包、订单、购买、退款、CDKey 和游戏库。
+- Community：评价版本和成就。
+- Inventory / Market：饰品库存、买卖挂单、撮合、成交与账本。
+- Social / Engagement：好友、私信、通知、工坊、资料、徽章、报价、动态和讨论。
+- Diagnostics：应用与 Oracle 健康检查。
+
+## 本地配置
+
+连接串与 JWT 签名密钥使用 User Secrets 或私有环境变量配置：
+
+```powershell
+dotnet user-secrets set --project backend\src\SteamPlatform.Api "ConnectionStrings:Oracle" "User Id=steam_app;Password=***;Data Source=localhost:1521/FREEPDB1"
+dotnet user-secrets set --project backend\src\SteamPlatform.Api "Auth:SigningKey" "至少32字节的随机签名密钥"
 ```
 
-钱包充值为课程演示用模拟充值，不接入第三方支付。`POST /api/wallet/recharge` 必须传入 `amount` 和 `idempotencyKey`，金额范围为 `0.01` 到 `99999.99` 且最多两位小数；同一幂等键重复提交不能重复加钱。
+不得将真实密码、连接串或签名密钥写入仓库。
 
-运行命令：
+## 构建与运行
 
 ```powershell
 dotnet restore backend\SteamPlatform.sln
-dotnet build backend\SteamPlatform.sln
-dotnet test backend\SteamPlatform.sln
+dotnet build backend\SteamPlatform.sln -c Release
+dotnet test backend\SteamPlatform.sln -c Release
 dotnet run --project backend\src\SteamPlatform.Api
 ```
 
-本地 Oracle 连接通过 `backend/src/SteamPlatform.Api/appsettings.json` 的 `ConnectionStrings:Oracle` 或 User Secrets 配置。`Auth:SigningKey` 至少 32 字节；Development 未配置时使用进程内演示 key。真实连接串、数据库密码和 JWT 密钥不得提交到 Git。
-
-```powershell
-dotnet user-secrets set --project backend\src\SteamPlatform.Api "ConnectionStrings:Oracle" "User Id=steam_app;Password=***;Data Source=服务器地址:1521/FREEPDB1"
-dotnet user-secrets set --project backend\src\SteamPlatform.Api "Auth:SigningKey" "至少32字节的JWT密钥"
-```
-
-数据库测试默认做静态契约验证；如需真实 Oracle smoke test，使用本机环境变量：
-
-```powershell
-$env:STEAM_ORACLE_TEST_CONNECTION="User Id=steam_app;Password=***;Data Source=服务器地址:1521/FREEPDB1"
-dotnet test tests\SteamPlatform.Database.Tests\SteamPlatform.Database.Tests.csproj
-```
-
-当前不允许使用 `DEVELOPER.tax_id` 作为登录密码。开发商登录需要等 `DEVELOPER` 表补充安全密码哈希字段后再接入。
-
-初始化数据中的演示登录账号：
-
-```text
-PLAYER  alice     / alice
-PLAYER  bob       / bob
-ADMIN   rootadmin / admin
-```
-
-禁止把 Spring Boot、Java、MyBatis 作为本项目后端主线。
-
-服务器运维工具同样使用 `.NET 10`：`SteamPlatform.DemoData` 负责可审计的演示数据恢复，`SteamPlatform.HttpsDeploy` 负责可信 IP HTTPS、续期、验证和回滚。详细流程分别见 `docs/defense-demo-runbook.md` 与 `docs/https-deployment-runbook.md`。
+钱包、订单、退款和市场接口使用参数化 SQL。涉及资金、权益和饰品所有权的多表写入必须在 Oracle 事务中完成，并在服务端校验角色、状态和受影响行数。

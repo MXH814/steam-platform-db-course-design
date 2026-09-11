@@ -71,8 +71,9 @@
 重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `README.md`
-- `PRODUCT.md`
-- `2026《数据库课程设计》课程提纲.doc`
+- `项目文档/Steam-数字游戏平台系统需求分析文档.docx`
+- `项目文档/Steam-数字游戏平台系统设计与实现文档.docx`
+- `项目文档/“Steam-”数字游戏平台系统答辩PPT.pptx`
 - `backend/README.md`
 - `frontend/README.md`
 - `backend/SteamPlatform.sln`
@@ -185,8 +186,6 @@
 
 重点掌握文件（文件级第一责任分配见 3.4 节）：
 
-- `docs/group-c-core-transaction-contract.md`
-- `docs/c2-wallet-module-readme.md`
 - `frontend/src/views/WalletView.vue`
 - `frontend/src/views/WalletRechargeCheckoutView.vue`
 - `frontend/src/views/WalletHistoryView.vue`
@@ -264,8 +263,7 @@
 
 - `database/schema.sql`
 - `database/data.sql`
-- `E-R图（改）.drawio`
-- `“Steam-”数字游戏平台系统（改）.pdma`
+- `database/Oracle数据库导入与初始化说明.md`
 - `项目文档/“Steam-”数字游戏平台系统数据库设计文档.docx`
 - `database/migrations/20260825_demo_reset_audit.sql`
 - `database/verify_phase1.sql`
@@ -289,7 +287,6 @@
 
 重点掌握文件（文件级第一责任分配见 3.4 节）：
 
-- `docs/group-d-community-achievement-contract.md`
 - `frontend/src/views/GameCommunityView.vue`
 - `frontend/src/views/CommunityHubView.vue`
 - `frontend/src/views/ProfileView.vue`
@@ -342,12 +339,11 @@
 重点掌握文件（文件级第一责任分配见 3.4 节）：
 
 - `README.md`
-- `PRODUCT.md`
-- `2026《数据库课程设计》课程提纲.doc`
 - `backend/SteamPlatform.sln`
 - `docs/defense-demo-runbook.md`
 - `项目文档/Steam-数字游戏平台系统需求分析文档.docx`
 - `项目文档/Steam-数字游戏平台系统设计与实现文档.docx`
+- `项目文档/“Steam-”数字游戏平台系统答辩PPT.pptx`
 - `backend/tests/SteamPlatform.Api.Tests/CoreTransactionWorkflowRegressionTests.cs`
 - `frontend/src/views/RefundsView.vue`
 - `frontend/src/views/AdminRefundsView.vue`
@@ -367,22 +363,22 @@
 
 ### 3.4 全仓库文件责任覆盖
 
-本节以当前 `git ls-files` 的 370 个跟踪文件为基线。下表中的 `/**` 表示对应目录下的全部当前文件；每个文件设置一名第一责任人，共享业务文件按 3.5 节进一步划分方法级责任。仓库文件发生新增、删除或移动时，本节须在同一 PR 中同步更新。
+本节以最终提交版的 374 个跟踪文件为基线。下表中的 `/**` 表示对应目录下的全部当前文件；每个文件设置一名第一责任人，共享业务文件按 3.5 节进一步划分方法级责任。仓库文件发生新增、删除或移动时，本节须同步更新。
 
 | 第一责任人 | 完整文件范围 | 掌握重点 |
 |---|---|---|
-| 马祥珲 | `README.md`、`PRODUCT.md`、`.gitignore`、`2026《数据库课程设计》课程提纲.doc`、`_archive/**`、`模版文档/**`；`项目文档/Steam-数字游戏平台系统需求分析文档.docx`、`项目文档/Steam-数字游戏平台系统设计与实现文档.docx`、`项目文档/分组名单及项目选题.xlsx`；`docs/README.md`、`docs/defense-demo-runbook.md`；`backend/README.md`、`backend/SteamPlatform.sln`、`backend/tests/SteamPlatform.Api.Tests/SteamPlatform.Api.Tests.csproj`、`backend/tests/SteamPlatform.Api.Tests/TestDoubles.cs`、`backend/tests/SteamPlatform.Api.Tests/CoreTransactionWorkflowRegressionTests.cs`；`frontend/src/views/RefundsView.vue`、`frontend/src/views/AdminRefundsView.vue`、`frontend/src/views/WalletRefundRequestView.vue` | 项目统筹、课程要求、文档统一、总体架构、退款审批与审计、核心事务回归和最终验收；掌握 `_archive/**` 的历史来源及其不参与当前构建的原因 |
+| 马祥珲 | `README.md`、`.gitignore`、`_archive/**`；`项目文档/Steam-数字游戏平台系统需求分析文档.docx`、`项目文档/Steam-数字游戏平台系统设计与实现文档.docx`、`项目文档/“Steam-”数字游戏平台系统答辩PPT.pptx`；`docs/README.md`、`docs/defense-demo-runbook.md`；`backend/README.md`、`backend/SteamPlatform.sln`、`backend/tests/SteamPlatform.Api.Tests/SteamPlatform.Api.Tests.csproj`、`backend/tests/SteamPlatform.Api.Tests/TestDoubles.cs`、`backend/tests/SteamPlatform.Api.Tests/CoreTransactionWorkflowRegressionTests.cs`；`frontend/src/views/RefundsView.vue`、`frontend/src/views/AdminRefundsView.vue`、`frontend/src/views/WalletRefundRequestView.vue` | 项目统筹、课程要求、文档统一、总体架构、退款审批与审计、核心事务回归和最终验收；掌握 `_archive/**` 的历史来源及其不参与当前构建的原因 |
 | 李胤龙 | `backend/src/SteamPlatform.Api/Program.cs`、`backend/src/SteamPlatform.Api/Properties/**`、`backend/src/SteamPlatform.Api/appsettings*.json`、`backend/src/SteamPlatform.Api/SteamPlatform.Api.csproj`、`backend/src/SteamPlatform.Api/Infrastructure/**`；`backend/src/SteamPlatform.Application/Auth/**`、`backend/src/SteamPlatform.Application/Common/**`、`backend/src/SteamPlatform.Application/Diagnostics/**`、`backend/src/SteamPlatform.Application/SteamPlatform.Application.csproj`；`backend/src/SteamPlatform.Infrastructure/Auth/**`、`backend/src/SteamPlatform.Infrastructure/Data/**`、`backend/src/SteamPlatform.Infrastructure/DependencyInjection.cs`、`backend/src/SteamPlatform.Infrastructure/SteamPlatform.Infrastructure.csproj`；`backend/src/SteamPlatform.Shared/**`；`backend/src/SteamPlatform.Domain/SteamPlatform.Domain.csproj`；`backend/src/SteamPlatform.Api/Features/Auth/**`；`backend/tests/SteamPlatform.Api.Tests/Auth*Tests.cs`、`backend/tests/SteamPlatform.Api.Tests/EndpointGuardTests.cs`、`backend/tests/SteamPlatform.Api.Tests/ExceptionHandlingTests.cs`、`backend/tests/SteamPlatform.Api.Tests/PasswordHasherRegressionTests.cs`、`backend/tests/SteamPlatform.Api.Tests/ProtectedEndpointRegressionTests.cs`、`backend/tests/SteamPlatform.Api.Tests/HealthEndpointTests.cs`、`backend/tests/SteamPlatform.Api.Tests/UtcDateTimeJsonConverterTests.cs`；`backend/tools/SteamPlatform.HttpsDeploy/**`、`backend/tests/SteamPlatform.HttpsDeploy.Tests/**`、`tests/SteamPlatform.Api.CloudTests/**`、`docs/https-deployment-runbook.md` | 五层装配、认证、JWT、角色守卫、统一异常、Oracle 连接、HTTPS、后端部署和云端健康检查 |
 | 元梓浩 | `.github/**`；`backend/src/SteamPlatform.Api/Features/Notices/**`、`backend/src/SteamPlatform.Application/Notices/**`、`backend/src/SteamPlatform.Domain/Notices/**`、`backend/src/SteamPlatform.Infrastructure/Notices/**`、`backend/tests/SteamPlatform.Api.Tests/Notice*Tests.cs`；`frontend/.editorconfig`、`frontend/.env.example`、`frontend/README.md`、`frontend/index.html`、`frontend/package.json`、`frontend/package-lock.json`、`frontend/tsconfig*.json`、`frontend/vite.config.ts`、`frontend/playwright.config.ts`、`frontend/e2e/**`、`frontend/scripts/**`；`frontend/src/App.vue`、`frontend/src/main.ts`、`frontend/src/router.ts`、`frontend/src/env.d.ts`、`frontend/src/stores/**`、`frontend/src/utils/**`、`frontend/src/api/http.ts`、`frontend/src/api/types.ts`、`frontend/src/components/PageState.vue`、`frontend/src/components/StatusBadge.vue`、`frontend/src/components/SteamInfoPanel.vue`、`frontend/src/views/LoginView.vue`、`frontend/src/views/RegisterView.vue`、`frontend/src/views/AccountView.vue`、`frontend/src/views/AdminNoticesView.vue`、`frontend/src/views/NotFoundView.vue`；`docs/playwright-regression-runbook.md` | 前端启动与构建、登录注册、会话恢复、路由权限、公告、公共请求、CI、Playwright 和依赖审计 |
 | 周力扬 | `backend/src/SteamPlatform.Api/Features/Games/**`、`backend/src/SteamPlatform.Application/Games/**`、`backend/src/SteamPlatform.Infrastructure/Games/**`、`backend/tests/SteamPlatform.Api.Tests/Game*Tests.cs`；`frontend/src/api/games.ts`、`frontend/src/views/DeveloperGamesView.vue`、`frontend/src/views/AdminGamesView.vue`、`frontend/src/views/StoreView.vue`、`frontend/src/views/StoreCollectionView.vue`、`frontend/src/components/GameCard.vue`、`frontend/src/components/GameFilterBar.vue`、`frontend/src/data/gameCatalog.ts`；`database/migrations/20260708_developer_login_backend_completion.sql` | 开发商游戏 CRUD、所有权隔离、管理员上下架、公开可见性、商店列表、搜索筛选、集合页及对应迁移 |
 | 王子轩 | `frontend/src/styles.css`、`frontend/src/views/GameDetailView.vue`；`frontend/src/components/GameHeroPanel.vue`、`frontend/src/components/GamePriceBlock.vue`、`frontend/src/components/GameSummarySection.vue`、`frontend/src/components/SteamGameDetailTemplate.vue`、`frontend/src/components/SteamMediaGallery.vue`、`frontend/src/components/Cs2DetailSections.vue`、`frontend/src/components/GenericGameDetailSections.vue`；`frontend/public/assets/games/**`、`frontend/public/assets/media/**` | 游戏详情、Steam 风格、响应式布局、图片/视频与加载兜底 |
-| 胡知鱼 | `docs/group-c-core-transaction-contract.md`、`docs/c2-wallet-module-readme.md`；`backend/src/SteamPlatform.Application/CoreTransactions/**`、`backend/src/SteamPlatform.Infrastructure/CoreTransactions/**`、`backend/tests/SteamPlatform.Api.Tests/CoreTransactionServiceGuardTests.cs`；`frontend/src/api/coreApi.ts`、`frontend/src/views/WalletView.vue`、`frontend/src/views/WalletRechargeCheckoutView.vue`、`frontend/src/views/WalletHistoryView.vue`、`frontend/src/views/WalletHistoryDetailView.vue`、`frontend/src/views/GameCheckoutView.vue`、`frontend/src/views/OrderDetailView.vue`；`database/migrations/20260712_wallet_payment_method_history.sql`、`tests/SteamPlatform.Database.Tests/GroupCSeedContractTests.cs` | 钱包、充值、购买、订单、资金流水、业务契约、事务实现及对应迁移；退款以及 CDKey 与授权方法见 3.5 节 |
+| 胡知鱼 | `backend/src/SteamPlatform.Application/CoreTransactions/**`、`backend/src/SteamPlatform.Infrastructure/CoreTransactions/**`、`backend/tests/SteamPlatform.Api.Tests/CoreTransactionServiceGuardTests.cs`；`frontend/src/api/coreApi.ts`、`frontend/src/views/WalletView.vue`、`frontend/src/views/WalletRechargeCheckoutView.vue`、`frontend/src/views/WalletHistoryView.vue`、`frontend/src/views/WalletHistoryDetailView.vue`、`frontend/src/views/GameCheckoutView.vue`、`frontend/src/views/OrderDetailView.vue`；`database/migrations/20260712_wallet_payment_method_history.sql`、`tests/SteamPlatform.Database.Tests/GroupCSeedContractTests.cs` | 钱包、充值、购买、订单、资金流水、业务契约、事务实现及对应迁移；退款以及 CDKey 与授权方法见 3.5 节 |
 | 徐京 | `backend/src/SteamPlatform.Api/Features/CoreTransactions/**`、`backend/tests/SteamPlatform.Api.Tests/CoreTransactionEndpointTests.cs`、`backend/tests/SteamPlatform.Api.Tests/CoreTransactionRepositoryGuardTests.cs`、`backend/tests/SteamPlatform.Api.Tests/InMemoryCoreTransactionService.cs`；`frontend/src/components/LibraryRail.vue`、`frontend/src/views/CdkeyBatchView.vue`、`frontend/src/views/RedeemView.vue`、`frontend/src/views/LibraryView.vue`、`frontend/src/views/GameLibraryView.vue` | 核心交易端点、CDKey 生成与兑换、免费入库、授权来源、游戏库状态和游玩时长；共享事务方法见 3.5 节 |
 | 靳岱泽 | `backend/src/SteamPlatform.Api/Features/Social/**`、`backend/src/SteamPlatform.Api/Realtime/**`、`backend/src/SteamPlatform.Application/Social/**`、`backend/src/SteamPlatform.Domain/Social/**`、`backend/src/SteamPlatform.Infrastructure/Social/**`、`backend/tests/SteamPlatform.Api.Tests/Social*Tests.cs`；`backend/src/SteamPlatform.Api/Features/Engagement/**`、`backend/src/SteamPlatform.Application/Engagement/**`、`backend/src/SteamPlatform.Domain/Engagement/**`、`backend/src/SteamPlatform.Infrastructure/Engagement/**`、`backend/tests/SteamPlatform.Api.Tests/Engagement*Tests.cs`；`frontend/src/api/socialApi.ts`、`frontend/src/api/socialRealtime.ts`、`frontend/src/api/engagementApi.ts`、`frontend/src/views/CommunityHubView.vue`、`frontend/src/views/ProfileView.vue`；`database/migrations/20260825_social_realtime_foundation.sql`、`database/migrations/20260825_community_engagement_expansion.sql` | 玩家搜索、好友、私信、通知、资料、徽章、社区动态、讨论区、Oracle 持久化和 SignalR；交易报价方法见 3.5 节 |
-| 郭炫君 | `docs/group-d-community-achievement-contract.md`；`backend/src/SteamPlatform.Api/Features/Inventory/**`、`backend/src/SteamPlatform.Application/Inventory/**`、`backend/src/SteamPlatform.Infrastructure/Inventory/**`、`backend/tests/SteamPlatform.Api.Tests/Inventory*Tests.cs`；`backend/src/SteamPlatform.Api/Features/Community/**`、`backend/src/SteamPlatform.Application/Community/**`、`backend/src/SteamPlatform.Domain/Community/**`、`backend/src/SteamPlatform.Infrastructure/Community/**`、`backend/tests/SteamPlatform.Api.Tests/Community*Tests.cs`；`frontend/src/api/inventoryApi.ts`、`frontend/src/api/communityApi.ts`、`frontend/src/data/achievementCatalog.ts`、`frontend/src/views/InventoryView.vue`、`frontend/src/views/GameCommunityView.vue`、`frontend/public/assets/items/**`、`frontend/public/assets/achievements/**`；`database/migrations/20260709_cs2_item_template_image_assets.sql`、`database/migrations/20260710_item_template_image_assets_by_game.sql`、`database/migrations/20260713_group_d_achievement_seed.sql`、`tests/SteamPlatform.Database.Tests/AchievementMigrationTests.cs` | 饰品模板与实例、掉落、库存状态、评价版本、成就、工坊订阅及对应迁移 |
-| 张茗博 | `database/README.md`、`database/admin/**`、`database/data.sql`、`database/defense/**`、`database/demo/**`、`database/schema.sql`、`database/verify_defense.sql`、`database/verify_phase1.sql`、`database/migrations/20260825_demo_reset_audit.sql`；`tests/SteamPlatform.Database.Tests/DefenseScriptContractTests.cs`、`tests/SteamPlatform.Database.Tests/MigrationScriptConventionTests.cs`、`tests/SteamPlatform.Database.Tests/OracleSmokeTests.cs`、`tests/SteamPlatform.Database.Tests/README.md`、`tests/SteamPlatform.Database.Tests/SchemaContractTests.cs`、`tests/SteamPlatform.Database.Tests/SeedDataTests.cs`、`tests/SteamPlatform.Database.Tests/SqlFile.cs`、`tests/SteamPlatform.Database.Tests/SteamPlatform.Database.Tests.csproj`、`tests/SteamPlatform.Database.Tests/VerifyScriptTests.cs`；`tests/market-api.http`、`E-R图（改）.drawio`、`“Steam-”数字游戏平台系统（改）.pdma`、`图（改）/**`、`项目文档/“Steam-”数字游戏平台系统数据库设计文档.docx`、`docs/database-defense-runbook.md`；`backend/tools/SteamPlatform.DemoData/**`、`backend/tests/SteamPlatform.DemoData.Tests/**`；`backend/src/SteamPlatform.Api/Features/Market/**`、`backend/src/SteamPlatform.Application/Market/**`、`backend/src/SteamPlatform.Infrastructure/Market/**`、`backend/tests/SteamPlatform.Api.Tests/Market*Tests.cs`；`frontend/src/api/marketApi.ts`、`frontend/src/views/MarketView.vue`、`frontend/src/views/TradeOffersView.vue` | 45 表总体设计、全局 SQL/迁移规范/验证、演示数据恢复、市场撮合、交易报价、资产账本、执行计划和行锁 |
+| 郭炫君 | `backend/src/SteamPlatform.Api/Features/Inventory/**`、`backend/src/SteamPlatform.Application/Inventory/**`、`backend/src/SteamPlatform.Infrastructure/Inventory/**`、`backend/tests/SteamPlatform.Api.Tests/Inventory*Tests.cs`；`backend/src/SteamPlatform.Api/Features/Community/**`、`backend/src/SteamPlatform.Application/Community/**`、`backend/src/SteamPlatform.Domain/Community/**`、`backend/src/SteamPlatform.Infrastructure/Community/**`、`backend/tests/SteamPlatform.Api.Tests/Community*Tests.cs`；`frontend/src/api/inventoryApi.ts`、`frontend/src/api/communityApi.ts`、`frontend/src/data/achievementCatalog.ts`、`frontend/src/views/InventoryView.vue`、`frontend/src/views/GameCommunityView.vue`、`frontend/public/assets/items/**`、`frontend/public/assets/achievements/**`；`database/migrations/20260709_cs2_item_template_image_assets.sql`、`database/migrations/20260710_item_template_image_assets_by_game.sql`、`database/migrations/20260713_group_d_achievement_seed.sql`、`tests/SteamPlatform.Database.Tests/AchievementMigrationTests.cs` | 饰品模板与实例、掉落、库存状态、评价版本、成就、工坊订阅及对应迁移 |
+| 张茗博 | `database/README.md`、`database/Oracle数据库导入与初始化说明.md`、`database/admin/**`、`database/data.sql`、`database/defense/**`、`database/demo/**`、`database/schema.sql`、`database/verify_defense.sql`、`database/verify_phase1.sql`、`database/migrations/20260825_demo_reset_audit.sql`；`tests/SteamPlatform.Database.Tests/DefenseScriptContractTests.cs`、`tests/SteamPlatform.Database.Tests/MigrationScriptConventionTests.cs`、`tests/SteamPlatform.Database.Tests/OracleSmokeTests.cs`、`tests/SteamPlatform.Database.Tests/README.md`、`tests/SteamPlatform.Database.Tests/SchemaContractTests.cs`、`tests/SteamPlatform.Database.Tests/SeedDataTests.cs`、`tests/SteamPlatform.Database.Tests/SqlFile.cs`、`tests/SteamPlatform.Database.Tests/SteamPlatform.Database.Tests.csproj`、`tests/SteamPlatform.Database.Tests/VerifyScriptTests.cs`；`tests/market-api.http`、`项目文档/“Steam-”数字游戏平台系统数据库设计文档.docx`、`docs/database-defense-runbook.md`；`backend/tools/SteamPlatform.DemoData/**`、`backend/tests/SteamPlatform.DemoData.Tests/**`；`backend/src/SteamPlatform.Api/Features/Market/**`、`backend/src/SteamPlatform.Application/Market/**`、`backend/src/SteamPlatform.Infrastructure/Market/**`、`backend/tests/SteamPlatform.Api.Tests/Market*Tests.cs`；`frontend/src/api/marketApi.ts`、`frontend/src/views/MarketView.vue`、`frontend/src/views/TradeOffersView.vue` | 45 表总体设计、全局 SQL/迁移规范/验证、演示数据恢复、市场撮合、交易报价、资产账本、执行计划和行锁 |
 
-各业务测试的具体断言仍由对应模块成员共同掌握。以上规则覆盖根目录、`_archive`、后端、数据库、文档、前端、测试、模型图和正式项目文档，不存在无人负责或多人同时作为第一责任人的跟踪文件。
+各业务测试的具体断言仍由对应模块成员共同掌握。以上规则覆盖根目录、`_archive`、后端、数据库、文档、前端、测试和正式项目文档，不存在无人负责或多人同时作为第一责任人的跟踪文件。
 
 ### 3.5 共享大文件的方法级责任
 
