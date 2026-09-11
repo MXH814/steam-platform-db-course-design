@@ -6,6 +6,8 @@ test.describe('固定演示基线', () => {
     await loginAs(page, 'alice', 'alice');
 
     await page.goto('/library');
+    await expect(page.getByText('来自游戏和社区', { exact: true })).toBeVisible();
+    await expect(page.getByText('来自你的游戏和社区', { exact: true })).toHaveCount(0);
     await expect(page.locator('.recent-game').filter({ hasText: 'Counter-Strike 2' })).toBeVisible();
     await expect(page.locator('.recent-game').filter({ hasText: '饥荒联机版' })).toBeVisible();
 

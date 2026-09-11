@@ -11,7 +11,7 @@
         <span>{{ fallbackMessage }}</span>
       </section>
 
-      <GameHeroPanel v-if="games.length" :games="games" />
+      <GameHeroPanel v-if="storefrontGames.length" :games="storefrontGames" />
       <PageState v-else kind="empty" title="没有找到游戏" message="换一个搜索词或筛选条件再试。" />
 
       <section class="store-section">
@@ -23,8 +23,8 @@
           <RouterLink to="/store/specials">查看更多</RouterLink>
         </header>
 
-        <div v-if="games.length" class="game-grid">
-          <GameCard v-for="game in games" :key="game.gameId" :game="game" />
+        <div v-if="storefrontGames.length" class="game-grid">
+          <GameCard v-for="game in storefrontGames" :key="game.gameId" :game="game" />
         </div>
       </section>
     </template>
@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { getApiError } from '../api/http';
 import { getGames } from '../api/games';
@@ -57,6 +57,24 @@ const error = ref('');
 const isFallback = ref(false);
 const fallbackMessage = ref('');
 let retryTimer: number | undefined;
+
+const storefrontGames = computed(() => {
+  const hasActiveQuery = Boolean(
+    query.value.search?.trim() ||
+    query.value.priceFilter !== 'all' ||
+    query.value.sort !== 'default'
+  );
+  if (hasActiveQuery) return games.value;
+
+  const sampleGames = new Set(['GAME_CS2', 'GAME_DST']);
+  return games.value
+    .map((game, index) => ({ game, index }))
+    .sort((left, right) => {
+      const sampleRank = Number(!sampleGames.has(left.game.gameId)) - Number(!sampleGames.has(right.game.gameId));
+      return sampleRank || left.index - right.index;
+    })
+    .map(({ game }) => game);
+});
 
 async function loadGames(options: { silent?: boolean } = {}) {
   if (!options.silent) {

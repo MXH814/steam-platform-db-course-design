@@ -2,6 +2,71 @@ import { expect, test } from '@playwright/test';
 import { assertNoHorizontalOverflow, dismissStartupAnnouncement } from './helpers';
 
 test.describe('公开商店与媒体画廊', () => {
+  test('新上架游戏追加在首页末尾且不占用固定精选位', async ({ page }) => {
+    await page.route((url) => url.pathname === '/api/games', async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 0,
+          message: 'success',
+          data: {
+            items: [
+              {
+                gameId: 'GAME_SURVIVAL_LAB',
+                gameName: 'Survival Lab',
+                developerId: 'DEV_KLEI',
+                developerName: 'Klei Entertainment',
+                basePrice: 68,
+                discountRate: 0.2,
+                finalPrice: 54.4,
+                releaseDate: '2026-09-11T00:00:00',
+                reputation: null,
+                status: 'ONLINE'
+              },
+              {
+                gameId: 'GAME_CS2',
+                gameName: 'Counter-Strike 2',
+                developerId: 'DEV_VALVE',
+                developerName: 'Valve',
+                basePrice: 0,
+                discountRate: 0,
+                finalPrice: 0,
+                releaseDate: '2023-09-27T00:00:00',
+                reputation: '特别好评',
+                status: 'ONLINE'
+              },
+              {
+                gameId: 'GAME_DST',
+                gameName: "Don't Starve Together / 饥荒联机版",
+                developerId: 'DEV_KLEI',
+                developerName: 'Klei Entertainment',
+                basePrice: 48,
+                discountRate: 0.5,
+                finalPrice: 24,
+                releaseDate: '2016-04-21T00:00:00',
+                reputation: '好评如潮',
+                status: 'ONLINE'
+              }
+            ],
+            page: 1,
+            pageSize: 50,
+            total: 3
+          }
+        })
+      });
+    });
+
+    await page.goto('/store');
+    await dismissStartupAnnouncement(page);
+
+    await expect(page.locator('.feature-summary h1')).toHaveText("Don't Starve Together / 饥荒联机版");
+    await expect(page.locator('.game-grid .game-card h3')).toHaveText([
+      'Counter-Strike 2',
+      "Don't Starve Together / 饥荒联机版",
+      'Survival Lab'
+    ]);
+  });
+
   test('首页先渲染商店，再以前置浮窗显示启动公告', async ({ page, request }) => {
     const health = await request.get('/health');
     expect(health.ok()).toBeTruthy();

@@ -32,7 +32,7 @@
             <h2>新情报速递</h2>
             <Settings :size="15" />
           </div>
-          <span>来自你的游戏和社区</span>
+          <span>来自游戏和社区</span>
         </header>
 
         <div class="news-grid">

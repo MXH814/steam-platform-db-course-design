@@ -50,7 +50,11 @@ const props = defineProps<{
 const activeIndex = ref(0);
 const featured = computed(() => {
   const priority = ['GAME_DST', 'GAME_CS2'];
-  return [...props.games].sort((a, b) => priority.indexOf(a.gameId) - priority.indexOf(b.gameId)).slice(0, 2);
+  const rank = (gameId: string) => {
+    const index = priority.indexOf(gameId);
+    return index === -1 ? priority.length : index;
+  };
+  return [...props.games].sort((a, b) => rank(a.gameId) - rank(b.gameId)).slice(0, 2);
 });
 const activeGame = computed(() => featured.value[activeIndex.value] ?? featured.value[0]);
 const activeMeta = computed(() => getGameMeta(activeGame.value?.gameId || 'GAME_DST', activeGame.value?.gameName));
