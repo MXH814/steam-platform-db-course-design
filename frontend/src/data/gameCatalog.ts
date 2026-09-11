@@ -121,9 +121,9 @@ export function getGameMeta(gameId: string, gameName?: string): GameCatalogItem 
       storeLine: '独立的测试游戏条目，用于演示开发商提交、管理员审核和上下架流程。',
       libraryLine: '该游戏作为开发商与管理员工作流的测试数据展示。',
       capsuleLabel: 'SURVIVAL LAB',
-      heroImage: '/assets/media/dst-screenshot-4.jpg',
-      coverImage: '/assets/media/dst-screenshot-5.jpg',
-      headerImage: '/assets/media/dst-screenshot-3.jpg',
+      heroImage: '/assets/games/survival-lab-hero.jpg',
+      coverImage: '/assets/games/survival-lab-hero.jpg',
+      headerImage: '/assets/games/survival-lab-hero.jpg',
       tags: ['开发中', '合作', '生存', '测试项目']
     };
   }
